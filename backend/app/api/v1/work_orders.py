@@ -116,7 +116,12 @@ def _woa_to_out(woa: WorkOrderAsset, label: str | None = None) -> WorkOrderAsset
     )
 
 
-async def _wo_to_out(wo: WorkOrder, db: AsyncSession) -> WorkOrderOut:
+async def _wo_to_out(
+    wo: WorkOrder,
+    db: AsyncSession,
+    lon: float | None = None,
+    lat: float | None = None,
+) -> WorkOrderOut:
     """Convert a WorkOrder ORM object to WorkOrderOut, including asset labels."""
     assets_out = []
     if wo.assets:
@@ -151,6 +156,8 @@ async def _wo_to_out(wo: WorkOrder, db: AsyncSession) -> WorkOrderOut:
         closed_date=wo.closed_date,
         address=wo.address,
         location_notes=wo.location_notes,
+        longitude=lon,
+        latitude=lat,
         labor_hours=wo.labor_hours,
         labor_cost=wo.labor_cost,
         material_cost=wo.material_cost,
@@ -166,6 +173,38 @@ async def _wo_to_out(wo: WorkOrder, db: AsyncSession) -> WorkOrderOut:
     )
 
 
+async def _resolve_fallback_coords_for_work_orders(
+    wo_ids: list[uuid.UUID], db: AsyncSession
+) -> dict[uuid.UUID, tuple[float, float]]:
+    """
+    For work orders without geometry, resolve lon/lat from the first linked
+    sign via work_order_asset. Returns {work_order_id: (lon, lat)}.
+    Batch query — no N+1.
+    """
+    if not wo_ids:
+        return {}
+
+    # Get the first sign asset per WO, then join to sign geometry
+    # Use DISTINCT ON to get one row per work_order_id
+    subq = (
+        select(
+            WorkOrderAsset.work_order_id,
+            func.ST_X(Sign.geometry).label("lon"),
+            func.ST_Y(Sign.geometry).label("lat"),
+        )
+        .join(Sign, Sign.sign_id == WorkOrderAsset.asset_id)
+        .where(
+            WorkOrderAsset.work_order_id.in_(wo_ids),
+            WorkOrderAsset.asset_type == "sign",
+        )
+        .distinct(WorkOrderAsset.work_order_id)
+        .order_by(WorkOrderAsset.work_order_id, WorkOrderAsset.created_at)
+    )
+
+    result = await db.execute(subq)
+    return {row.work_order_id: (row.lon, row.lat) for row in result.all()}
+
+
 @router.get("", response_model=WorkOrderListOut)
 async def list_work_orders(
     tenant_id: uuid.UUID = Depends(get_current_tenant),
@@ -178,8 +217,32 @@ async def list_work_orders(
     assigned_to: uuid.UUID | None = None,
     asset_type: str | None = None,
 ):
-    query = select(WorkOrder).where(WorkOrder.tenant_id == tenant_id)
+    base_query = select(WorkOrder).where(WorkOrder.tenant_id == tenant_id)
 
+    if status:
+        base_query = base_query.where(WorkOrder.status == status)
+    if priority:
+        base_query = base_query.where(WorkOrder.priority == priority)
+    if work_type:
+        base_query = base_query.where(WorkOrder.work_type == work_type)
+    if assigned_to:
+        base_query = base_query.where(WorkOrder.assigned_to == assigned_to)
+    if asset_type:
+        base_query = base_query.where(WorkOrder.asset_type == asset_type)
+
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = (await db.execute(count_query)).scalar_one()
+
+    offset = (page - 1) * page_size
+    query = (
+        select(
+            WorkOrder,
+            func.ST_X(WorkOrder.geometry).label("lon"),
+            func.ST_Y(WorkOrder.geometry).label("lat"),
+        )
+        .where(WorkOrder.tenant_id == tenant_id)
+    )
+    # Re-apply filters on the coordinate query
     if status:
         query = query.where(WorkOrder.status == status)
     if priority:
@@ -191,10 +254,6 @@ async def list_work_orders(
     if asset_type:
         query = query.where(WorkOrder.asset_type == asset_type)
 
-    count_query = select(func.count()).select_from(query.subquery())
-    total = (await db.execute(count_query)).scalar_one()
-
-    offset = (page - 1) * page_size
     query = (
         query.options(selectinload(WorkOrder.assets))
         .offset(offset)
@@ -202,9 +261,25 @@ async def list_work_orders(
         .order_by(WorkOrder.created_at.desc())
     )
     result = await db.execute(query)
-    work_orders = [
-        await _wo_to_out(wo, db) for wo in result.scalars().all()
+    rows = result.all()
+
+    # Batch-resolve fallback coordinates for WOs without geometry
+    wo_ids_needing_fallback = [
+        row.WorkOrder.work_order_id for row in rows if row.lon is None
     ]
+    fallback_coords = await _resolve_fallback_coords_for_work_orders(
+        wo_ids_needing_fallback, db
+    )
+
+    work_orders = []
+    for row in rows:
+        lon = row.lon
+        lat = row.lat
+        if lon is None:
+            fb = fallback_coords.get(row.WorkOrder.work_order_id)
+            if fb:
+                lon, lat = fb
+        work_orders.append(await _wo_to_out(row.WorkOrder, db, lon=lon, lat=lat))
 
     return WorkOrderListOut(
         work_orders=work_orders, total=total, page=page, page_size=page_size
@@ -338,15 +413,31 @@ async def create_work_order(
 
     await db.flush()
 
-    # Re-fetch with eager-loaded assets to avoid lazy load issues
+    # Re-fetch with eager-loaded assets and coordinates
     result = await db.execute(
-        select(WorkOrder)
+        select(
+            WorkOrder,
+            func.ST_X(WorkOrder.geometry).label("lon"),
+            func.ST_Y(WorkOrder.geometry).label("lat"),
+        )
         .options(selectinload(WorkOrder.assets))
         .where(WorkOrder.work_order_id == wo.work_order_id)
     )
-    wo = result.scalar_one()
+    row = result.first()
+    wo = row.WorkOrder
+    lon = row.lon
+    lat = row.lat
 
-    return await _wo_to_out(wo, db)
+    # Fallback to first linked sign if no WO geometry
+    if lon is None and wo.assets:
+        fallback = await _resolve_fallback_coords_for_work_orders(
+            [wo.work_order_id], db
+        )
+        fb = fallback.get(wo.work_order_id)
+        if fb:
+            lon, lat = fb
+
+    return await _wo_to_out(wo, db, lon=lon, lat=lat)
 
 
 @router.get("/{work_order_id}", response_model=WorkOrderOut)
@@ -356,17 +447,34 @@ async def get_work_order(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(WorkOrder)
+        select(
+            WorkOrder,
+            func.ST_X(WorkOrder.geometry).label("lon"),
+            func.ST_Y(WorkOrder.geometry).label("lat"),
+        )
         .options(selectinload(WorkOrder.assets))
         .where(
             WorkOrder.work_order_id == work_order_id,
             WorkOrder.tenant_id == tenant_id,
         )
     )
-    wo = result.scalar_one_or_none()
-    if not wo:
+    row = result.first()
+    if not row:
         raise HTTPException(status_code=404, detail="Work order not found")
-    return await _wo_to_out(wo, db)
+    wo = row.WorkOrder
+    lon = row.lon
+    lat = row.lat
+
+    # Fallback to first linked sign if no WO geometry
+    if lon is None and wo.assets:
+        fallback = await _resolve_fallback_coords_for_work_orders(
+            [wo.work_order_id], db
+        )
+        fb = fallback.get(wo.work_order_id)
+        if fb:
+            lon, lat = fb
+
+    return await _wo_to_out(wo, db, lon=lon, lat=lat)
 
 
 @router.put("/{work_order_id}", response_model=WorkOrderOut)
@@ -436,12 +544,29 @@ async def update_work_order(
     wo_id = wo.work_order_id
     db.expunge(wo)
     result = await db.execute(
-        select(WorkOrder)
+        select(
+            WorkOrder,
+            func.ST_X(WorkOrder.geometry).label("lon"),
+            func.ST_Y(WorkOrder.geometry).label("lat"),
+        )
         .options(selectinload(WorkOrder.assets))
         .where(WorkOrder.work_order_id == wo_id)
     )
-    wo = result.scalar_one()
-    return await _wo_to_out(wo, db)
+    row = result.first()
+    wo = row.WorkOrder
+    lon = row.lon
+    lat = row.lat
+
+    # Fallback to first linked sign if no WO geometry
+    if lon is None and wo.assets:
+        fallback = await _resolve_fallback_coords_for_work_orders(
+            [wo.work_order_id], db
+        )
+        fb = fallback.get(wo.work_order_id)
+        if fb:
+            lon, lat = fb
+
+    return await _wo_to_out(wo, db, lon=lon, lat=lat)
 
 
 @router.put("/{work_order_id}/assets/{work_order_asset_id}", response_model=WorkOrderAssetOut)

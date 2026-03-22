@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, ClipboardCheck, Loader2, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import {
   useInspectionsList,
   useCreateInspection,
@@ -8,31 +8,12 @@ import {
   useDeleteInspection,
   useInspection,
 } from '../hooks/use-inspections';
+import { useSignsList } from '../hooks/use-signs';
 import { InspectionDetailPanel } from '../components/inspections/inspection-detail-panel';
 import { InspectionForm, type InspectionAssetContext } from '../components/inspections/inspection-form';
+import { InspectionListPanel } from '../components/inspections/inspection-list-panel';
+import { InspectionMap } from '../components/map/inspection-map';
 import type { Inspection, InspectionCreate, InspectionUpdate } from '../api/types';
-import {
-  INSPECTION_TYPE_OPTIONS,
-  INSPECTION_STATUS_OPTIONS,
-  CONDITION_COLORS,
-  UNRATED_COLOR,
-  getInspectionTypeOption,
-  getInspectionStatusOption,
-  formatEnumLabel,
-} from '../lib/constants';
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
 
 export function InspectionsPage() {
   const location = useLocation();
@@ -44,18 +25,21 @@ export function InspectionsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [followUpFilter, setFollowUpFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null);
   const [selectedInspectionId, setSelectedInspectionId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [assetContext, setAssetContext] = useState<InspectionAssetContext | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
   const handledRouteState = useRef(false);
 
+  // Fetch signs for the base layer
+  const { data: signsData } = useSignsList({ page_size: 200 });
+  const signs = signsData?.signs ?? [];
+
   const { data, isLoading } = useInspectionsList({
-    page,
-    page_size: 50,
+    page_size: 200,
     status: statusFilter || undefined,
     inspection_type: typeFilter || undefined,
     follow_up_required: followUpFilter === '' ? undefined : followUpFilter === 'true',
@@ -67,6 +51,25 @@ export function InspectionsPage() {
   const createInspection = useCreateInspection();
   const updateInspection = useUpdateInspection();
   const deleteInspection = useDeleteInspection();
+
+  // Client-side search filtering
+  const filteredInspections = useMemo(() => {
+    if (!data?.inspections) return [];
+    if (!searchQuery.trim()) return data.inspections;
+    const q = searchQuery.toLowerCase();
+    return data.inspections.filter((insp) =>
+      (insp.inspection_number && insp.inspection_number.toLowerCase().includes(q)) ||
+      (insp.findings && insp.findings.toLowerCase().includes(q))
+    );
+  }, [data?.inspections, searchQuery]);
+
+  // Compute highlighted sign IDs from selected inspection's linked assets
+  const highlightedSignIds = useMemo(() => {
+    if (!selectedInspection?.assets) return [];
+    return selectedInspection.assets
+      .filter((a) => a.asset_type === 'sign')
+      .map((a) => a.asset_id);
+  }, [selectedInspection]);
 
   // Handle route state (navigate from sign/support detail) — once only
   useEffect(() => {
@@ -145,7 +148,7 @@ export function InspectionsPage() {
     }
   };
 
-  const handleRowClick = (insp: Inspection) => {
+  const handleInspSelect = useCallback((insp: Inspection) => {
     if (selectedInspection?.inspection_id === insp.inspection_id) {
       setSelectedInspection(null);
       setSelectedInspectionId(null);
@@ -153,205 +156,66 @@ export function InspectionsPage() {
       setSelectedInspection(insp);
       setSelectedInspectionId(insp.inspection_id);
     }
-  };
+  }, [selectedInspection]);
 
-  const totalPages = data ? Math.ceil(data.total / data.page_size) : 1;
+  const handleMapDeselect = useCallback(() => {
+    setSelectedInspection(null);
+    setSelectedInspectionId(null);
+  }, []);
+
+  const geoInspCount = useMemo(
+    () => filteredInspections.filter((i) => i.longitude != null && i.latitude != null).length,
+    [filteredInspections],
+  );
 
   return (
     <div className="h-full flex overflow-hidden">
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-4 border-b bg-white">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <ClipboardCheck size={20} className="text-gray-600" />
-              <h1 className="text-lg font-semibold text-gray-900">Inspections</h1>
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                {data?.total ?? 0}
-              </span>
-            </div>
-            <button
-              onClick={handleCreate}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              <Plus size={14} />
-              New Inspection
-            </button>
+      {/* Left: Inspection list */}
+      <InspectionListPanel
+        inspections={filteredInspections}
+        total={data?.total ?? 0}
+        isLoading={isLoading}
+        selectedInspId={selectedInspection?.inspection_id ?? null}
+        onInspSelect={handleInspSelect}
+        statusFilter={statusFilter}
+        onStatusFilterChange={(s) => { setStatusFilter(s); setSelectedInspection(null); setSelectedInspectionId(null); }}
+        typeFilter={typeFilter}
+        onTypeFilterChange={(t) => { setTypeFilter(t); setSelectedInspection(null); setSelectedInspectionId(null); }}
+        followUpFilter={followUpFilter}
+        onFollowUpFilterChange={(f) => { setFollowUpFilter(f); setSelectedInspection(null); setSelectedInspectionId(null); }}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
+
+      {/* Center: Map */}
+      <div className="flex-1 relative">
+        <InspectionMap
+          signs={signs}
+          inspections={filteredInspections}
+          selectedInspId={selectedInspection?.inspection_id ?? null}
+          onInspClick={handleInspSelect}
+          onDeselect={handleMapDeselect}
+          highlightedSignIds={highlightedSignIds}
+        />
+
+        {/* Status bar with Create button */}
+        <div className="absolute top-4 left-4 flex items-center gap-2">
+          <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
+            {filteredInspections.length === (data?.total ?? 0) ? (
+              <span>{data?.total ?? 0} inspections{geoInspCount < filteredInspections.length ? ` (${geoInspCount} mapped)` : ''}</span>
+            ) : (
+              <span>{filteredInspections.length} of {data?.total ?? 0} inspections</span>
+            )}
           </div>
 
-          {/* Filters */}
-          <div className="flex items-center gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Statuses</option>
-              {INSPECTION_STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <select
-              value={typeFilter}
-              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-              className="rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Types</option>
-              {INSPECTION_TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <select
-              value={followUpFilter}
-              onChange={(e) => { setFollowUpFilter(e.target.value); setPage(1); }}
-              className="rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Follow-up</option>
-              <option value="true">Follow-up Required</option>
-              <option value="false">No Follow-up</option>
-            </select>
-          </div>
+          <button
+            onClick={handleCreate}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
+          >
+            <Plus size={14} />
+            New Inspection
+          </button>
         </div>
-
-        {/* Table */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              <Loader2 size={24} className="animate-spin" />
-            </div>
-          ) : !data?.inspections.length ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400">
-              <Search size={32} className="mb-2" />
-              <p className="text-sm">No inspections found</p>
-              <button
-                onClick={handleCreate}
-                className="mt-3 text-xs text-blue-600 hover:text-blue-800"
-              >
-                Create your first inspection
-              </button>
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 sticky top-0">
-                <tr className="text-left text-xs text-gray-500 uppercase tracking-wider">
-                  <th className="px-4 py-2 font-medium">INS #</th>
-                  <th className="px-4 py-2 font-medium">Date</th>
-                  <th className="px-4 py-2 font-medium">Type</th>
-                  <th className="px-4 py-2 font-medium">Assets</th>
-                  <th className="px-4 py-2 font-medium">Condition</th>
-                  <th className="px-4 py-2 font-medium">Follow-up</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
-                  <th className="px-4 py-2 font-medium">Created</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data.inspections.map((insp) => {
-                  const typeOpt = getInspectionTypeOption(insp.inspection_type);
-                  const statusOpt = getInspectionStatusOption(insp.status);
-                  const isSelected = selectedInspection?.inspection_id === insp.inspection_id;
-                  const condColor = insp.condition_rating
-                    ? CONDITION_COLORS[insp.condition_rating]
-                    : UNRATED_COLOR;
-
-                  // Asset count/labels from the list response
-                  const assetCount = insp.assets?.length ?? 0;
-                  const assetSummary = assetCount > 0
-                    ? insp.assets.slice(0, 2).map((a) => a.asset_label || formatEnumLabel(a.asset_type)).join(', ')
-                      + (assetCount > 2 ? ` +${assetCount - 2}` : '')
-                    : '\u2014';
-
-                  return (
-                    <tr
-                      key={insp.inspection_id}
-                      onClick={() => handleRowClick(insp)}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected
-                          ? 'bg-blue-50 border-l-2 border-blue-500'
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <td className="px-4 py-2.5 font-mono text-xs text-gray-900 whitespace-nowrap">
-                        {insp.inspection_number || '—'}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-900 whitespace-nowrap text-xs">
-                        {formatDate(insp.inspection_date)}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium ${typeOpt.color}`}>
-                          {typeOpt.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-600 text-xs truncate max-w-[200px]" title={assetSummary}>
-                        {assetCount > 0 && (
-                          <span className="bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5 text-[10px] font-medium mr-1">
-                            {assetCount}
-                          </span>
-                        )}
-                        {assetSummary}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span
-                          className="inline-flex items-center gap-1 text-xs"
-                          style={{ color: condColor.hex }}
-                        >
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: condColor.hex }} />
-                          {insp.condition_rating ? `${insp.condition_rating}/5` : '\u2014'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {insp.follow_up_required ? (
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                            insp.follow_up_work_order_id
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {insp.follow_up_work_order_id ? 'WO Linked' : 'Required'}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-gray-400">No</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusOpt.color}`}>
-                          {statusOpt.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-500 text-xs whitespace-nowrap">
-                        {formatDate(insp.created_at)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Pagination */}
-        {data && totalPages > 1 && (
-          <div className="px-4 py-2 border-t bg-white flex items-center justify-between text-xs text-gray-500">
-            <span>
-              Page {data.page} of {totalPages} ({data.total} total)
-            </span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-2 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="px-2 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Right: Detail panel */}
@@ -364,7 +228,7 @@ export function InspectionsPage() {
           isDeleting={deleteInspection.isPending}
           onRefresh={() => {
             if (selectedInspectionId) {
-              setSelectedInspectionId(selectedInspectionId); // re-trigger fetch
+              setSelectedInspectionId(selectedInspectionId);
             }
           }}
         />

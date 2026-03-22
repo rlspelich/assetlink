@@ -100,6 +100,8 @@ class InspectionOut(BaseModel):
     follow_up_required: bool
     follow_up_work_order_id: uuid.UUID | None = None
     custom_fields: dict | None = None
+    longitude: float | None = None
+    latitude: float | None = None
     assets: list[InspectionAssetOut] = []
     created_at: datetime
     updated_at: datetime

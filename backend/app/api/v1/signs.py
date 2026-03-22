@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from geoalchemy2.functions import ST_AsText, ST_MakePoint, ST_SetSRID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.core.tenant import get_current_tenant
@@ -379,20 +380,52 @@ async def list_sign_work_orders(
     )
     combined_wo_ids = junction_wo_ids.union(legacy_wo_ids).subquery()
 
-    query = select(WorkOrder).where(
+    base_filter = select(WorkOrder).where(
         WorkOrder.work_order_id.in_(select(combined_wo_ids)),
         WorkOrder.tenant_id == tenant_id,
     )
 
-    count_query = select(func.count()).select_from(query.subquery())
+    count_query = select(func.count()).select_from(base_filter.subquery())
     total = (await db.execute(count_query)).scalar_one()
 
     offset = (page - 1) * page_size
-    query = query.offset(offset).limit(page_size).order_by(WorkOrder.created_at.desc())
+    query = (
+        select(
+            WorkOrder,
+            func.ST_X(WorkOrder.geometry).label("lon"),
+            func.ST_Y(WorkOrder.geometry).label("lat"),
+        )
+        .where(
+            WorkOrder.work_order_id.in_(select(combined_wo_ids)),
+            WorkOrder.tenant_id == tenant_id,
+        )
+        .options(selectinload(WorkOrder.assets))
+        .offset(offset)
+        .limit(page_size)
+        .order_by(WorkOrder.created_at.desc())
+    )
     result = await db.execute(query)
-    work_orders = [
-        WorkOrderOut.model_validate(wo) for wo in result.scalars().all()
+    rows = result.all()
+
+    from app.api.v1.work_orders import _wo_to_out, _resolve_fallback_coords_for_work_orders
+
+    # Batch-resolve fallback coordinates for WOs without geometry
+    wo_ids_needing_fallback = [
+        row.WorkOrder.work_order_id for row in rows if row.lon is None
     ]
+    fallback_coords = await _resolve_fallback_coords_for_work_orders(
+        wo_ids_needing_fallback, db
+    )
+
+    work_orders = []
+    for row in rows:
+        lon = row.lon
+        lat = row.lat
+        if lon is None:
+            fb = fallback_coords.get(row.WorkOrder.work_order_id)
+            if fb:
+                lon, lat = fb
+        work_orders.append(await _wo_to_out(row.WorkOrder, db, lon=lon, lat=lat))
 
     return WorkOrderListOut(
         work_orders=work_orders, total=total, page=page, page_size=page_size
@@ -439,20 +472,52 @@ async def list_sign_inspections(
     )
     combined_insp_ids = junction_insp_ids.union(legacy_insp_ids).subquery()
 
-    query = select(Inspection).where(
+    base_filter = select(Inspection).where(
         Inspection.inspection_id.in_(select(combined_insp_ids)),
         Inspection.tenant_id == tenant_id,
     )
 
-    count_query = select(func.count()).select_from(query.subquery())
+    count_query = select(func.count()).select_from(base_filter.subquery())
     total = (await db.execute(count_query)).scalar_one()
 
     offset = (page - 1) * page_size
-    query = query.offset(offset).limit(page_size).order_by(Inspection.created_at.desc())
+    query = (
+        select(
+            Inspection,
+            func.ST_X(Inspection.geometry).label("lon"),
+            func.ST_Y(Inspection.geometry).label("lat"),
+        )
+        .where(
+            Inspection.inspection_id.in_(select(combined_insp_ids)),
+            Inspection.tenant_id == tenant_id,
+        )
+        .options(selectinload(Inspection.assets))
+        .offset(offset)
+        .limit(page_size)
+        .order_by(Inspection.created_at.desc())
+    )
     result = await db.execute(query)
-    inspections = [
-        InspectionOut.model_validate(i) for i in result.scalars().all()
+    rows = result.all()
+
+    from app.api.v1.inspections import _inspection_to_out, _resolve_fallback_coords_for_inspections
+
+    # Batch-resolve fallback coordinates for inspections without geometry
+    insp_ids_needing_fallback = [
+        row.Inspection.inspection_id for row in rows if row.lon is None
     ]
+    fallback_coords = await _resolve_fallback_coords_for_inspections(
+        insp_ids_needing_fallback, db
+    )
+
+    inspections = []
+    for row in rows:
+        lon = row.lon
+        lat = row.lat
+        if lon is None:
+            fb = fallback_coords.get(row.Inspection.inspection_id)
+            if fb:
+                lon, lat = fb
+        inspections.append(await _inspection_to_out(row.Inspection, db, lon=lon, lat=lat))
 
     return InspectionListOut(
         inspections=inspections, total=total, page=page, page_size=page_size

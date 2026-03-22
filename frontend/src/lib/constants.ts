@@ -143,3 +143,29 @@ export function getInspectionActionOption(value: string | null) {
 export function formatEnumLabel(value: string): string {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+// --- Work Order map marker colors (by priority) ---
+
+export const WO_PRIORITY_COLORS: Record<string, string> = {
+  emergency: '#ef4444',
+  urgent: '#f97316',
+  routine: '#3b82f6',
+  planned: '#6b7280',
+};
+
+export function getWoPriorityMarkerColor(priority: string): string {
+  return WO_PRIORITY_COLORS[priority] ?? '#6b7280';
+}
+
+// --- Inspection map marker colors ---
+
+export function getInspectionMarkerColor(
+  followUpRequired: boolean,
+  followUpWOId: string | null,
+  status: string,
+): string {
+  if (followUpRequired && !followUpWOId) return '#ef4444';
+  if (followUpRequired && followUpWOId) return '#3b82f6';
+  if (status === 'completed') return '#22c55e';
+  return '#eab308';
+}

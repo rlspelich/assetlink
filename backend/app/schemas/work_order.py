@@ -95,6 +95,8 @@ class WorkOrderOut(BaseModel):
     notes: str | None = None
     materials_used: dict | None = None
     custom_fields: dict | None = None
+    longitude: float | None = None
+    latitude: float | None = None
     assets: list[WorkOrderAssetOut] = []
     created_at: datetime
     updated_at: datetime

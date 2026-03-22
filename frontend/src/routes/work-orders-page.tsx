@@ -1,37 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Wrench, Loader2, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import {
   useWorkOrdersList,
   useCreateWorkOrder,
   useUpdateWorkOrder,
   useDeleteWorkOrder,
 } from '../hooks/use-work-orders';
+import { useSignsList } from '../hooks/use-signs';
 import { WorkOrderDetailPanel } from '../components/work-orders/work-order-detail-panel';
 import { WorkOrderForm } from '../components/work-orders/work-order-form';
+import { WorkOrderListPanel } from '../components/work-orders/work-order-list-panel';
+import { WorkOrderMap } from '../components/map/work-order-map';
 import type { WorkOrder, WorkOrderCreate, WorkOrderUpdate } from '../api/types';
 import type { AssetContext } from '../components/work-orders/work-order-form';
-import {
-  WO_STATUS_OPTIONS,
-  WO_PRIORITY_OPTIONS,
-  WO_WORK_TYPE_OPTIONS,
-  getWoStatusOption,
-  getWoPriorityOption,
-  formatEnumLabel,
-} from '../lib/constants';
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
 
 export function WorkOrdersPage() {
   const location = useLocation();
@@ -44,17 +26,20 @@ export function WorkOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [workTypeFilter, setWorkTypeFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [assetContext, setAssetContext] = useState<AssetContext | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
   const handledRouteState = useRef(false);
 
+  // Fetch signs for the base layer
+  const { data: signsData } = useSignsList({ page_size: 200 });
+  const signs = signsData?.signs ?? [];
+
   const { data, isLoading } = useWorkOrdersList({
-    page,
-    page_size: 50,
+    page_size: 200,
     status: statusFilter || undefined,
     priority: priorityFilter || undefined,
     work_type: workTypeFilter || undefined,
@@ -63,6 +48,26 @@ export function WorkOrdersPage() {
   const createWO = useCreateWorkOrder();
   const updateWO = useUpdateWorkOrder();
   const deleteWO = useDeleteWorkOrder();
+
+  // Client-side search filtering
+  const filteredWOs = useMemo(() => {
+    if (!data?.work_orders) return [];
+    if (!searchQuery.trim()) return data.work_orders;
+    const q = searchQuery.toLowerCase();
+    return data.work_orders.filter((wo) =>
+      (wo.work_order_number && wo.work_order_number.toLowerCase().includes(q)) ||
+      (wo.description && wo.description.toLowerCase().includes(q)) ||
+      (wo.address && wo.address.toLowerCase().includes(q))
+    );
+  }, [data?.work_orders, searchQuery]);
+
+  // Compute highlighted sign IDs from selected WO's linked assets
+  const highlightedSignIds = useMemo(() => {
+    if (!selectedWO?.assets) return [];
+    return selectedWO.assets
+      .filter((a) => a.asset_type === 'sign')
+      .map((a) => a.asset_id);
+  }, [selectedWO]);
 
   // Handle route state (navigate from sign/support detail or direct link) — once only
   useEffect(() => {
@@ -75,7 +80,6 @@ export function WorkOrdersPage() {
       window.history.replaceState({}, document.title);
     } else if (routeState?.signContext) {
       handledRouteState.current = true;
-      // Legacy support: convert old signContext to new assetContext format
       setAssetContext({
         assets: [{
           asset_type: 'sign',
@@ -144,168 +148,71 @@ export function WorkOrdersPage() {
     }
   };
 
-  const totalPages = data ? Math.ceil(data.total / data.page_size) : 1;
+  const handleWOSelect = useCallback((wo: WorkOrder) => {
+    if (selectedWO?.work_order_id === wo.work_order_id) {
+      setSelectedWO(null);
+    } else {
+      setSelectedWO(wo);
+    }
+  }, [selectedWO]);
+
+  const handleMapDeselect = useCallback(() => {
+    setSelectedWO(null);
+  }, []);
+
+  const geoWOCount = useMemo(
+    () => filteredWOs.filter((wo) => wo.longitude != null && wo.latitude != null).length,
+    [filteredWOs],
+  );
 
   return (
     <div className="h-full flex overflow-hidden">
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-4 border-b bg-white">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <Wrench size={20} className="text-gray-600" />
-              <h1 className="text-lg font-semibold text-gray-900">Work Orders</h1>
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                {data?.total ?? 0}
-              </span>
-            </div>
-            <button
-              onClick={handleCreate}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              <Plus size={14} />
-              Create Work Order
-            </button>
+      {/* Left: Work order list */}
+      <WorkOrderListPanel
+        workOrders={filteredWOs}
+        total={data?.total ?? 0}
+        isLoading={isLoading}
+        selectedWOId={selectedWO?.work_order_id ?? null}
+        onWOSelect={handleWOSelect}
+        statusFilter={statusFilter}
+        onStatusFilterChange={(s) => { setStatusFilter(s); setSelectedWO(null); }}
+        priorityFilter={priorityFilter}
+        onPriorityFilterChange={(p) => { setPriorityFilter(p); setSelectedWO(null); }}
+        workTypeFilter={workTypeFilter}
+        onWorkTypeFilterChange={(t) => { setWorkTypeFilter(t); setSelectedWO(null); }}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
+
+      {/* Center: Map */}
+      <div className="flex-1 relative">
+        <WorkOrderMap
+          signs={signs}
+          workOrders={filteredWOs}
+          selectedWOId={selectedWO?.work_order_id ?? null}
+          onWOClick={handleWOSelect}
+          onDeselect={handleMapDeselect}
+          highlightedSignIds={highlightedSignIds}
+        />
+
+        {/* Status bar with Create button */}
+        <div className="absolute top-4 left-4 flex items-center gap-2">
+          <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
+            {filteredWOs.length === (data?.total ?? 0) ? (
+              <span>{data?.total ?? 0} work orders{geoWOCount < filteredWOs.length ? ` (${geoWOCount} mapped)` : ''}</span>
+            ) : (
+              <span>{filteredWOs.length} of {data?.total ?? 0} work orders</span>
+            )}
           </div>
 
-          {/* Filters */}
-          <div className="flex items-center gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Statuses</option>
-              {WO_STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <select
-              value={priorityFilter}
-              onChange={(e) => { setPriorityFilter(e.target.value); setPage(1); }}
-              className="rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Priorities</option>
-              {WO_PRIORITY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <select
-              value={workTypeFilter}
-              onChange={(e) => { setWorkTypeFilter(e.target.value); setPage(1); }}
-              className="rounded border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Types</option>
-              {WO_WORK_TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
+          <button
+            onClick={handleCreate}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
+          >
+            <Plus size={14} />
+            Create Work Order
+          </button>
         </div>
-
-        {/* Table */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              <Loader2 size={24} className="animate-spin" />
-            </div>
-          ) : !data?.work_orders.length ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400">
-              <Search size={32} className="mb-2" />
-              <p className="text-sm">No work orders found</p>
-              <button
-                onClick={handleCreate}
-                className="mt-3 text-xs text-blue-600 hover:text-blue-800"
-              >
-                Create your first work order
-              </button>
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 sticky top-0">
-                <tr className="text-left text-xs text-gray-500 uppercase tracking-wider">
-                  <th className="px-4 py-2 font-medium">WO #</th>
-                  <th className="px-4 py-2 font-medium">Description</th>
-                  <th className="px-4 py-2 font-medium">Type</th>
-                  <th className="px-4 py-2 font-medium">Priority</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
-                  <th className="px-4 py-2 font-medium">Due Date</th>
-                  <th className="px-4 py-2 font-medium">Created</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data.work_orders.map((wo) => {
-                  const statusOpt = getWoStatusOption(wo.status);
-                  const priorityOpt = getWoPriorityOption(wo.priority);
-                  const isSelected = selectedWO?.work_order_id === wo.work_order_id;
-                  return (
-                    <tr
-                      key={wo.work_order_id}
-                      onClick={() => setSelectedWO(isSelected ? null : wo)}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected
-                          ? 'bg-blue-50 border-l-2 border-blue-500'
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <td className="px-4 py-2.5 font-mono text-xs text-gray-700 whitespace-nowrap">
-                        {wo.work_order_number || '\u2014'}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-900 truncate max-w-xs">
-                        {wo.description || '\u2014'}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">
-                        {formatEnumLabel(wo.work_type)}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${priorityOpt.color}`}>
-                          {priorityOpt.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusOpt.color}`}>
-                          {statusOpt.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-600 text-xs whitespace-nowrap">
-                        {formatDate(wo.due_date)}
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-500 text-xs whitespace-nowrap">
-                        {formatDate(wo.created_at)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Pagination */}
-        {data && totalPages > 1 && (
-          <div className="px-4 py-2 border-t bg-white flex items-center justify-between text-xs text-gray-500">
-            <span>
-              Page {data.page} of {totalPages} ({data.total} total)
-            </span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-2 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="px-2 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Right: Detail panel */}

@@ -93,7 +93,12 @@ def _ia_to_out(ia: InspectionAsset, label: str | None = None) -> InspectionAsset
     )
 
 
-async def _inspection_to_out(insp: Inspection, db: AsyncSession) -> InspectionOut:
+async def _inspection_to_out(
+    insp: Inspection,
+    db: AsyncSession,
+    lon: float | None = None,
+    lat: float | None = None,
+) -> InspectionOut:
     """Convert an Inspection ORM object to InspectionOut, including asset labels."""
     assets_out = []
     if insp.assets:
@@ -124,10 +129,42 @@ async def _inspection_to_out(insp: Inspection, db: AsyncSession) -> InspectionOu
         follow_up_required=insp.follow_up_required,
         follow_up_work_order_id=insp.follow_up_work_order_id,
         custom_fields=insp.custom_fields,
+        longitude=lon,
+        latitude=lat,
         assets=assets_out,
         created_at=insp.created_at,
         updated_at=insp.updated_at,
     )
+
+
+async def _resolve_fallback_coords_for_inspections(
+    insp_ids: list[uuid.UUID], db: AsyncSession
+) -> dict[uuid.UUID, tuple[float, float]]:
+    """
+    For inspections without geometry, resolve lon/lat from the first linked
+    sign via inspection_asset. Returns {inspection_id: (lon, lat)}.
+    Batch query — no N+1.
+    """
+    if not insp_ids:
+        return {}
+
+    subq = (
+        select(
+            InspectionAsset.inspection_id,
+            func.ST_X(Sign.geometry).label("lon"),
+            func.ST_Y(Sign.geometry).label("lat"),
+        )
+        .join(Sign, Sign.sign_id == InspectionAsset.asset_id)
+        .where(
+            InspectionAsset.inspection_id.in_(insp_ids),
+            InspectionAsset.asset_type == "sign",
+        )
+        .distinct(InspectionAsset.inspection_id)
+        .order_by(InspectionAsset.inspection_id, InspectionAsset.created_at)
+    )
+
+    result = await db.execute(subq)
+    return {row.inspection_id: (row.lon, row.lat) for row in result.all()}
 
 
 async def _update_signs_from_inspection_assets(
@@ -244,8 +281,30 @@ async def list_inspections(
     status: str | None = None,
     follow_up_required: bool | None = None,
 ):
-    query = select(Inspection).where(Inspection.tenant_id == tenant_id)
+    base_query = select(Inspection).where(Inspection.tenant_id == tenant_id)
 
+    if asset_type:
+        base_query = base_query.where(Inspection.asset_type == asset_type)
+    if inspection_type:
+        base_query = base_query.where(Inspection.inspection_type == inspection_type)
+    if status:
+        base_query = base_query.where(Inspection.status == status)
+    if follow_up_required is not None:
+        base_query = base_query.where(Inspection.follow_up_required == follow_up_required)
+
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total = (await db.execute(count_query)).scalar_one()
+
+    offset = (page - 1) * page_size
+    query = (
+        select(
+            Inspection,
+            func.ST_X(Inspection.geometry).label("lon"),
+            func.ST_Y(Inspection.geometry).label("lat"),
+        )
+        .where(Inspection.tenant_id == tenant_id)
+    )
+    # Re-apply filters
     if asset_type:
         query = query.where(Inspection.asset_type == asset_type)
     if inspection_type:
@@ -255,10 +314,6 @@ async def list_inspections(
     if follow_up_required is not None:
         query = query.where(Inspection.follow_up_required == follow_up_required)
 
-    count_query = select(func.count()).select_from(query.subquery())
-    total = (await db.execute(count_query)).scalar_one()
-
-    offset = (page - 1) * page_size
     query = (
         query.options(selectinload(Inspection.assets))
         .offset(offset)
@@ -266,9 +321,25 @@ async def list_inspections(
         .order_by(Inspection.created_at.desc())
     )
     result = await db.execute(query)
-    inspections = [
-        await _inspection_to_out(i, db) for i in result.scalars().all()
+    rows = result.all()
+
+    # Batch-resolve fallback coordinates for inspections without geometry
+    insp_ids_needing_fallback = [
+        row.Inspection.inspection_id for row in rows if row.lon is None
     ]
+    fallback_coords = await _resolve_fallback_coords_for_inspections(
+        insp_ids_needing_fallback, db
+    )
+
+    inspections = []
+    for row in rows:
+        lon = row.lon
+        lat = row.lat
+        if lon is None:
+            fb = fallback_coords.get(row.Inspection.inspection_id)
+            if fb:
+                lon, lat = fb
+        inspections.append(await _inspection_to_out(row.Inspection, db, lon=lon, lat=lat))
 
     return InspectionListOut(
         inspections=inspections, total=total, page=page, page_size=page_size
@@ -414,15 +485,31 @@ async def create_inspection(
         )
         await db.flush()
 
-    # Re-fetch with eager-loaded assets
+    # Re-fetch with eager-loaded assets and coordinates
     result = await db.execute(
-        select(Inspection)
+        select(
+            Inspection,
+            func.ST_X(Inspection.geometry).label("lon"),
+            func.ST_Y(Inspection.geometry).label("lat"),
+        )
         .options(selectinload(Inspection.assets))
         .where(Inspection.inspection_id == inspection.inspection_id)
     )
-    inspection = result.scalar_one()
+    row = result.first()
+    inspection = row.Inspection
+    lon = row.lon
+    lat = row.lat
 
-    return await _inspection_to_out(inspection, db)
+    # Fallback to first linked sign if no inspection geometry
+    if lon is None and inspection.assets:
+        fallback = await _resolve_fallback_coords_for_inspections(
+            [inspection.inspection_id], db
+        )
+        fb = fallback.get(inspection.inspection_id)
+        if fb:
+            lon, lat = fb
+
+    return await _inspection_to_out(inspection, db, lon=lon, lat=lat)
 
 
 @router.get("/{inspection_id}", response_model=InspectionOut)
@@ -432,17 +519,34 @@ async def get_inspection(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Inspection)
+        select(
+            Inspection,
+            func.ST_X(Inspection.geometry).label("lon"),
+            func.ST_Y(Inspection.geometry).label("lat"),
+        )
         .options(selectinload(Inspection.assets))
         .where(
             Inspection.inspection_id == inspection_id,
             Inspection.tenant_id == tenant_id,
         )
     )
-    inspection = result.scalar_one_or_none()
-    if not inspection:
+    row = result.first()
+    if not row:
         raise HTTPException(status_code=404, detail="Inspection not found")
-    return await _inspection_to_out(inspection, db)
+    inspection = row.Inspection
+    lon = row.lon
+    lat = row.lat
+
+    # Fallback to first linked sign if no inspection geometry
+    if lon is None and inspection.assets:
+        fallback = await _resolve_fallback_coords_for_inspections(
+            [inspection.inspection_id], db
+        )
+        fb = fallback.get(inspection.inspection_id)
+        if fb:
+            lon, lat = fb
+
+    return await _inspection_to_out(inspection, db, lon=lon, lat=lat)
 
 
 @router.put("/{inspection_id}", response_model=InspectionOut)
@@ -513,16 +617,33 @@ async def update_inspection(
         await _update_signs_from_inspection_assets(new_ia_rows, insp_date, db)
         await db.flush()
 
-    # Re-fetch with fresh assets
+    # Re-fetch with fresh assets and coordinates
     insp_id = inspection.inspection_id
     db.expunge(inspection)
     result = await db.execute(
-        select(Inspection)
+        select(
+            Inspection,
+            func.ST_X(Inspection.geometry).label("lon"),
+            func.ST_Y(Inspection.geometry).label("lat"),
+        )
         .options(selectinload(Inspection.assets))
         .where(Inspection.inspection_id == insp_id)
     )
-    inspection = result.scalar_one()
-    return await _inspection_to_out(inspection, db)
+    row = result.first()
+    inspection = row.Inspection
+    lon = row.lon
+    lat = row.lat
+
+    # Fallback to first linked sign if no inspection geometry
+    if lon is None and inspection.assets:
+        fallback = await _resolve_fallback_coords_for_inspections(
+            [inspection.inspection_id], db
+        )
+        fb = fallback.get(inspection.inspection_id)
+        if fb:
+            lon, lat = fb
+
+    return await _inspection_to_out(inspection, db, lon=lon, lat=lat)
 
 
 @router.delete("/{inspection_id}", status_code=204)
@@ -687,14 +808,31 @@ async def create_work_order_from_inspection(
 
     await db.flush()
 
-    # Re-fetch WO with assets
+    # Re-fetch WO with assets and coordinates
     result = await db.execute(
-        select(WorkOrder)
+        select(
+            WorkOrder,
+            func.ST_X(WorkOrder.geometry).label("lon"),
+            func.ST_Y(WorkOrder.geometry).label("lat"),
+        )
         .options(selectinload(WorkOrder.assets))
         .where(WorkOrder.work_order_id == wo.work_order_id)
     )
-    wo = result.scalar_one()
+    row = result.first()
+    wo = row.WorkOrder
+    lon = row.lon
+    lat = row.lat
+
+    # Fallback to first linked sign if no WO geometry
+    if lon is None and wo.assets:
+        from app.api.v1.work_orders import _resolve_fallback_coords_for_work_orders
+        fallback = await _resolve_fallback_coords_for_work_orders(
+            [wo.work_order_id], db
+        )
+        fb = fallback.get(wo.work_order_id)
+        if fb:
+            lon, lat = fb
 
     # Build response with asset labels
     from app.api.v1.work_orders import _wo_to_out
-    return await _wo_to_out(wo, db)
+    return await _wo_to_out(wo, db, lon=lon, lat=lat)

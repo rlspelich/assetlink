@@ -156,6 +156,8 @@ export interface WorkOrder {
   notes: string | null;
   materials_used: Record<string, unknown> | null;
   custom_fields: Record<string, unknown> | null;
+  longitude: number | null;
+  latitude: number | null;
   assets: WorkOrderAsset[];
   created_at: string;
   updated_at: string;
@@ -284,6 +286,8 @@ export interface Inspection {
   follow_up_required: boolean;
   follow_up_work_order_id: string | null;
   custom_fields: Record<string, unknown> | null;
+  longitude: number | null;
+  latitude: number | null;
   assets: InspectionAsset[];
   created_at: string;
   updated_at: string;
