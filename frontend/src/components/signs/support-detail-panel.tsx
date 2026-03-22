@@ -231,6 +231,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
               ? `${support.condition_rating}/5 — ${CONDITION_COLORS[support.condition_rating]?.label || 'Unknown'}`
               : null
           } />
+          <Field label="Install Date" value={support.install_date ? formatDate(support.install_date) : <span className="italic text-gray-400">Not recorded</span>} />
         </Section>
 
         {/* Location */}

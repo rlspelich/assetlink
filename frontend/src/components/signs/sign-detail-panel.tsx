@@ -214,6 +214,7 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, o
         <Section icon={Eye} title="Sign Details">
           <Field label="Asset Tag" value={sign.asset_tag} />
           <Field label="MUTCD Code" value={sign.mutcd_code} />
+          <Field label="Install Date" value={sign.install_date ? formatDate(sign.install_date) : <span className="italic text-gray-400">Not recorded</span>} />
           <Field label="Category" value={sign.sign_category ? (
             <span className="capitalize">{sign.sign_category}</span>
           ) : null} />
