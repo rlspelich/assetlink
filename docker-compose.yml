@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: assetlink
+      POSTGRES_USER: assetlink
+      POSTGRES_PASSWORD: assetlink_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assetlink"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://assetlink:assetlink_dev@db:5432/assetlink
+      DATABASE_URL_SYNC: postgresql://assetlink:assetlink_dev@db:5432/assetlink
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: development
+      # Clerk auth — set in backend/.env, loaded via env_file below.
+      # When CLERK_JWKS_URL is set, JWT auth is enforced.
+      # When empty, X-Tenant-ID header fallback is used (dev mode).
+    env_file:
+      - ./backend/.clerk.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  pgdata:
