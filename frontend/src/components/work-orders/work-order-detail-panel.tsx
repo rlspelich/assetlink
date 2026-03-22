@@ -226,7 +226,7 @@ export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isD
   const statusOpt = getWoStatusOption(workOrder.status);
   const priorityOpt = getWoPriorityOption(workOrder.priority);
 
-  const canDelete = workOrder.status === 'open' || workOrder.status === 'cancelled';
+  const canDelete = true;
   const isEditable = workOrder.status !== 'completed' && workOrder.status !== 'cancelled';
   const assets = workOrder.assets ?? [];
 

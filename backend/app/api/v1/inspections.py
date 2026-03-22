@@ -652,7 +652,7 @@ async def delete_inspection(
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete an inspection. Only open or cancelled inspections can be deleted."""
+    """Delete an inspection with all linked assets."""
     result = await db.execute(
         select(Inspection).where(
             Inspection.inspection_id == inspection_id,
@@ -662,12 +662,6 @@ async def delete_inspection(
     inspection = result.scalar_one_or_none()
     if not inspection:
         raise HTTPException(status_code=404, detail="Inspection not found")
-
-    if inspection.status not in ("open", "cancelled"):
-        raise HTTPException(
-            status_code=409,
-            detail=f"Cannot delete inspection in '{inspection.status}' status. Only open or cancelled inspections can be deleted.",
-        )
 
     await db.delete(inspection)
 

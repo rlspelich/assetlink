@@ -607,7 +607,7 @@ async def delete_work_order(
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a work order. Only open or cancelled work orders can be deleted."""
+    """Delete a work order with all linked assets."""
     result = await db.execute(
         select(WorkOrder).where(
             WorkOrder.work_order_id == work_order_id,
@@ -617,11 +617,5 @@ async def delete_work_order(
     wo = result.scalar_one_or_none()
     if not wo:
         raise HTTPException(status_code=404, detail="Work order not found")
-
-    if wo.status not in ("open", "cancelled"):
-        raise HTTPException(
-            status_code=409,
-            detail=f"Cannot delete work order in '{wo.status}' status. Only open or cancelled work orders can be deleted.",
-        )
 
     await db.delete(wo)

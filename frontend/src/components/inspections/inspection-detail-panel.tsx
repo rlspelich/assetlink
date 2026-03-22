@@ -107,7 +107,7 @@ export function InspectionDetailPanel({
     }
   };
 
-  const canDelete = inspection.status === 'open' || inspection.status === 'cancelled';
+  const canDelete = true;
   const hasLinkedWO = !!inspection.follow_up_work_order_id || !!createdWO;
 
   return (
