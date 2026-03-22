@@ -5,7 +5,8 @@
       "name": "Docker Services (PostGIS + Redis + API)",
       "runtimeExecutable": "docker",
       "runtimeArgs": ["compose", "up", "-d"],
-      "port": 8000
+      "port": 8000,
+      "autoPort": false
     },
     {
       "name": "Frontend (Vite + React)",

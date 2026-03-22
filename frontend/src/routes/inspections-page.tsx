@@ -43,7 +43,7 @@ export function InspectionsPage() {
   const handledRouteState = useRef(false);
 
   // Asset selection mode for creating inspections from the map
-  type CreationMode = 'idle' | 'selecting' | 'form';
+  type CreationMode = 'idle' | 'choosing' | 'select-sign' | 'drop-pin' | 'form';
   const [creationMode, setCreationMode] = useState<CreationMode>('idle');
   const [selectionCoords, setSelectionCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [formCoordinates, setFormCoordinates] = useState<{ lng: number; lat: number } | null>(null);
@@ -128,7 +128,7 @@ export function InspectionsPage() {
     setSelectedInspection(null);
     setSelectedInspectionId(null);
     setSelectionCoords(null);
-    setCreationMode('selecting');
+    setCreationMode('choosing');
   };
 
   const handleSelectionCancel = () => {
@@ -372,40 +372,49 @@ export function InspectionsPage() {
             <InspectionMap
               signs={signs}
               inspections={filteredInspections}
-              selectedInspId={creationMode === 'selecting' ? null : (selectedInspection?.inspection_id ?? null)}
+              selectedInspId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedInspection?.inspection_id ?? null)}
               onInspClick={handleInspSelect}
               onDeselect={handleMapDeselect}
               highlightedSignIds={highlightedSignIds}
-              assetSelectionMode={creationMode === 'selecting'}
-              onSignSelect={handleSignSelect}
-              onLocationSelect={handleLocationSelect}
+              assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
+              onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
+              onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
               selectionCoords={selectionCoords}
             />
 
-            {/* Asset selection mode banner */}
-            {creationMode === 'selecting' && (
+            {/* Choosing mode */}
+            {creationMode === 'choosing' && (
+              <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
+                <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex items-center gap-2 pointer-events-auto border border-gray-200">
+                  <span className="text-xs text-gray-600 mr-1">New inspection:</span>
+                  <button onClick={() => setCreationMode('select-sign')} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors">Select Existing Sign</button>
+                  <button onClick={() => setCreationMode('drop-pin')} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors">Drop Location Pin</button>
+                  <button onClick={handleSelectionSkip} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors">Skip</button>
+                  <button onClick={handleSelectionCancel} className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-colors"><X size={14} /></button>
+                </div>
+              </div>
+            )}
+            {creationMode === 'select-sign' && (
               <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
                 <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                  <span>Click a sign to attach it, click the map for a new location, or</span>
-                  <button
-                    onClick={handleSelectionSkip}
-                    className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded text-white font-medium transition-colors"
-                  >
-                    Skip
-                  </button>
-                  <button
-                    onClick={handleSelectionCancel}
-                    className="p-1 hover:bg-white/20 rounded transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
+                  <span>Click a sign on the map to attach it to the inspection</span>
+                  <button onClick={handleSelectionCancel} className="p-1 hover:bg-white/20 rounded transition-colors"><X size={14} /></button>
+                </div>
+              </div>
+            )}
+            {creationMode === 'drop-pin' && (
+              <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
+                <div className="bg-green-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                  <span>Click the map to set the inspection location</span>
+                  <button onClick={handleSelectionCancel} className="p-1 hover:bg-white/20 rounded transition-colors"><X size={14} /></button>
                 </div>
               </div>
             )}
 
             {/* Status bar with Create button (hidden during selection) */}
-            {creationMode !== 'selecting' && (
+            {creationMode === 'idle' && (
               <div className="absolute top-4 left-4 flex items-center gap-2">
                 <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
                   {filteredInspections.length === (data?.total ?? 0) ? (
@@ -492,11 +501,11 @@ export function InspectionsPage() {
                 <InspectionMap
                   signs={signs}
                   inspections={filteredInspections}
-                  selectedInspId={creationMode === 'selecting' ? null : (selectedInspection?.inspection_id ?? null)}
+                  selectedInspId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedInspection?.inspection_id ?? null)}
                   onInspClick={handleInspSelect}
                   onDeselect={handleMapDeselect}
                   highlightedSignIds={highlightedSignIds}
-                  assetSelectionMode={creationMode === 'selecting'}
+                  assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
                   onSignSelect={handleSignSelect}
                   onLocationSelect={handleLocationSelect}
                   selectionCoords={selectionCoords}

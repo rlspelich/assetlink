@@ -44,7 +44,7 @@ export function WorkOrdersPage() {
   const handledRouteState = useRef(false);
 
   // Asset selection mode for creating WOs from the map
-  type CreationMode = 'idle' | 'selecting' | 'form';
+  type CreationMode = 'idle' | 'choosing' | 'select-sign' | 'drop-pin' | 'form';
   const [creationMode, setCreationMode] = useState<CreationMode>('idle');
   const [selectionCoords, setSelectionCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [formCoordinates, setFormCoordinates] = useState<{ lng: number; lat: number } | null>(null);
@@ -127,10 +127,10 @@ export function WorkOrdersPage() {
       setShowForm(true);
       return;
     }
-    // In map or split mode, enter asset selection mode
+    // In map or split mode, show the choosing panel
     setSelectedWO(null);
     setSelectionCoords(null);
-    setCreationMode('selecting');
+    setCreationMode('choosing');
   };
 
   const handleSelectionCancel = () => {
@@ -370,28 +370,71 @@ export function WorkOrdersPage() {
             <WorkOrderMap
               signs={signs}
               workOrders={filteredWOs}
-              selectedWOId={creationMode === 'selecting' ? null : (selectedWO?.work_order_id ?? null)}
-              onWOClick={handleWOSelect}
+              selectedWOId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedWO?.work_order_id ?? null)}
+              onWOClick={creationMode === 'select-sign' ? undefined : handleWOSelect}
               onDeselect={handleMapDeselect}
               highlightedSignIds={highlightedSignIds}
-              assetSelectionMode={creationMode === 'selecting'}
-              onSignSelect={handleSignSelect}
-              onLocationSelect={handleLocationSelect}
+              assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
+              onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
+              onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
               selectionCoords={selectionCoords}
             />
 
-            {/* Asset selection mode banner */}
-            {creationMode === 'selecting' && (
+            {/* Choosing mode — pick what to do */}
+            {creationMode === 'choosing' && (
               <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
-                <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                  <span>Click a sign to attach it, click the map for a new location, or</span>
+                <div className="bg-white rounded-lg shadow-lg px-4 py-3 flex items-center gap-2 pointer-events-auto border border-gray-200">
+                  <span className="text-xs text-gray-600 mr-1">Create work order:</span>
+                  <button
+                    onClick={() => setCreationMode('select-sign')}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors"
+                  >
+                    Select Existing Sign
+                  </button>
+                  <button
+                    onClick={() => setCreationMode('drop-pin')}
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors"
+                  >
+                    Drop Location Pin
+                  </button>
                   <button
                     onClick={handleSelectionSkip}
-                    className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded text-white font-medium transition-colors"
+                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors"
                   >
                     Skip
                   </button>
+                  <button
+                    onClick={handleSelectionCancel}
+                    className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Select sign mode banner */}
+            {creationMode === 'select-sign' && (
+              <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
+                <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                  <span>Click a sign on the map to attach it to the work order</span>
+                  <button
+                    onClick={handleSelectionCancel}
+                    className="p-1 hover:bg-white/20 rounded transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Drop pin mode banner */}
+            {creationMode === 'drop-pin' && (
+              <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
+                <div className="bg-green-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                  <span>Click the map to set the work order location</span>
                   <button
                     onClick={handleSelectionCancel}
                     className="p-1 hover:bg-white/20 rounded transition-colors"
@@ -403,7 +446,7 @@ export function WorkOrdersPage() {
             )}
 
             {/* Status bar with Create button and view toggle (hidden during selection) */}
-            {creationMode !== 'selecting' && (
+            {creationMode === 'idle' && (
               <div className="absolute top-4 left-4 flex items-center gap-2">
                 <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
                   {filteredWOs.length === (data?.total ?? 0) ? (
@@ -480,37 +523,15 @@ export function WorkOrdersPage() {
                 <WorkOrderMap
                   signs={signs}
                   workOrders={filteredWOs}
-                  selectedWOId={creationMode === 'selecting' ? null : (selectedWO?.work_order_id ?? null)}
-                  onWOClick={handleWOSelect}
+                  selectedWOId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedWO?.work_order_id ?? null)}
+                  onWOClick={creationMode === 'select-sign' ? undefined : handleWOSelect}
                   onDeselect={handleMapDeselect}
                   highlightedSignIds={highlightedSignIds}
-                  assetSelectionMode={creationMode === 'selecting'}
-                  onSignSelect={handleSignSelect}
-                  onLocationSelect={handleLocationSelect}
+                  assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
+                  onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
+                  onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
                   selectionCoords={selectionCoords}
                 />
-
-                {/* Asset selection mode banner (split view) */}
-                {creationMode === 'selecting' && (
-                  <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
-                    <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
-                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                      <span>Click a sign to attach it, click the map for a new location, or</span>
-                      <button
-                        onClick={handleSelectionSkip}
-                        className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded text-white font-medium transition-colors"
-                      >
-                        Skip
-                      </button>
-                      <button
-                        onClick={handleSelectionCancel}
-                        className="p-1 hover:bg-white/20 rounded transition-colors"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Divider */}

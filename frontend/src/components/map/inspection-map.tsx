@@ -182,7 +182,7 @@ export function InspectionMap({
       mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
       interactiveLayerIds={assetSelectionMode ? ['signs-base-circle', 'insp-markers'] : ['insp-markers']}
       onClick={handleClick}
-      cursor={assetSelectionMode ? 'crosshair' : 'pointer'}
+      cursor={assetSelectionMode && onLocationSelect && !onSignSelect ? 'crosshair' : 'pointer'}
     >
       <NavigationControl position="top-right" />
 

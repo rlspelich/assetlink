@@ -183,7 +183,7 @@ export function WorkOrderMap({
       mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
       interactiveLayerIds={assetSelectionMode ? ['signs-base-circle', 'wo-markers'] : ['wo-markers']}
       onClick={handleClick}
-      cursor={assetSelectionMode ? 'crosshair' : 'pointer'}
+      cursor={assetSelectionMode && onLocationSelect && !onSignSelect ? 'crosshair' : 'pointer'}
     >
       <NavigationControl position="top-right" />
 
