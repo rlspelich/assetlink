@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, MapPin, Ruler, Calendar, Shield, Wrench, Eye, Pencil, Trash2, Loader2, Landmark, ChevronLeft, Plus, AlertTriangle } from 'lucide-react';
+import { X, MapPin, Ruler, Calendar, Shield, Wrench, Eye, Pencil, Trash2, Loader2, Landmark, ChevronLeft, Plus, AlertTriangle, ClipboardCheck } from 'lucide-react';
 import type { Sign } from '../../api/types';
-import { CONDITION_COLORS, UNRATED_COLOR, INACTIVE_STATUSES, INACTIVE_COLOR, formatEnumLabel, getWoStatusOption, getWoPriorityOption } from '../../lib/constants';
+import { CONDITION_COLORS, UNRATED_COLOR, INACTIVE_STATUSES, INACTIVE_COLOR, formatEnumLabel, getWoStatusOption, getWoPriorityOption, getInspectionTypeOption, getInspectionStatusOption } from '../../lib/constants';
 import { useSignWorkOrders } from '../../hooks/use-work-orders';
+import { useSignInspections } from '../../hooks/use-inspections';
 
 interface SignDetailPanelProps {
   sign: Sign;
@@ -14,6 +15,7 @@ interface SignDetailPanelProps {
   /** When set, shows a "Back to Support" link at the top */
   onBackToSupport?: () => void;
   onCreateWorkOrder?: (context: { assets: Array<{ asset_type: string; asset_id: string; label: string }> }) => void;
+  onInspect?: (context: { assets: Array<{ asset_type: string; asset_id: string; label: string }> }) => void;
 }
 
 function formatDate(dateStr: string | null): string {
@@ -87,10 +89,11 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, onBackToSupport, onCreateWorkOrder }: SignDetailPanelProps) {
+export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, onBackToSupport, onCreateWorkOrder, onInspect }: SignDetailPanelProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const navigate = useNavigate();
   const { data: woData } = useSignWorkOrders(sign.sign_id);
+  const { data: inspData } = useSignInspections(sign.sign_id);
 
   return (
     <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full shrink-0 overflow-hidden">
@@ -118,17 +121,30 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, o
             {conditionBadge(sign.condition_rating, sign.status)}
             {statusBadge(sign.status)}
           </div>
-          {onCreateWorkOrder && (
-            <button
-              onClick={() => onCreateWorkOrder({
-                assets: [{ asset_type: 'sign', asset_id: sign.sign_id, label: `${sign.mutcd_code ?? 'Sign'} — ${sign.description ?? 'Unknown'}` }],
-              })}
-              className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              <AlertTriangle size={12} />
-              Report Issue / Create Work Order
-            </button>
-          )}
+          <div className="flex gap-1.5 mt-2">
+            {onCreateWorkOrder && (
+              <button
+                onClick={() => onCreateWorkOrder({
+                  assets: [{ asset_type: 'sign', asset_id: sign.sign_id, label: `${sign.mutcd_code ?? 'Sign'} — ${sign.description ?? 'Unknown'}` }],
+                })}
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                <AlertTriangle size={12} />
+                Report Issue
+              </button>
+            )}
+            {onInspect && (
+              <button
+                onClick={() => onInspect({
+                  assets: [{ asset_type: 'sign', asset_id: sign.sign_id, label: `${sign.mutcd_code ?? 'Sign'} — ${sign.description ?? 'Unknown'}` }],
+                })}
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+              >
+                <ClipboardCheck size={12} />
+                Inspect
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {onEdit && (
@@ -339,6 +355,68 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, o
             </div>
           ) : (
             <p className="text-xs text-gray-400 italic">No work orders</p>
+          )}
+        </Section>
+
+        {/* Inspections */}
+        <Section icon={ClipboardCheck} title="Inspections">
+          {inspData && inspData.inspections.length > 0 ? (
+            <div className="space-y-2">
+              {inspData.inspections.map((insp) => {
+                const typeOpt = getInspectionTypeOption(insp.inspection_type);
+                const statusOpt = getInspectionStatusOption(insp.status);
+                const condColor = insp.condition_rating
+                  ? CONDITION_COLORS[insp.condition_rating]
+                  : UNRATED_COLOR;
+                return (
+                  <button
+                    key={insp.inspection_id}
+                    onClick={() => navigate('/inspections', { state: { selectedInspectionId: insp.inspection_id } })}
+                    className="w-full text-left p-2 rounded border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${typeOpt.color}`}>
+                        {typeOpt.label}
+                      </span>
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${statusOpt.color}`}>
+                        {statusOpt.label}
+                      </span>
+                      {insp.follow_up_required && (
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          insp.follow_up_work_order_id ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {insp.follow_up_work_order_id ? 'WO' : 'F/U'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: condColor.hex }} />
+                      <span className="text-xs text-gray-900">
+                        {insp.condition_rating ? `${insp.condition_rating}/5` : 'No rating'}
+                      </span>
+                      {insp.retroreflectivity_value && (
+                        <span className="text-[10px] text-gray-500">
+                          Retro: {insp.retroreflectivity_value}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-0.5">
+                      {formatDate(insp.inspection_date)}
+                    </div>
+                  </button>
+                );
+              })}
+              {inspData.total > inspData.inspections.length && (
+                <button
+                  onClick={() => navigate('/inspections')}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  View all {inspData.total} inspections
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 italic">No inspections</p>
           )}
         </Section>
 

@@ -5,6 +5,7 @@ from app.models.sign import Sign, SignSupport, SignType
 from app.models.work_order import WorkOrder
 from app.models.work_order_asset import WorkOrderAsset
 from app.models.inspection import Inspection
+from app.models.inspection_asset import InspectionAsset
 from app.models.attachment import Attachment, Comment
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "WorkOrder",
     "WorkOrderAsset",
     "Inspection",
+    "InspectionAsset",
     "Attachment",
     "Comment",
 ]

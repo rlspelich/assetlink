@@ -228,17 +228,104 @@ export interface WorkOrderListResponse {
   page_size: number;
 }
 
+// --- Inspections ---
+
+export interface InspectionAsset {
+  inspection_asset_id: string;
+  inspection_id: string;
+  tenant_id: string;
+  asset_type: string;  // "sign", "sign_support"
+  asset_id: string;
+  condition_rating: number | null;
+  findings: string | null;
+  defects: Record<string, unknown> | null;
+  retroreflectivity_value: number | null;
+  passes_minimum_retro: boolean | null;
+  action_recommended: string | null;  // replace, repair, monitor, ok
+  status: string;  // inspected, needs_action, deferred, ok
+  asset_label: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InspectionAssetCreatePayload {
+  asset_type: string;
+  asset_id: string;
+  condition_rating?: number;
+  findings?: string;
+  defects?: Record<string, unknown>;
+  retroreflectivity_value?: number;
+  passes_minimum_retro?: boolean;
+  action_recommended?: string;
+  status?: string;
+}
+
 export interface Inspection {
   inspection_id: string;
   tenant_id: string;
+  asset_type: string | null;
+  asset_id: string | null;
+  sign_id: string | null;
+  work_order_id: string | null;
   inspection_type: string;
   inspection_date: string;
+  inspector_id: string | null;
   status: string;
   condition_rating: number | null;
   findings: string | null;
+  defects: Record<string, unknown> | null;
+  recommendations: string | null;
+  repairs_made: string | null;
+  retroreflectivity_value: number | null;
+  passes_minimum_retro: boolean | null;
   follow_up_required: boolean;
+  follow_up_work_order_id: string | null;
+  custom_fields: Record<string, unknown> | null;
+  assets: InspectionAsset[];
   created_at: string;
   updated_at: string;
+}
+
+export interface InspectionCreate {
+  inspection_type: string;
+  inspection_date: string;
+  asset_type?: string;
+  asset_id?: string;
+  sign_id?: string;
+  support_id?: string;
+  work_order_id?: string;
+  inspector_id?: string;
+  status?: string;
+  condition_rating?: number;
+  findings?: string;
+  defects?: Record<string, unknown>;
+  recommendations?: string;
+  repairs_made?: string;
+  retroreflectivity_value?: number;
+  passes_minimum_retro?: boolean;
+  follow_up_required?: boolean;
+  custom_fields?: Record<string, unknown>;
+  longitude?: number;
+  latitude?: number;
+  assets?: InspectionAssetCreatePayload[];
+}
+
+export interface InspectionUpdate {
+  inspection_type?: string;
+  inspection_date?: string;
+  inspector_id?: string;
+  status?: string;
+  condition_rating?: number;
+  findings?: string;
+  defects?: Record<string, unknown>;
+  recommendations?: string;
+  repairs_made?: string;
+  retroreflectivity_value?: number;
+  passes_minimum_retro?: boolean;
+  follow_up_required?: boolean;
+  custom_fields?: Record<string, unknown>;
+  assets_to_add?: InspectionAssetCreatePayload[];
+  assets_to_remove?: string[];
 }
 
 export interface InspectionListResponse {

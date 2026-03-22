@@ -187,6 +187,17 @@ export function SignsPage() {
     });
   };
 
+  const handleInspect = (context: {
+    support_id?: string;
+    assets: Array<{ asset_type: string; asset_id: string; label: string }>;
+  }) => {
+    navigate('/inspections', {
+      state: {
+        assetContext: context,
+      },
+    });
+  };
+
   const handleCloseSupport = () => {
     setViewingSupport(null);
     setClickedSignId(null);
@@ -270,6 +281,7 @@ export function SignsPage() {
           onClose={handleCloseSupport}
           onSignSelect={handleDrillIntoSign}
           onCreateWorkOrder={handleCreateWorkOrder}
+          onInspect={handleInspect}
         />
       )}
 
@@ -283,6 +295,7 @@ export function SignsPage() {
           isDeleting={deleteSign.isPending}
           onBackToSupport={drilledFromSupport ? handleBackToSupport : undefined}
           onCreateWorkOrder={handleCreateWorkOrder}
+          onInspect={handleInspect}
         />
       )}
 

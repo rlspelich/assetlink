@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Landmark, MapPin, Calendar, Pencil, Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import { X, Landmark, MapPin, Calendar, Pencil, Trash2, Loader2, AlertTriangle, ClipboardCheck } from 'lucide-react';
 import { useSupport, useDeleteSupport } from '../../hooks/use-supports';
 import type { Sign } from '../../api/types';
 import { CONDITION_COLORS, UNRATED_COLOR, INACTIVE_STATUSES, INACTIVE_COLOR, formatEnumLabel } from '../../lib/constants';
@@ -11,6 +11,10 @@ interface SupportDetailPanelProps {
   onClose: () => void;
   onSignSelect: (sign: Sign) => void;
   onCreateWorkOrder?: (context: {
+    support_id: string;
+    assets: Array<{ asset_type: string; asset_id: string; label: string }>;
+  }) => void;
+  onInspect?: (context: {
     support_id: string;
     assets: Array<{ asset_type: string; asset_id: string; label: string }>;
   }) => void;
@@ -91,7 +95,7 @@ function getSignColor(sign: Sign) {
   return UNRATED_COLOR;
 }
 
-export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSelect, onCreateWorkOrder }: SupportDetailPanelProps) {
+export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSelect, onCreateWorkOrder, onInspect }: SupportDetailPanelProps) {
   const { data: support, isLoading } = useSupport(supportId);
   const deleteSupport = useDeleteSupport();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -132,21 +136,38 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
             {conditionBadge(support.condition_rating, support.status)}
             {statusBadge(support.status)}
           </div>
-          {onCreateWorkOrder && (
-            <button
-              onClick={() => onCreateWorkOrder({
-                support_id: supportId,
-                assets: [
-                  { asset_type: 'sign_support', asset_id: supportId, label: `${formatEnumLabel(support.support_type)} Support` },
-                  ...support.signs.map((s) => ({ asset_type: 'sign', asset_id: s.sign_id, label: `${s.mutcd_code ?? 'Sign'} — ${s.description ?? 'Unknown'}` })),
-                ],
-              })}
-              className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              <AlertTriangle size={12} />
-              Report Issue / Create Work Order
-            </button>
-          )}
+          <div className="flex gap-1.5 mt-2">
+            {onCreateWorkOrder && (
+              <button
+                onClick={() => onCreateWorkOrder({
+                  support_id: supportId,
+                  assets: [
+                    { asset_type: 'sign_support', asset_id: supportId, label: `${formatEnumLabel(support.support_type)} Support` },
+                    ...support.signs.map((s) => ({ asset_type: 'sign', asset_id: s.sign_id, label: `${s.mutcd_code ?? 'Sign'} — ${s.description ?? 'Unknown'}` })),
+                  ],
+                })}
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                <AlertTriangle size={12} />
+                Report Issue
+              </button>
+            )}
+            {onInspect && (
+              <button
+                onClick={() => onInspect({
+                  support_id: supportId,
+                  assets: [
+                    { asset_type: 'sign_support', asset_id: supportId, label: `${formatEnumLabel(support.support_type)} Support` },
+                    ...support.signs.map((s) => ({ asset_type: 'sign', asset_id: s.sign_id, label: `${s.mutcd_code ?? 'Sign'} — ${s.description ?? 'Unknown'}` })),
+                  ],
+                })}
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+              >
+                <ClipboardCheck size={12} />
+                Inspect
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button

@@ -89,3 +89,10 @@ class Inspection(Base, TenantMixin, TimestampMixin):
     sign = relationship("Sign", back_populates="inspections")
     inspector = relationship("AppUser", foreign_keys=[inspector_id])
     work_order = relationship("WorkOrder")
+    # Multi-asset junction — the preferred way to link assets to inspections
+    assets = relationship(
+        "InspectionAsset",
+        back_populates="inspection",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )

@@ -22,7 +22,7 @@ TENANT_A_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 TENANT_B_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
 # Tables with test data (NOT sign_type — that's seed data)
-_DATA_TABLES = "work_order_asset, inspection, work_order, sign, sign_support, comment, attachment, app_user, tenant"
+_DATA_TABLES = "inspection_asset, work_order_asset, inspection, work_order, sign, sign_support, comment, attachment, app_user, tenant"
 
 
 def _sync_sql(sql: str):

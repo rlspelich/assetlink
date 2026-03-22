@@ -7,9 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
+from app.models.inspection import Inspection
+from app.models.inspection_asset import InspectionAsset
 from app.models.sign import Sign, SignSupport
 from app.models.work_order import WorkOrder
 from app.models.work_order_asset import WorkOrderAsset
+from app.schemas.inspection import InspectionListOut, InspectionOut
 from app.schemas.sign import SignOut
 from app.schemas.work_order import WorkOrderListOut, WorkOrderOut
 from app.schemas.support import (
@@ -353,6 +356,54 @@ async def list_support_work_orders(
 
     return WorkOrderListOut(
         work_orders=work_orders, total=total, page=page, page_size=page_size
+    )
+
+
+@router.get("/{support_id}/inspections", response_model=InspectionListOut)
+async def list_support_inspections(
+    support_id: uuid.UUID,
+    tenant_id: uuid.UUID = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
+):
+    """List inspections linked to a specific support via the junction table."""
+    # Verify support exists and belongs to tenant
+    support_result = await db.execute(
+        select(SignSupport.support_id).where(
+            SignSupport.support_id == support_id, SignSupport.tenant_id == tenant_id
+        )
+    )
+    if not support_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Sign support not found")
+
+    # Query via the junction table
+    junction_insp_ids = (
+        select(InspectionAsset.inspection_id)
+        .where(
+            InspectionAsset.asset_type == "sign_support",
+            InspectionAsset.asset_id == support_id,
+            InspectionAsset.tenant_id == tenant_id,
+        )
+    ).subquery()
+
+    query = select(Inspection).where(
+        Inspection.inspection_id.in_(select(junction_insp_ids)),
+        Inspection.tenant_id == tenant_id,
+    )
+
+    count_query = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_query)).scalar_one()
+
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size).order_by(Inspection.created_at.desc())
+    result = await db.execute(query)
+    inspections = [
+        InspectionOut.model_validate(i) for i in result.scalars().all()
+    ]
+
+    return InspectionListOut(
+        inspections=inspections, total=total, page=page, page_size=page_size
     )
 
 

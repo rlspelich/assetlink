@@ -97,6 +97,49 @@ export const SUPPORT_STATUS_OPTIONS = [
   'active', 'damaged', 'leaning', 'missing', 'removed',
 ] as const;
 
+// --- Inspection constants ---
+
+export const INSPECTION_TYPE_OPTIONS = [
+  { value: 'sign_condition', label: 'Sign Condition', color: 'bg-blue-100 text-blue-800', hex: '#3b82f6' },
+  { value: 'sign_retroreflectivity', label: 'Retroreflectivity', color: 'bg-purple-100 text-purple-800', hex: '#a855f7' },
+  { value: 'support_condition', label: 'Support Condition', color: 'bg-amber-100 text-amber-800', hex: '#f59e0b' },
+  { value: 'general', label: 'General', color: 'bg-gray-100 text-gray-700', hex: '#6b7280' },
+] as const;
+
+export const INSPECTION_STATUS_OPTIONS = [
+  { value: 'open', label: 'Open', color: 'bg-blue-100 text-blue-800' },
+  { value: 'in_progress', label: 'In Progress', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-800' },
+  { value: 'cancelled', label: 'Cancelled', color: 'bg-gray-100 text-gray-500' },
+] as const;
+
+export const INSPECTION_ACTION_OPTIONS = [
+  { value: 'ok', label: 'OK', color: 'bg-green-100 text-green-800' },
+  { value: 'monitor', label: 'Monitor', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'repair', label: 'Repair', color: 'bg-orange-100 text-orange-800' },
+  { value: 'replace', label: 'Replace', color: 'bg-red-100 text-red-800' },
+] as const;
+
+export const INSPECTION_ASSET_STATUS_OPTIONS = [
+  { value: 'inspected', label: 'Inspected', color: 'bg-gray-100 text-gray-600' },
+  { value: 'needs_action', label: 'Needs Action', color: 'bg-red-100 text-red-800' },
+  { value: 'deferred', label: 'Deferred', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'ok', label: 'OK', color: 'bg-green-100 text-green-800' },
+] as const;
+
+export function getInspectionTypeOption(value: string) {
+  return INSPECTION_TYPE_OPTIONS.find((o) => o.value === value) ?? INSPECTION_TYPE_OPTIONS[3];
+}
+
+export function getInspectionStatusOption(value: string) {
+  return INSPECTION_STATUS_OPTIONS.find((o) => o.value === value) ?? INSPECTION_STATUS_OPTIONS[0];
+}
+
+export function getInspectionActionOption(value: string | null) {
+  if (!value) return null;
+  return INSPECTION_ACTION_OPTIONS.find((o) => o.value === value) ?? null;
+}
+
 export function formatEnumLabel(value: string): string {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }

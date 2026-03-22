@@ -8,9 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
+from app.models.inspection import Inspection
+from app.models.inspection_asset import InspectionAsset
 from app.models.sign import Sign, SignSupport, SignType
 from app.models.work_order import WorkOrder
 from app.models.work_order_asset import WorkOrderAsset
+from app.schemas.inspection import InspectionListOut, InspectionOut
 from app.schemas.sign import (
     SignCreate,
     SignImportOut,
@@ -392,6 +395,66 @@ async def list_sign_work_orders(
 
     return WorkOrderListOut(
         work_orders=work_orders, total=total, page=page, page_size=page_size
+    )
+
+
+# --- Inspections for a Sign ---
+
+
+@router.get("/{sign_id}/inspections", response_model=InspectionListOut)
+async def list_sign_inspections(
+    sign_id: uuid.UUID,
+    tenant_id: uuid.UUID = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
+):
+    """List inspections linked to a specific sign via the junction table."""
+    # Verify the sign exists and belongs to this tenant
+    sign_result = await db.execute(
+        select(Sign.sign_id).where(
+            Sign.sign_id == sign_id, Sign.tenant_id == tenant_id
+        )
+    )
+    if not sign_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Sign not found")
+
+    # Query via the junction table (inspection_asset)
+    junction_insp_ids = (
+        select(InspectionAsset.inspection_id)
+        .where(
+            InspectionAsset.asset_type == "sign",
+            InspectionAsset.asset_id == sign_id,
+            InspectionAsset.tenant_id == tenant_id,
+        )
+    )
+    # Also include legacy sign_id matches for backward compatibility
+    legacy_insp_ids = (
+        select(Inspection.inspection_id)
+        .where(
+            Inspection.sign_id == sign_id,
+            Inspection.tenant_id == tenant_id,
+        )
+    )
+    combined_insp_ids = junction_insp_ids.union(legacy_insp_ids).subquery()
+
+    query = select(Inspection).where(
+        Inspection.inspection_id.in_(select(combined_insp_ids)),
+        Inspection.tenant_id == tenant_id,
+    )
+
+    count_query = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_query)).scalar_one()
+
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size).order_by(Inspection.created_at.desc())
+    result = await db.execute(query)
+    inspections = [
+        InspectionOut.model_validate(i) for i in result.scalars().all()
+    ]
+
+    return InspectionListOut(
+        inspections=inspections, total=total, page=page, page_size=page_size
     )
 
 

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from './components/layout/app-shell';
 import { SignsPage } from './routes/signs-page';
 import { WorkOrdersPage } from './routes/work-orders-page';
+import { InspectionsPage } from './routes/inspections-page';
 import { ImportPage } from './routes/import-page';
 import { PlaceholderPage } from './routes/placeholder-page';
 
@@ -24,7 +25,7 @@ export default function App() {
             <Route index element={<Navigate to="/signs" replace />} />
             <Route path="signs" element={<SignsPage />} />
             <Route path="work-orders" element={<WorkOrdersPage />} />
-            <Route path="inspections" element={<PlaceholderPage title="Inspections" />} />
+            <Route path="inspections" element={<InspectionsPage />} />
             <Route path="import" element={<ImportPage />} />
             <Route path="dashboard" element={<PlaceholderPage title="Compliance Dashboard" />} />
           </Route>
