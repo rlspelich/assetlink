@@ -228,30 +228,32 @@ export function InspectionDetailPanel({
         </div>
       )}
 
-      {/* Linked WO success */}
+      {/* Linked WO success — prominent action */}
       {createdWO && (
-        <div className="px-4 py-2 border-b bg-green-50">
+        <div className="px-4 py-3 border-b bg-green-50">
+          <div className="text-xs text-green-700 mb-2 font-medium">✓ Work order created successfully</div>
           <button
             onClick={() => navigate('/work-orders', { state: { selectedWorkOrderId: createdWO.id } })}
-            className="flex items-center gap-2 text-xs text-green-800 font-medium hover:text-green-900"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 transition-colors"
           >
-            <Wrench size={12} />
-            Created {createdWO.number}
-            <ExternalLink size={10} />
+            <Wrench size={14} />
+            View {createdWO.number}
+            <ExternalLink size={12} />
           </button>
         </div>
       )}
 
-      {/* Existing linked WO */}
+      {/* Existing linked WO — prominent action */}
       {inspection.follow_up_work_order_id && !createdWO && (
-        <div className="px-4 py-2 border-b bg-blue-50">
+        <div className="px-4 py-3 border-b bg-blue-50">
+          <div className="text-xs text-blue-600 mb-2">Linked work order</div>
           <button
             onClick={() => navigate('/work-orders', { state: { selectedWorkOrderId: inspection.follow_up_work_order_id } })}
-            className="flex items-center gap-2 text-xs text-blue-800 font-medium hover:text-blue-900"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 transition-colors"
           >
-            <Wrench size={12} />
-            Linked Work Order
-            <ExternalLink size={10} />
+            <Wrench size={14} />
+            View Work Order
+            <ExternalLink size={12} />
           </button>
         </div>
       )}
