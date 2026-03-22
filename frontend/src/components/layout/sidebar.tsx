@@ -11,11 +11,13 @@ const NAV_ITEMS = [
 export function Sidebar() {
   return (
     <aside className="w-14 hover:w-48 bg-gray-900 text-gray-300 flex flex-col shrink-0 transition-all duration-200 group overflow-hidden">
-      <div className="px-3 py-4 border-b border-gray-800">
-        <h1 className="text-lg font-bold text-white tracking-tight whitespace-nowrap">
-          <span className="inline group-hover:hidden">AL</span>
-          <span className="hidden group-hover:inline">AssetLink</span>
-        </h1>
+      <div className="px-3 py-3 border-b border-gray-800">
+        <div className="flex items-center gap-2.5 whitespace-nowrap">
+          <img src="/favicon.svg" alt="AssetLink" className="w-7 h-7 shrink-0" />
+          <span className="text-lg font-bold text-white tracking-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            AssetLink
+          </span>
+        </div>
       </div>
       <nav className="flex-1 py-2">
         {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
