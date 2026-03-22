@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
 import { useSignsList, useCreateSign, useUpdateSign, useDeleteSign } from '../hooks/use-signs';
 import { AssetMap } from '../components/map/asset-map';
@@ -13,6 +13,10 @@ type PageMode = 'view' | 'add-placing' | 'add-form' | 'edit';
 
 export function SignsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const routeState = location.state as { highlightSignId?: string } | null;
+  const handledRouteState = useRef(false);
+
   const [selectedSign, setSelectedSign] = useState<Sign | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -36,6 +40,19 @@ export function SignsPage() {
   const createSign = useCreateSign();
   const updateSign = useUpdateSign();
   const deleteSign = useDeleteSign();
+
+  // Handle route state — pre-select a sign (e.g. from dashboard priority table)
+  useEffect(() => {
+    if (handledRouteState.current || !routeState?.highlightSignId || !data?.signs) return;
+    handledRouteState.current = true;
+    const sign = data.signs.find((s) => s.sign_id === routeState.highlightSignId);
+    if (sign) {
+      setSelectedSign(sign);
+      setViewingSupport(null);
+      setDrilledFromSupport(null);
+    }
+    window.history.replaceState({}, document.title);
+  }, [routeState, data?.signs]);
 
   // Build a lookup: support_id -> array of sign_ids that share it
   const supportSignCounts = useMemo(() => {

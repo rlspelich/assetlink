@@ -130,7 +130,7 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, o
                 className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
               >
                 <AlertTriangle size={12} />
-                Report Issue
+                Create Work Order
               </button>
             )}
             {onInspect && (
