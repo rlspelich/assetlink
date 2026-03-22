@@ -315,9 +315,14 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - [x] Help page placeholder (7 topic cards for future documentation)
 - [x] Import template CSV + field reference guide (23 fields documented with aliases)
 - [x] Import scalability (batch processing, 50MB limit, 120s timeout, handles 20K+ rows)
-- [x] Custom AssetLink icon (blue chain links + red map pin)
+- [x] Custom AssetLink icon (blue chain links on navy background)
 - [x] Dashboard → sign deep-link (click priority sign → signs page with pre-selected asset)
 - [x] 2,000-sign Springfield IL test dataset with generation script
+- [x] Smart CSV import: 3 modes (signs auto-detect supports, two-file, supports-only)
+- [x] Reports page: 4 KPI reports (Work Orders, Inspections, Inventory, Crew Productivity) with date ranges, presets, print
+- [x] Asset selection + location placement for WO/inspection creation from map pages
+- [x] Email dialog with user picker from Users & Roles, proper from/reply-to headers
+- [x] WO/inspection test data generation script (60 inspections, 27 WOs via API)
 - [ ] Photo upload
 - [ ] Deploy to Google Cloud (Cloud Run + Cloud SQL)
 - [ ] Pilot municipality onboarded
@@ -467,7 +472,13 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - **Users & Roles:** 3 roles (Admin/Supervisor/Crew Chief). User CRUD with first_name, last_name, employee_id, email, phone. Soft-delete/reactivate. Email + employee_id uniqueness per tenant. User picker dropdown replaces text "Assigned To" on work orders and "Inspector" on inspections. 18 tests.
 - **Settings page:** Tabbed layout — Import Data (with template CSV download + field reference guide), Users & Roles, Data Management (coming soon), Notifications (coming soon). Help page placeholder with 7 topic cards.
 - **Import scalability:** Batch processing (500 rows/flush), 50MB file limit, 120s timeout, file size validation, progress messaging, timing stats (rows/sec), unmapped column tracking. Handles 20K+ rows.
-- **Custom branding:** AssetLink icon (blue chain links + red Google-style map pin). Browser tab title. Sidebar icon.
-- **2,000-sign test dataset:** Realistic Springfield IL inventory with generation script. All MUTCD codes, age/condition/sheeting correlations, real street names.
-- **155+ integration tests passing.** All backend and frontend TypeScript compile clean.
+- **Custom branding:** AssetLink icon (blue chain links on navy). Browser tab title "AssetLink — Municipal Asset Management". Sidebar icon.
+- **Smart CSV import:** Three import modes — signs with auto-support detection (groups by support tag or matching lat/lon), two-file upload (supports + signs with shared key), supports-only. 28 support column aliases with type normalization. All modes use batch processing.
+- **Reports page:** 4 tabbed KPI reports — Work Orders (created/completed/backlog, by priority/type/assignee/month), Inspections (coverage rate, follow-up rate, retro pass rate, by type/inspector), Inventory (condition/status/age/sheeting distributions, compliance, replacement forecast), Crew Productivity (per-member WOs/inspections stats). Date range picker with quick presets. Print Report button.
+- **Asset selection for WO/inspection creation:** When creating from WO or inspection page, user chooses "Select Existing Sign" (auto-zooms to street level, click sign to attach) or "Drop Location Pin" (crosshair, click for coordinates) or "Skip" (no location). Replaces old single-mode crosshair.
+- **Email improvements:** User picker dropdown from Users & Roles for To/CC fields. From header: "Name via AssetLink <workorders@assetlink.us>". Reply-To set to sender's actual email.
+- **Test data generation:** Scripts for both signs (2,000 CSV) and WOs/inspections (60 inspections + 27 WOs via API). Run anytime after database wipe.
+- **2,000-sign test dataset:** Realistic Springfield IL inventory. All MUTCD codes, age/condition/sheeting correlations, real street names.
+- **162+ integration tests passing.** All backend and frontend TypeScript compile clean.
 - **Known issues:** work_order_number unique constraint is global not per-tenant.
+- **Remaining for pilot:** Photo upload, GCP deployment.
