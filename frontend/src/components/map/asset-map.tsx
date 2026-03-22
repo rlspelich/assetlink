@@ -9,6 +9,7 @@ interface AssetMapProps {
   signs: Sign[];
   selectedSignId?: string | null;
   onSignClick?: (sign: Sign) => void;
+  onVisibleCountChange?: (count: number) => void;
   placementMode?: boolean;
   placementCoords?: { lng: number; lat: number } | null;
   onPlacementClick?: (lng: number, lat: number) => void;
@@ -63,6 +64,7 @@ export function AssetMap({
   signs,
   selectedSignId,
   onSignClick,
+  onVisibleCountChange,
   placementMode = false,
   placementCoords,
   onPlacementClick,
@@ -140,6 +142,32 @@ export function AssetMap({
     }
   }, [signs]);
 
+  // Count visible signs in the current viewport and report to parent
+  const updateVisibleCount = useCallback(() => {
+    if (!mapRef.current || !onVisibleCountChange) return;
+    const bounds = mapRef.current.getBounds();
+    if (!bounds) return;
+    const count = signs.filter((s) =>
+      s.longitude >= bounds.getWest() &&
+      s.longitude <= bounds.getEast() &&
+      s.latitude >= bounds.getSouth() &&
+      s.latitude <= bounds.getNorth()
+    ).length;
+    onVisibleCountChange(count);
+  }, [signs, onVisibleCountChange]);
+
+  // Update count on map move/zoom
+  const handleMoveEnd = useCallback(() => {
+    updateVisibleCount();
+  }, [updateVisibleCount]);
+
+  // Initial count after bounds fit
+  useEffect(() => {
+    // Small delay to let the map settle after fitBounds
+    const timer = setTimeout(updateVisibleCount, 500);
+    return () => clearTimeout(timer);
+  }, [signs, updateVisibleCount]);
+
   const handleClick = useCallback((e: MapLayerMouseEvent) => {
     if (placementMode) {
       onPlacementClick?.(e.lngLat.lng, e.lngLat.lat);
@@ -187,6 +215,7 @@ export function AssetMap({
       mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
       interactiveLayerIds={placementMode ? [] : ['signs-clusters', 'signs-unclustered']}
       onClick={handleClick}
+      onMoveEnd={handleMoveEnd}
       cursor={placementMode ? 'crosshair' : 'pointer'}
     >
       <NavigationControl position="top-right" />

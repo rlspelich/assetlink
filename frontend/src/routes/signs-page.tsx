@@ -22,6 +22,7 @@ export function SignsPage() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [mode, setMode] = useState<PageMode>('view');
+  const [visibleSignCount, setVisibleSignCount] = useState<number | null>(null);
   const [placementCoords, setPlacementCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -254,6 +255,7 @@ export function SignsPage() {
           signs={filteredSigns}
           selectedSignId={selectedSign?.sign_id ?? clickedSignId}
           onSignClick={handleSignSelect}
+          onVisibleCountChange={setVisibleSignCount}
           placementMode={isPlacementMode}
           placementCoords={placementCoords}
           onPlacementClick={handlePlacementClick}
@@ -262,10 +264,10 @@ export function SignsPage() {
         {/* Status bar with Add button */}
         <div className="absolute top-4 left-4 flex items-center gap-2">
           <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
-            {filteredSigns.length === (data?.total ?? 0) ? (
-              <span>{data?.total ?? 0} signs</span>
+            {visibleSignCount != null && visibleSignCount < filteredSigns.length ? (
+              <span>{visibleSignCount.toLocaleString()} in view · {(data?.total ?? 0).toLocaleString()} total</span>
             ) : (
-              <span>{filteredSigns.length} of {data?.total ?? 0} signs</span>
+              <span>{(data?.total ?? 0).toLocaleString()} signs</span>
             )}
           </div>
 
