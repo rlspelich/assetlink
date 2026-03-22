@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { X, Send, Loader2, AlertCircle, CheckCircle2, Mail } from 'lucide-react';
+import { X, Send, Loader2, AlertCircle, CheckCircle2, Mail, ChevronDown } from 'lucide-react';
+import { useUsersList } from '../../hooks/use-users';
+import type { User } from '../../api/types';
 
 interface EmailDialogProps {
   open: boolean;
@@ -28,6 +30,11 @@ export function EmailDialog({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ status: string; subject: string } | null>(null);
+  const [showCc, setShowCc] = useState(false);
+
+  // Fetch users for the picker
+  const { data: usersData } = useUsersList({ is_active: true });
+  const users = usersData?.users ?? [];
 
   if (!open) return null;
 
@@ -36,8 +43,15 @@ export function EmailDialog({
     : itemLabel;
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-
   const canSend = to.trim() !== '' && isValidEmail(to.trim()) && !sending;
+
+  const handleSelectUser = (user: User) => {
+    setTo(user.email);
+  };
+
+  const handleSelectCcUser = (user: User) => {
+    setCc(user.email);
+  };
 
   const handleSend = async () => {
     setError(null);
@@ -63,18 +77,14 @@ export function EmailDialog({
     setMessage('');
     setError(null);
     setSuccess(null);
+    setShowCc(false);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40"
-        onClick={handleClose}
-      />
+      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
 
-      {/* Dialog */}
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b">
@@ -99,9 +109,7 @@ export function EmailDialog({
             <p className="text-sm font-medium text-gray-900 mb-1">
               {success.status === 'sent' ? 'Email Sent' : 'Email Queued'}
             </p>
-            <p className="text-xs text-gray-500 mb-1">
-              {success.subject}
-            </p>
+            <p className="text-xs text-gray-500 mb-1">{success.subject}</p>
             {success.status === 'preview' && (
               <p className="text-xs text-amber-600 mt-2">
                 SMTP is not configured. Email was logged for preview.
@@ -116,56 +124,128 @@ export function EmailDialog({
           </div>
         ) : (
           <>
-            {/* Body */}
             <div className="px-5 py-4 space-y-3">
-              {/* Subject preview */}
+              {/* From display */}
               <div className="bg-gray-50 rounded-lg px-3 py-2">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">
-                  Subject
-                </div>
-                <div className="text-xs text-gray-700 truncate">
-                  {subjectPreview}
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">From</div>
+                <div className="text-xs text-gray-700">
+                  AssetLink &lt;workorders@assetlink.us&gt;
                 </div>
               </div>
 
-              {/* To */}
+              {/* Subject preview */}
+              <div className="bg-gray-50 rounded-lg px-3 py-2">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Subject</div>
+                <div className="text-xs text-gray-700 truncate">{subjectPreview}</div>
+              </div>
+
+              {/* To — user picker + manual entry */}
               <div>
                 <label className="block text-xs text-gray-500 mb-1">
                   To <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="email"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  placeholder="crewlead@springfield.gov"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  autoFocus
-                />
+                {users.length > 0 ? (
+                  <div className="space-y-2">
+                    {/* User picker dropdown */}
+                    <div className="relative">
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const user = users.find((u) => u.user_id === e.target.value);
+                          if (user) handleSelectUser(user);
+                        }}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                      >
+                        <option value="">Select team member...</option>
+                        {users.map((u) => (
+                          <option key={u.user_id} value={u.user_id}>
+                            {u.full_name} — {u.email} ({u.role})
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                    {/* Show selected or allow manual */}
+                    <input
+                      type="email"
+                      value={to}
+                      onChange={(e) => setTo(e.target.value)}
+                      placeholder="Or type an email address"
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                ) : (
+                  <input
+                    type="email"
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                    placeholder="recipient@example.com"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                  />
+                )}
               </div>
 
-              {/* CC */}
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">CC</label>
-                <input
-                  type="email"
-                  value={cc}
-                  onChange={(e) => setCc(e.target.value)}
-                  placeholder="supervisor@springfield.gov"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              {/* CC toggle + field */}
+              {!showCc ? (
+                <button
+                  onClick={() => setShowCc(true)}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  + Add CC
+                </button>
+              ) : (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">CC</label>
+                  {users.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const user = users.find((u) => u.user_id === e.target.value);
+                            if (user) handleSelectCcUser(user);
+                          }}
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+                        >
+                          <option value="">Select team member...</option>
+                          {users.map((u) => (
+                            <option key={u.user_id} value={u.user_id}>
+                              {u.full_name} — {u.email} ({u.role})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      </div>
+                      <input
+                        type="email"
+                        value={cc}
+                        onChange={(e) => setCc(e.target.value)}
+                        placeholder="Or type an email address"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      type="email"
+                      value={cc}
+                      onChange={(e) => setCc(e.target.value)}
+                      placeholder="cc@example.com"
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Message */}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">
-                  Message (optional)
-                </label>
+                <label className="block text-xs text-gray-500 mb-1">Message (optional)</label>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Additional notes for the recipient..."
                   rows={3}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>
 
