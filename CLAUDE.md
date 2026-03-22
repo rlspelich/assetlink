@@ -281,24 +281,33 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - [x] Concept doc and competitive analysis
 - [x] Cityworks schema/plugin/UI research
 - [x] Project scaffolding (Docker Compose, FastAPI skeleton, SQLAlchemy models)
-- [x] SQLAlchemy models: tenant, app_user, sign, sign_support, sign_type, work_order, inspection, attachment, comment
-- [x] Pydantic schemas for sign, work order, inspection
+- [x] SQLAlchemy models: tenant, app_user, sign, sign_support, sign_type, work_order, work_order_asset, inspection, inspection_asset, attachment, comment
+- [x] Pydantic schemas for sign, support, work order, inspection (all with multi-asset junction tables)
 - [x] Sign CRUD API (list/create/get/update/delete + MUTCD lookup endpoint)
-- [x] Work order CRUD API (list/create/get/update)
-- [x] Inspection CRUD API (list/create/get)
-- [x] Alembic migration setup (ready to autogenerate)
+- [x] Sign support CRUD API (sign count, delete protection, geometry inheritance)
+- [x] Work order CRUD API (multi-asset: one WO → multiple signs + support, per-asset tracking)
+- [x] Inspection CRUD API (multi-asset, sign auto-update, create-WO-from-inspection with zero dual entry)
+- [x] Alembic migrations (7 migrations: initial schema, clerk org, passes_minimum fix, work_order_asset, inspection_asset, asset_tag, inspection_number)
 - [x] MUTCD lookup table seed data (76 sign types)
 - [x] Multi-tenant middleware (X-Tenant-ID header)
-- [x] Database schema (Alembic migrations — 3 migrations applied)
-- [x] CSV import for signs (fuzzy column matching, per-row validation, 16 tests)
-- [x] Integration tests (70 tests, real PostGIS, tenant isolation coverage)
-- [ ] Work order engine (basic)
-- [ ] Inspection system (basic)
-- [ ] React frontend with MapLibre map
-- [ ] Sign map layer (color by compliance status)
+- [x] Database schema (PostGIS, UUIDs, JSONB, junction tables for multi-asset WO/inspections)
+- [x] CSV import for signs (fuzzy column matching, per-row validation, asset_tag/barcode support)
+- [x] Integration tests (137+ tests, real PostGIS, tenant isolation, multi-asset WO, inspection→WO flow)
+- [x] Auth integration (Clerk JWT + organizations, dev fallback via X-Tenant-ID)
+- [x] React frontend with MapLibre map — GIS-centric three-panel layout on every page
+- [x] Sign map layer (color by condition, auto-fit bounds, home button)
+- [x] Signs page: integrated map + list + detail, add/edit/delete, click-to-place, MUTCD code picker
+- [x] Support-centric UI: multi-sign support view, drill-down to individual signs
+- [x] Work order UI: multi-asset support, knockdown workflow (one WO for support + all signs)
+- [x] Inspection UI: multi-asset inspections, per-asset condition/retro, create-WO-from-inspection
+- [x] GIS-centric work orders page: map with WO markers by priority + dimmed signs base layer
+- [x] GIS-centric inspections page: map with inspection markers by follow-up status + signs base layer
+- [x] Toggleable view modes: Map View, Table View, Split View on WO and inspection pages
+- [x] Asset tag field (municipality barcode/sticker ID) on signs and supports
+- [x] Human-readable IDs: WO-YYYYMMDD-NNN, INS-YYYYMMDD-NNN
 - [ ] MUTCD compliance dashboard
 - [ ] Photo upload
-- [x] Auth integration (Clerk JWT + organizations, dev fallback via X-Tenant-ID)
+- [ ] Map clustering (for 10K+ signs — auto-fit and home button done)
 - [ ] Deploy to Google Cloud (Cloud Run + Cloud SQL)
 - [ ] Pilot municipality onboarded
 
@@ -429,3 +438,17 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - **Built CSV import for signs:** Fuzzy column name matching (40+ aliases), per-row validation, MUTCD code verification, multi-format date parsing, BOM handling, unmapped columns → custom_fields JSONB. Tested with 16 test cases including 100-row batch import.
 - **Built 70 integration tests:** Real PostGIS database, no mocks. Covers signs CRUD, work orders, inspections, CSV import, tenant isolation (security-critical), and health checks. Tests found and fixed: `passes_minimum_retro` NOT NULL bug, work order `updated_at` lazy load bug.
 - **Clerk auth integration:** `fastapi-clerk-auth` for JWT validation, Clerk organizations map to tenants via `clerk_org_id` column. Dev mode fallback: when `CLERK_JWKS_URL` is not set, X-Tenant-ID header is used (no auth required). All 70 tests pass with auth changes.
+
+### 2026-03-22 — Signs MVP Feature Complete
+- **Full React frontend built:** Three-panel GIS-centric layout (list | map | detail) on every page. MapLibre GL JS with CARTO basemap. React Query for data fetching. Tailwind CSS.
+- **Signs page:** Integrated map + list + detail panel. Click-to-place sign creation. MUTCD code searchable picker with auto-fill. Edit/delete. Condition color coding. Co-location badges for multi-sign supports.
+- **Support-centric UI:** Click a support → see all signs on the post. Drill into individual signs with "Back to Support" navigation. Per-asset inspection and work order creation.
+- **Multi-asset work orders:** `work_order_asset` junction table. One WO references multiple signs + support. Knockdown workflow: click "Report Issue" on a support → one WO with all assets pre-attached, per-asset action tracking (replace/reinstall/repair/remove).
+- **Multi-asset inspections:** `inspection_asset` junction table. One inspection covers a support + all its signs. Per-asset condition ratings, retroreflectivity readings, action recommendations. Sign auto-update from inspection data (condition, retro, last_inspected_date).
+- **Inspection → Work Order with zero dual entry:** `POST /inspections/{id}/create-work-order` copies findings, assets, sets priority from condition severity, links bidirectionally. No re-typing.
+- **GIS-centric work orders and inspections:** Every page has a persistent map. Signs always visible as a dimmed base layer. WO markers colored by priority. Inspection markers colored by follow-up status. Click list → map flies. Click map → list scrolls. Linked signs highlight when WO/inspection selected.
+- **Toggleable view modes:** Map View (field crew), Table View (operations supervisor), Split View (director). Full sortable tables with all operational columns. Selection/filters persist across mode switches.
+- **Asset tag field:** Municipality-assigned identifier (sticker/barcode) on signs and supports. CSV import fuzzy matches asset_tag/asset_id/barcode/tag columns.
+- **Human-readable IDs:** WO-YYYYMMDD-NNN and INS-YYYYMMDD-NNN auto-generated per tenant per day.
+- **137+ integration tests passing.** All backend and frontend TypeScript compile clean.
+- **Known issues:** work_order_number unique constraint is global not per-tenant. Map clustering deferred (auto-fit bounds and home button done).
