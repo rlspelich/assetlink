@@ -10,6 +10,7 @@ from app.schemas.sign import SignOut
 
 
 class SignSupportCreate(BaseModel):
+    asset_tag: str | None = None
     support_type: str
     support_material: str | None = None
     install_date: date | None = None
@@ -23,6 +24,7 @@ class SignSupportCreate(BaseModel):
 
 
 class SignSupportUpdate(BaseModel):
+    asset_tag: str | None = None
     support_type: str | None = None
     support_material: str | None = None
     install_date: date | None = None
@@ -37,6 +39,7 @@ class SignSupportUpdate(BaseModel):
 class SignSupportOut(BaseModel):
     support_id: uuid.UUID
     tenant_id: uuid.UUID
+    asset_tag: str | None = None
     support_type: str
     support_material: str | None = None
     install_date: date | None = None

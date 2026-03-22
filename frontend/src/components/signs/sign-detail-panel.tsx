@@ -212,6 +212,7 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, o
       <div className="flex-1 overflow-y-auto px-4">
         {/* Sign Identity */}
         <Section icon={Eye} title="Sign Details">
+          <Field label="Asset Tag" value={sign.asset_tag} />
           <Field label="MUTCD Code" value={sign.mutcd_code} />
           <Field label="Category" value={sign.sign_category ? (
             <span className="capitalize">{sign.sign_category}</span>

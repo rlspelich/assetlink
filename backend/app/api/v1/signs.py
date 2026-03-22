@@ -202,6 +202,7 @@ async def create_sign(
 
     sign = Sign(
         tenant_id=tenant_id,
+        asset_tag=data.asset_tag,
         support_id=data.support_id,
         mutcd_code=data.mutcd_code,
         description=data.description,

@@ -51,6 +51,8 @@ class SignSupport(Base, TenantMixin, TimestampMixin):
     support_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    # Municipality-assigned asset identifier (sticker/barcode on the physical asset)
+    asset_tag: Mapped[str | None] = mapped_column(String(50), index=True)
     # u_channel, square_tube, round_tube, wood, mast_arm, span_wire, bridge_mount
     support_type: Mapped[str] = mapped_column(String(30), nullable=False)
     support_material: Mapped[str | None] = mapped_column(String(30))
@@ -80,6 +82,8 @@ class Sign(Base, TenantMixin, TimestampMixin):
     sign_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    # Municipality-assigned asset identifier (sticker/barcode on the physical asset)
+    asset_tag: Mapped[str | None] = mapped_column(String(50), index=True)
     # Link to support (optional — sign may not have support mapped yet)
     support_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("sign_support.support_id")

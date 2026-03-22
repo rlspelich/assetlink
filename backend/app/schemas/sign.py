@@ -27,6 +27,7 @@ class SignTypeOut(BaseModel):
 
 
 class SignCreate(BaseModel):
+    asset_tag: str | None = None
     mutcd_code: str | None = None
     description: str | None = None
     legend_text: str | None = None
@@ -61,6 +62,7 @@ class SignCreate(BaseModel):
 
 
 class SignUpdate(BaseModel):
+    asset_tag: str | None = None
     mutcd_code: str | None = None
     description: str | None = None
     legend_text: str | None = None
@@ -92,6 +94,7 @@ class SignUpdate(BaseModel):
 class SignOut(BaseModel):
     sign_id: uuid.UUID
     tenant_id: uuid.UUID
+    asset_tag: str | None = None
     support_id: uuid.UUID | None = None
     mutcd_code: str | None = None
     description: str | None = None

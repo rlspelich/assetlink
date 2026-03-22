@@ -24,6 +24,18 @@ from app.models.sign import Sign, SignType
 
 # Column name aliases — maps common CSV header variations to our field names
 COLUMN_ALIASES: dict[str, str] = {
+    # Asset identifier
+    "assettag": "asset_tag",
+    "asset_tag": "asset_tag",
+    "assetid": "asset_tag",
+    "asset_id": "asset_tag",
+    "tag": "asset_tag",
+    "barcode": "asset_tag",
+    "sticker": "asset_tag",
+    "inventoryid": "asset_tag",
+    "inventory_id": "asset_tag",
+    "signid": "asset_tag",
+    "sign_id": "asset_tag",
     # Coordinates
     "latitude": "latitude",
     "lat": "latitude",

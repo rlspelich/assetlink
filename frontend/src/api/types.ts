@@ -3,6 +3,7 @@
 export interface Sign {
   sign_id: string;
   tenant_id: string;
+  asset_tag: string | null;
   support_id: string | null;
   mutcd_code: string | null;
   description: string | null;
@@ -43,6 +44,7 @@ export interface Sign {
 }
 
 export interface SignCreate {
+  asset_tag?: string;
   mutcd_code?: string;
   description?: string;
   legend_text?: string;
@@ -340,6 +342,7 @@ export interface InspectionListResponse {
 export interface SignSupport {
   support_id: string;
   tenant_id: string;
+  asset_tag: string | null;
   support_type: string;
   support_material: string | null;
   install_date: string | null;
@@ -359,6 +362,7 @@ export interface SignSupportDetail extends SignSupport {
 }
 
 export interface SignSupportCreate {
+  asset_tag?: string;
   support_type: string;
   support_material?: string;
   install_date?: string;

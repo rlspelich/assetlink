@@ -221,6 +221,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
       <div className="flex-1 overflow-y-auto px-4">
         {/* Support Info */}
         <Section icon={Landmark} title="Support Details">
+          <Field label="Asset Tag" value={support.asset_tag} />
           <Field label="Type" value={formatEnumLabel(support.support_type)} />
           <Field label="Material" value={support.support_material ? formatEnumLabel(support.support_material) : null} />
           <Field label="Height" value={support.height_inches ? `${support.height_inches}"` : null} />

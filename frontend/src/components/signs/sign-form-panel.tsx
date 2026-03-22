@@ -487,6 +487,13 @@ export function SignFormPanel({
         <div className="flex-1">
           {/* Sign Details */}
           <FormSection icon={Eye} title="Sign Details">
+            <FormField label="Asset Tag">
+              <input
+                {...register('asset_tag')}
+                placeholder="Municipality asset ID / barcode"
+                className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </FormField>
             <FormField label="MUTCD Code" error={errors.mutcd_code?.message}>
               <MutcdPicker
                 value={mutcdCode || ''}

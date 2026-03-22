@@ -114,6 +114,7 @@ async def create_support(
 
     support = SignSupport(
         tenant_id=tenant_id,
+        asset_tag=data.asset_tag,
         support_type=data.support_type,
         support_material=data.support_material,
         install_date=data.install_date,
