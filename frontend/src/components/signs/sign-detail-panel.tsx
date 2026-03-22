@@ -212,7 +212,7 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, o
       <div className="flex-1 overflow-y-auto px-4">
         {/* Sign Identity */}
         <Section icon={Eye} title="Sign Details">
-          <Field label="Asset Tag" value={sign.asset_tag} />
+          <Field label="Asset Tag" value={sign.asset_tag || <span className="italic text-gray-400">Not assigned</span>} />
           <Field label="MUTCD Code" value={sign.mutcd_code} />
           <Field label="Install Date" value={sign.install_date ? formatDate(sign.install_date) : <span className="italic text-gray-400">Not recorded</span>} />
           <Field label="Category" value={sign.sign_category ? (
