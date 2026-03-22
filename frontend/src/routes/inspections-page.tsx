@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Search, Filter, ChevronDown } from 'lucide-react';
 import {
   useInspectionsList,
   useCreateInspection,
@@ -13,7 +13,13 @@ import { InspectionDetailPanel } from '../components/inspections/inspection-deta
 import { InspectionForm, type InspectionAssetContext } from '../components/inspections/inspection-form';
 import { InspectionListPanel } from '../components/inspections/inspection-list-panel';
 import { InspectionMap } from '../components/map/inspection-map';
+import { InspectionTable } from '../components/inspections/inspection-table';
+import { ViewModeToggle, type ViewMode } from '../components/shared/view-mode-toggle';
 import type { Inspection, InspectionCreate, InspectionUpdate } from '../api/types';
+import {
+  INSPECTION_STATUS_OPTIONS,
+  INSPECTION_TYPE_OPTIONS,
+} from '../lib/constants';
 
 export function InspectionsPage() {
   const location = useLocation();
@@ -22,6 +28,7 @@ export function InspectionsPage() {
     assetContext?: InspectionAssetContext;
   } | null;
 
+  const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [followUpFilter, setFollowUpFilter] = useState('');
@@ -32,6 +39,7 @@ export function InspectionsPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [assetContext, setAssetContext] = useState<InspectionAssetContext | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
   const handledRouteState = useRef(false);
 
   // Fetch signs for the base layer
@@ -168,70 +176,272 @@ export function InspectionsPage() {
     [filteredInspections],
   );
 
-  return (
-    <div className="h-full flex overflow-hidden">
-      {/* Left: Inspection list */}
-      <InspectionListPanel
-        inspections={filteredInspections}
-        total={data?.total ?? 0}
-        isLoading={isLoading}
-        selectedInspId={selectedInspection?.inspection_id ?? null}
-        onInspSelect={handleInspSelect}
-        statusFilter={statusFilter}
-        onStatusFilterChange={(s) => { setStatusFilter(s); setSelectedInspection(null); setSelectedInspectionId(null); }}
-        typeFilter={typeFilter}
-        onTypeFilterChange={(t) => { setTypeFilter(t); setSelectedInspection(null); setSelectedInspectionId(null); }}
-        followUpFilter={followUpFilter}
-        onFollowUpFilterChange={(f) => { setFollowUpFilter(f); setSelectedInspection(null); setSelectedInspectionId(null); }}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
+  const hasActiveFilters = statusFilter || typeFilter || followUpFilter;
 
-      {/* Center: Map */}
-      <div className="flex-1 relative">
-        <InspectionMap
-          signs={signs}
-          inspections={filteredInspections}
-          selectedInspId={selectedInspection?.inspection_id ?? null}
-          onInspClick={handleInspSelect}
-          onDeselect={handleMapDeselect}
-          highlightedSignIds={highlightedSignIds}
-        />
-
-        {/* Status bar with Create button */}
-        <div className="absolute top-4 left-4 flex items-center gap-2">
-          <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
-            {filteredInspections.length === (data?.total ?? 0) ? (
-              <span>{data?.total ?? 0} inspections{geoInspCount < filteredInspections.length ? ` (${geoInspCount} mapped)` : ''}</span>
-            ) : (
-              <span>{filteredInspections.length} of {data?.total ?? 0} inspections</span>
-            )}
-          </div>
-
-          <button
-            onClick={handleCreate}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
-          >
-            <Plus size={14} />
-            New Inspection
-          </button>
-        </div>
+  // Header bar with filters — used in table and split modes
+  const headerBar = (
+    <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center gap-3 shrink-0">
+      {/* Left: title + count */}
+      <div className="flex items-center gap-2 shrink-0">
+        <h2 className="text-sm font-semibold text-gray-900">Inspections</h2>
+        <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
+          {filteredInspections.length === (data?.total ?? 0)
+            ? `${data?.total ?? 0}`
+            : `${filteredInspections.length} / ${data?.total ?? 0}`}
+        </span>
       </div>
 
-      {/* Right: Detail panel */}
-      {selectedInspection && !showForm && (
-        <InspectionDetailPanel
-          inspection={selectedInspection}
-          onClose={() => { setSelectedInspection(null); setSelectedInspectionId(null); }}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          isDeleting={deleteInspection.isPending}
-          onRefresh={() => {
-            if (selectedInspectionId) {
-              setSelectedInspectionId(selectedInspectionId);
-            }
-          }}
+      {/* Search */}
+      <div className="relative flex-1 max-w-xs">
+        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search INS #, findings..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
+      </div>
+
+      {/* Filter toggle + dropdowns */}
+      <div className="relative">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-1 text-xs px-2 py-1.5 rounded-md border transition-colors ${
+            hasActiveFilters
+              ? 'border-blue-300 bg-blue-50 text-blue-700'
+              : 'border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <Filter size={12} />
+          Filters
+          {hasActiveFilters && (
+            <span className="bg-blue-100 text-blue-700 rounded-full px-1.5 text-[10px]">
+              {[statusFilter, typeFilter, followUpFilter].filter(Boolean).length}
+            </span>
+          )}
+          <ChevronDown size={12} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showFilters && (
+          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-20 space-y-2 min-w-[200px]">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setSelectedInspection(null); setSelectedInspectionId(null); }}
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All statuses</option>
+              {INSPECTION_STATUS_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <select
+              value={typeFilter}
+              onChange={(e) => { setTypeFilter(e.target.value); setSelectedInspection(null); setSelectedInspectionId(null); }}
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All types</option>
+              {INSPECTION_TYPE_OPTIONS.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+            <select
+              value={followUpFilter}
+              onChange={(e) => { setFollowUpFilter(e.target.value); setSelectedInspection(null); setSelectedInspectionId(null); }}
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All follow-up</option>
+              <option value="true">Follow-up Required</option>
+              <option value="false">No Follow-up</option>
+            </select>
+            {hasActiveFilters && (
+              <button
+                onClick={() => { setStatusFilter(''); setTypeFilter(''); setFollowUpFilter(''); setSelectedInspection(null); setSelectedInspectionId(null); }}
+                className="text-[10px] text-red-500 hover:text-red-700"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Center: view mode toggle */}
+      <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Right: Create button */}
+      <button
+        onClick={handleCreate}
+        className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
+      >
+        <Plus size={14} />
+        New Inspection
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Map View: original layout with list panel */}
+      {viewMode === 'map' && (
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left: Inspection list */}
+          <InspectionListPanel
+            inspections={filteredInspections}
+            total={data?.total ?? 0}
+            isLoading={isLoading}
+            selectedInspId={selectedInspection?.inspection_id ?? null}
+            onInspSelect={handleInspSelect}
+            statusFilter={statusFilter}
+            onStatusFilterChange={(s) => { setStatusFilter(s); setSelectedInspection(null); setSelectedInspectionId(null); }}
+            typeFilter={typeFilter}
+            onTypeFilterChange={(t) => { setTypeFilter(t); setSelectedInspection(null); setSelectedInspectionId(null); }}
+            followUpFilter={followUpFilter}
+            onFollowUpFilterChange={(f) => { setFollowUpFilter(f); setSelectedInspection(null); setSelectedInspectionId(null); }}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
+
+          {/* Center: Map */}
+          <div className="flex-1 relative">
+            <InspectionMap
+              signs={signs}
+              inspections={filteredInspections}
+              selectedInspId={selectedInspection?.inspection_id ?? null}
+              onInspClick={handleInspSelect}
+              onDeselect={handleMapDeselect}
+              highlightedSignIds={highlightedSignIds}
+            />
+
+            {/* Status bar with Create button */}
+            <div className="absolute top-4 left-4 flex items-center gap-2">
+              <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
+                {filteredInspections.length === (data?.total ?? 0) ? (
+                  <span>{data?.total ?? 0} inspections{geoInspCount < filteredInspections.length ? ` (${geoInspCount} mapped)` : ''}</span>
+                ) : (
+                  <span>{filteredInspections.length} of {data?.total ?? 0} inspections</span>
+                )}
+              </div>
+
+              <button
+                onClick={handleCreate}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
+              >
+                <Plus size={14} />
+                New Inspection
+              </button>
+            </div>
+
+            {/* View mode toggle — top center */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2">
+              <div className="bg-white/90 backdrop-blur rounded-full shadow">
+                <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Detail panel */}
+          {selectedInspection && !showForm && (
+            <InspectionDetailPanel
+              inspection={selectedInspection}
+              onClose={() => { setSelectedInspection(null); setSelectedInspectionId(null); }}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              isDeleting={deleteInspection.isPending}
+              onRefresh={() => {
+                if (selectedInspectionId) {
+                  setSelectedInspectionId(selectedInspectionId);
+                }
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Table View: header bar + full table + detail panel */}
+      {viewMode === 'table' && (
+        <>
+          {headerBar}
+          <div className="flex-1 flex overflow-hidden">
+            <InspectionTable
+              inspections={filteredInspections}
+              selectedInspId={selectedInspection?.inspection_id ?? null}
+              onInspSelect={handleInspSelect}
+            />
+
+            {/* Right: Detail panel */}
+            {selectedInspection && !showForm && (
+              <InspectionDetailPanel
+                inspection={selectedInspection}
+                onClose={() => { setSelectedInspection(null); setSelectedInspectionId(null); }}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                isDeleting={deleteInspection.isPending}
+                onRefresh={() => {
+                  if (selectedInspectionId) {
+                    setSelectedInspectionId(selectedInspectionId);
+                  }
+                }}
+              />
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Split View: header bar + map (60%) + table (40%) + detail panel */}
+      {viewMode === 'split' && (
+        <>
+          {headerBar}
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Map — 60% */}
+              <div className="relative" style={{ flex: '0 0 60%' }}>
+                <InspectionMap
+                  signs={signs}
+                  inspections={filteredInspections}
+                  selectedInspId={selectedInspection?.inspection_id ?? null}
+                  onInspClick={handleInspSelect}
+                  onDeselect={handleMapDeselect}
+                  highlightedSignIds={highlightedSignIds}
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-200" />
+
+              {/* Table — 40% */}
+              <div className="flex flex-col overflow-hidden" style={{ flex: '0 0 40%' }}>
+                <InspectionTable
+                  inspections={filteredInspections}
+                  selectedInspId={selectedInspection?.inspection_id ?? null}
+                  onInspSelect={handleInspSelect}
+                />
+              </div>
+            </div>
+
+            {/* Right: Detail panel */}
+            {selectedInspection && !showForm && (
+              <InspectionDetailPanel
+                inspection={selectedInspection}
+                onClose={() => { setSelectedInspection(null); setSelectedInspectionId(null); }}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                isDeleting={deleteInspection.isPending}
+                onRefresh={() => {
+                  if (selectedInspectionId) {
+                    setSelectedInspectionId(selectedInspectionId);
+                  }
+                }}
+              />
+            )}
+          </div>
+        </>
       )}
 
       {/* Form modal */}

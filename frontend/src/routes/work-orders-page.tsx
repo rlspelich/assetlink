@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Search, Filter, ChevronDown } from 'lucide-react';
 import {
   useWorkOrdersList,
   useCreateWorkOrder,
@@ -12,8 +12,15 @@ import { WorkOrderDetailPanel } from '../components/work-orders/work-order-detai
 import { WorkOrderForm } from '../components/work-orders/work-order-form';
 import { WorkOrderListPanel } from '../components/work-orders/work-order-list-panel';
 import { WorkOrderMap } from '../components/map/work-order-map';
+import { WorkOrderTable } from '../components/work-orders/work-order-table';
+import { ViewModeToggle, type ViewMode } from '../components/shared/view-mode-toggle';
 import type { WorkOrder, WorkOrderCreate, WorkOrderUpdate } from '../api/types';
 import type { AssetContext } from '../components/work-orders/work-order-form';
+import {
+  WO_STATUS_OPTIONS,
+  WO_PRIORITY_OPTIONS,
+  WO_WORK_TYPE_OPTIONS,
+} from '../lib/constants';
 
 export function WorkOrdersPage() {
   const location = useLocation();
@@ -23,6 +30,7 @@ export function WorkOrdersPage() {
     assetContext?: AssetContext;
   } | null;
 
+  const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [workTypeFilter, setWorkTypeFilter] = useState('');
@@ -32,6 +40,7 @@ export function WorkOrdersPage() {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [assetContext, setAssetContext] = useState<AssetContext | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
   const handledRouteState = useRef(false);
 
   // Fetch signs for the base layer
@@ -165,65 +174,258 @@ export function WorkOrdersPage() {
     [filteredWOs],
   );
 
-  return (
-    <div className="h-full flex overflow-hidden">
-      {/* Left: Work order list */}
-      <WorkOrderListPanel
-        workOrders={filteredWOs}
-        total={data?.total ?? 0}
-        isLoading={isLoading}
-        selectedWOId={selectedWO?.work_order_id ?? null}
-        onWOSelect={handleWOSelect}
-        statusFilter={statusFilter}
-        onStatusFilterChange={(s) => { setStatusFilter(s); setSelectedWO(null); }}
-        priorityFilter={priorityFilter}
-        onPriorityFilterChange={(p) => { setPriorityFilter(p); setSelectedWO(null); }}
-        workTypeFilter={workTypeFilter}
-        onWorkTypeFilterChange={(t) => { setWorkTypeFilter(t); setSelectedWO(null); }}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
+  const hasActiveFilters = statusFilter || priorityFilter || workTypeFilter;
 
-      {/* Center: Map */}
-      <div className="flex-1 relative">
-        <WorkOrderMap
-          signs={signs}
-          workOrders={filteredWOs}
-          selectedWOId={selectedWO?.work_order_id ?? null}
-          onWOClick={handleWOSelect}
-          onDeselect={handleMapDeselect}
-          highlightedSignIds={highlightedSignIds}
-        />
-
-        {/* Status bar with Create button */}
-        <div className="absolute top-4 left-4 flex items-center gap-2">
-          <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
-            {filteredWOs.length === (data?.total ?? 0) ? (
-              <span>{data?.total ?? 0} work orders{geoWOCount < filteredWOs.length ? ` (${geoWOCount} mapped)` : ''}</span>
-            ) : (
-              <span>{filteredWOs.length} of {data?.total ?? 0} work orders</span>
-            )}
-          </div>
-
-          <button
-            onClick={handleCreate}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
-          >
-            <Plus size={14} />
-            Create Work Order
-          </button>
-        </div>
+  // Header bar with filters — used in table and split modes
+  const headerBar = (
+    <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center gap-3 shrink-0">
+      {/* Left: title + count */}
+      <div className="flex items-center gap-2 shrink-0">
+        <h2 className="text-sm font-semibold text-gray-900">Work Orders</h2>
+        <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
+          {filteredWOs.length === (data?.total ?? 0)
+            ? `${data?.total ?? 0}`
+            : `${filteredWOs.length} / ${data?.total ?? 0}`}
+        </span>
       </div>
 
-      {/* Right: Detail panel */}
-      {selectedWO && !showForm && (
-        <WorkOrderDetailPanel
-          workOrder={selectedWO}
-          onClose={() => setSelectedWO(null)}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          isDeleting={deleteWO.isPending}
+      {/* Search */}
+      <div className="relative flex-1 max-w-xs">
+        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search WO #, description, address..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
+      </div>
+
+      {/* Filter toggle + dropdowns */}
+      <div className="relative">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-1 text-xs px-2 py-1.5 rounded-md border transition-colors ${
+            hasActiveFilters
+              ? 'border-blue-300 bg-blue-50 text-blue-700'
+              : 'border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <Filter size={12} />
+          Filters
+          {hasActiveFilters && (
+            <span className="bg-blue-100 text-blue-700 rounded-full px-1.5 text-[10px]">
+              {[statusFilter, priorityFilter, workTypeFilter].filter(Boolean).length}
+            </span>
+          )}
+          <ChevronDown size={12} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showFilters && (
+          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-20 space-y-2 min-w-[200px]">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setSelectedWO(null); }}
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All statuses</option>
+              {WO_STATUS_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <select
+              value={priorityFilter}
+              onChange={(e) => { setPriorityFilter(e.target.value); setSelectedWO(null); }}
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All priorities</option>
+              {WO_PRIORITY_OPTIONS.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+            <select
+              value={workTypeFilter}
+              onChange={(e) => { setWorkTypeFilter(e.target.value); setSelectedWO(null); }}
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All types</option>
+              {WO_WORK_TYPE_OPTIONS.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+            {hasActiveFilters && (
+              <button
+                onClick={() => { setStatusFilter(''); setPriorityFilter(''); setWorkTypeFilter(''); setSelectedWO(null); }}
+                className="text-[10px] text-red-500 hover:text-red-700"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Center: view mode toggle */}
+      <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Right: Create button */}
+      <button
+        onClick={handleCreate}
+        className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
+      >
+        <Plus size={14} />
+        Create Work Order
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Map View: original layout with list panel, but add toggle overlay on map */}
+      {viewMode === 'map' && (
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left: Work order list */}
+          <WorkOrderListPanel
+            workOrders={filteredWOs}
+            total={data?.total ?? 0}
+            isLoading={isLoading}
+            selectedWOId={selectedWO?.work_order_id ?? null}
+            onWOSelect={handleWOSelect}
+            statusFilter={statusFilter}
+            onStatusFilterChange={(s) => { setStatusFilter(s); setSelectedWO(null); }}
+            priorityFilter={priorityFilter}
+            onPriorityFilterChange={(p) => { setPriorityFilter(p); setSelectedWO(null); }}
+            workTypeFilter={workTypeFilter}
+            onWorkTypeFilterChange={(t) => { setWorkTypeFilter(t); setSelectedWO(null); }}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
+
+          {/* Center: Map */}
+          <div className="flex-1 relative">
+            <WorkOrderMap
+              signs={signs}
+              workOrders={filteredWOs}
+              selectedWOId={selectedWO?.work_order_id ?? null}
+              onWOClick={handleWOSelect}
+              onDeselect={handleMapDeselect}
+              highlightedSignIds={highlightedSignIds}
+            />
+
+            {/* Status bar with Create button and view toggle */}
+            <div className="absolute top-4 left-4 flex items-center gap-2">
+              <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
+                {filteredWOs.length === (data?.total ?? 0) ? (
+                  <span>{data?.total ?? 0} work orders{geoWOCount < filteredWOs.length ? ` (${geoWOCount} mapped)` : ''}</span>
+                ) : (
+                  <span>{filteredWOs.length} of {data?.total ?? 0} work orders</span>
+                )}
+              </div>
+
+              <button
+                onClick={handleCreate}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
+              >
+                <Plus size={14} />
+                Create Work Order
+              </button>
+            </div>
+
+            {/* View mode toggle — top center */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2">
+              <div className="bg-white/90 backdrop-blur rounded-full shadow">
+                <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Detail panel */}
+          {selectedWO && !showForm && (
+            <WorkOrderDetailPanel
+              workOrder={selectedWO}
+              onClose={() => setSelectedWO(null)}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              isDeleting={deleteWO.isPending}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Table View: header bar + full table + detail panel */}
+      {viewMode === 'table' && (
+        <>
+          {headerBar}
+          <div className="flex-1 flex overflow-hidden">
+            <WorkOrderTable
+              workOrders={filteredWOs}
+              selectedWOId={selectedWO?.work_order_id ?? null}
+              onWOSelect={handleWOSelect}
+            />
+
+            {/* Right: Detail panel */}
+            {selectedWO && !showForm && (
+              <WorkOrderDetailPanel
+                workOrder={selectedWO}
+                onClose={() => setSelectedWO(null)}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                isDeleting={deleteWO.isPending}
+              />
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Split View: header bar + map (60%) + table (40%) + detail panel */}
+      {viewMode === 'split' && (
+        <>
+          {headerBar}
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Map — 60% */}
+              <div className="relative" style={{ flex: '0 0 60%' }}>
+                <WorkOrderMap
+                  signs={signs}
+                  workOrders={filteredWOs}
+                  selectedWOId={selectedWO?.work_order_id ?? null}
+                  onWOClick={handleWOSelect}
+                  onDeselect={handleMapDeselect}
+                  highlightedSignIds={highlightedSignIds}
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-200" />
+
+              {/* Table — 40% */}
+              <div className="flex flex-col overflow-hidden" style={{ flex: '0 0 40%' }}>
+                <WorkOrderTable
+                  workOrders={filteredWOs}
+                  selectedWOId={selectedWO?.work_order_id ?? null}
+                  onWOSelect={handleWOSelect}
+                />
+              </div>
+            </div>
+
+            {/* Right: Detail panel */}
+            {selectedWO && !showForm && (
+              <WorkOrderDetailPanel
+                workOrder={selectedWO}
+                onClose={() => setSelectedWO(null)}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                isDeleting={deleteWO.isPending}
+              />
+            )}
+          </div>
+        </>
       )}
 
       {/* Form modal */}
