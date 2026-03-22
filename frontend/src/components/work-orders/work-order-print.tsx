@@ -1,18 +1,21 @@
 /**
- * Work Order Print Component
+ * Work Order Print
  *
- * Not rendered in the UI — generates print-optimized HTML and opens
- * a new window with window.print(). Designed for 8.5x11 paper.
- *
- * Layout: monospaced, black-on-white, checkboxes for field crew,
- * blank lines for crew completion notes and signature.
+ * Generates print-optimized HTML and prints via hidden iframe.
+ * Falls back to print preview overlay if iframe print fails.
  */
 
 import type { WorkOrder } from '../../api/types';
-import { generateWorkOrderPrintHtml, openPrintWindow } from '../../lib/print-utils';
+import { generateWorkOrderPrintHtml, openPrintWindow, openPrintPreview } from '../../lib/print-utils';
 
 export function printWorkOrder(wo: WorkOrder): void {
   const html = generateWorkOrderPrintHtml(wo);
   const title = wo.work_order_number || 'Work Order';
   openPrintWindow(html, title);
+}
+
+export function previewWorkOrder(wo: WorkOrder): void {
+  const html = generateWorkOrderPrintHtml(wo);
+  const title = wo.work_order_number || 'Work Order';
+  openPrintPreview(html, title);
 }

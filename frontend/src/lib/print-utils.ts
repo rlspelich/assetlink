@@ -381,15 +381,26 @@ export function generateInspectionPrintHtml(insp: Inspection): string {
   `;
 }
 
-// --- Open Print Window ---
+// --- Print via hidden iframe (no popup blocker issues) ---
 
 export function openPrintWindow(html: string, title: string): void {
-  const printWindow = window.open('', '_blank', 'width=800,height=1000');
-  if (!printWindow) {
-    alert('Please allow pop-ups to print.');
+  // Create a hidden iframe for printing — avoids popup blockers entirely
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.top = '-10000px';
+  iframe.style.left = '-10000px';
+  iframe.style.width = '800px';
+  iframe.style.height = '1000px';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) {
+    document.body.removeChild(iframe);
     return;
   }
-  printWindow.document.write(`<!DOCTYPE html>
+
+  doc.open();
+  doc.write(`<!DOCTYPE html>
 <html>
 <head>
   <title>${escapeHtml(title)}</title>
@@ -397,12 +408,68 @@ export function openPrintWindow(html: string, title: string): void {
 </head>
 <body>${html}</body>
 </html>`);
-  printWindow.document.close();
-  printWindow.focus();
-  // Small delay to ensure rendering completes before triggering print dialog
+  doc.close();
+
+  // Wait for content to render, then print
   setTimeout(() => {
-    printWindow.print();
-  }, 250);
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch {
+      // Fallback: open in new tab if iframe print fails
+      const blob = new Blob([doc.documentElement.outerHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+    // Clean up iframe after a delay
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+    }, 1000);
+  }, 300);
+}
+
+// --- Print preview (renders inline for environments where print isn't available) ---
+
+export function openPrintPreview(html: string, title: string): void {
+  // Create a full-screen overlay with the print content
+  const overlay = document.createElement('div');
+  overlay.id = 'print-preview-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
+
+  const container = document.createElement('div');
+  container.style.cssText = 'background:white;width:800px;max-height:90vh;overflow-y:auto;border-radius:8px;box-shadow:0 25px 50px rgba(0,0,0,0.25);position:relative;';
+
+  // Close button bar
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = 'position:sticky;top:0;background:white;border-bottom:1px solid #e5e7eb;padding:8px 16px;display:flex;justify-content:space-between;align-items:center;z-index:1;';
+  toolbar.innerHTML = `
+    <span style="font-size:14px;font-weight:600;color:#111827;">Print Preview — ${escapeHtml(title)}</span>
+    <div style="display:flex;gap:8px;">
+      <button id="print-preview-print" style="padding:4px 12px;font-size:12px;background:#2563eb;color:white;border:none;border-radius:4px;cursor:pointer;">Print</button>
+      <button id="print-preview-close" style="padding:4px 12px;font-size:12px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;">Close</button>
+    </div>
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = 'padding:40px;';
+  content.innerHTML = `<style>${PRINT_STYLES}</style>${html}`;
+
+  container.appendChild(toolbar);
+  container.appendChild(content);
+  overlay.appendChild(container);
+  document.body.appendChild(overlay);
+
+  // Event handlers
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) document.body.removeChild(overlay);
+  });
+  document.getElementById('print-preview-close')?.addEventListener('click', () => {
+    document.body.removeChild(overlay);
+  });
+  document.getElementById('print-preview-print')?.addEventListener('click', () => {
+    openPrintWindow(html, title);
+  });
 }
 
 // --- Email HTML generators (adds email wrapper around print content) ---

@@ -14,7 +14,7 @@ import {
   getInspectionActionOption,
   formatEnumLabel,
 } from '../../lib/constants';
-import { printInspection } from './inspection-print';
+import { previewInspection } from './inspection-print';
 import { EmailDialog } from '../shared/email-dialog';
 import { sendInspectionEmail } from '../../api/email';
 
@@ -142,7 +142,7 @@ export function InspectionDetailPanel({
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={() => printInspection(inspection)}
+            onClick={() => previewInspection(inspection)}
             title="Print inspection"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
           >

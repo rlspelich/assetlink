@@ -11,7 +11,7 @@ import {
   getWoAssetStatusOption,
 } from '../../lib/constants';
 import { useUpdateWorkOrderAsset } from '../../hooks/use-work-orders';
-import { printWorkOrder } from './work-order-print';
+import { printWorkOrder, previewWorkOrder } from './work-order-print';
 import { EmailDialog } from '../shared/email-dialog';
 import { sendWorkOrderEmail } from '../../api/email';
 
@@ -252,8 +252,8 @@ export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isD
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={() => printWorkOrder(workOrder)}
-            title="Print work order"
+            onClick={() => previewWorkOrder(workOrder)}
+            title="Print preview"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
           >
             <Printer size={16} />
