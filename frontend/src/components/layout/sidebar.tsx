@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { Map, Wrench, ClipboardCheck, BarChart3, HelpCircle, Settings } from 'lucide-react';
+import { Map, Wrench, ClipboardCheck, BarChart3, FileBarChart, HelpCircle, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/signs', icon: Map, label: 'Signs' },
   { to: '/work-orders', icon: Wrench, label: 'Work Orders' },
   { to: '/inspections', icon: ClipboardCheck, label: 'Inspections' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
+  { to: '/reports', icon: FileBarChart, label: 'Reports' },
 ];
 
 export function Sidebar() {

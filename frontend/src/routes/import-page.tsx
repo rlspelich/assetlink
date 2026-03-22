@@ -583,8 +583,8 @@ export function ImportPage() {
 
           {/* Helpful hints below upload area */}
           <div className="mt-3 text-xs text-gray-400 space-y-1">
-            <p>Column names are automatically matched (e.g., "lat" -> Latitude, "street" -> Road Name)</p>
-            <p>Unrecognized columns are stored in custom fields -- no data is lost</p>
+            <p>Column names are automatically matched (e.g., &quot;lat&quot; &rarr; Latitude, &quot;street&quot; &rarr; Road Name)</p>
+            <p>Unrecognized columns are stored in custom fields &mdash; no data is lost</p>
             <p>Maximum file size: 50 MB. Supports 20,000+ rows.</p>
           </div>
 
@@ -777,13 +777,13 @@ export function ImportPage() {
                 <div>
                   <h4 className="text-xs font-medium text-gray-600 mb-2">
                     {result.import_mode === 'supports_only' ? 'Column Mapping' : 'Sign Column Mapping'}
-                    {' '}(your column -> our field)
+                    {' '}(your column &rarr; our field)
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
                     {Object.entries(result.column_mapping).map(([csv, field]) => (
                       <span key={csv} className="text-xs bg-green-50 border border-green-200 rounded px-2 py-1">
                         <span className="text-gray-500">{csv}</span>
-                        <span className="text-gray-400 mx-1">-></span>
+                        <span className="text-gray-400 mx-1">&rarr;</span>
                         <span className="text-green-700 font-medium">{field}</span>
                       </span>
                     ))}
@@ -794,12 +794,12 @@ export function ImportPage() {
               {/* Support column mapping */}
               {Object.keys(result.support_column_mapping).length > 0 && (
                 <div>
-                  <h4 className="text-xs font-medium text-gray-600 mb-2">Support Column Mapping (your column -> our field)</h4>
+                  <h4 className="text-xs font-medium text-gray-600 mb-2">Support Column Mapping (your column &rarr; our field)</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {Object.entries(result.support_column_mapping).map(([csv, field]) => (
                       <span key={csv} className="text-xs bg-emerald-50 border border-emerald-200 rounded px-2 py-1">
                         <span className="text-gray-500">{csv}</span>
-                        <span className="text-gray-400 mx-1">-></span>
+                        <span className="text-gray-400 mx-1">&rarr;</span>
                         <span className="text-emerald-700 font-medium">{field}</span>
                       </span>
                     ))}

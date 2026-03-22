@@ -488,6 +488,161 @@ export interface PrioritySign {
   priority_score: number;
 }
 
+// --- Reports ---
+
+export interface PriorityBucket {
+  priority: string;
+  created: number;
+  completed: number;
+  open: number;
+}
+
+export interface WorkTypeBucket {
+  work_type: string;
+  count: number;
+}
+
+export interface StatusBucket {
+  status: string;
+  count: number;
+}
+
+export interface MonthBucket {
+  month: string; // "2026-01"
+  created: number;
+  completed: number;
+}
+
+export interface AssigneeBucket {
+  user_id: string | null;
+  user_name: string;
+  completed: number;
+  open: number;
+}
+
+export interface TypeBucket {
+  inspection_type: string;
+  count: number;
+}
+
+export interface InspectionMonthBucket {
+  month: string;
+  completed: number;
+}
+
+export interface InspectorBucket {
+  user_id: string | null;
+  user_name: string;
+  completed: number;
+}
+
+export interface ConditionRatingBucket {
+  rating: number | null;
+  count: number;
+}
+
+export interface WorkOrderReport {
+  start_date: string;
+  end_date: string;
+  total_created: number;
+  total_completed: number;
+  total_open: number;
+  total_cancelled: number;
+  avg_days_to_complete: number | null;
+  avg_emergency_response_days: number | null;
+  by_priority: PriorityBucket[];
+  by_work_type: WorkTypeBucket[];
+  by_status: StatusBucket[];
+  by_month: MonthBucket[];
+  by_assignee: AssigneeBucket[];
+  total_assets_affected: number;
+  signs_affected: number;
+  supports_affected: number;
+}
+
+export interface InspectionReport {
+  start_date: string;
+  end_date: string;
+  total_completed: number;
+  total_open: number;
+  signs_inspected: number;
+  coverage_rate: number | null;
+  follow_ups_required: number;
+  follow_ups_with_wo: number;
+  follow_up_rate: number | null;
+  avg_condition_rating: number | null;
+  condition_distribution: ConditionRatingBucket[];
+  retro_readings_taken: number;
+  retro_pass_count: number;
+  retro_fail_count: number;
+  retro_pass_rate: number | null;
+  by_type: TypeBucket[];
+  by_month: InspectionMonthBucket[];
+  by_inspector: InspectorBucket[];
+}
+
+export interface InventoryReport {
+  as_of_date: string;
+  total_signs: number;
+  total_supports: number;
+  condition_distribution: ConditionBucket[];
+  status_distribution: StatusBucket[];
+  category_distribution: CategoryBucket[];
+  age_distribution: AgeBucket[];
+  sheeting_distribution: SheetingBucket[];
+  signs_with_retro_data: number;
+  signs_passing_retro: number;
+  signs_failing_retro: number;
+  compliance_rate: number | null;
+  overdue_for_replacement: number;
+  due_within_90_days: number;
+  due_within_1_year: number;
+  estimated_replacement_cost: number;
+  signs_added_last_30: number;
+  signs_removed_last_30: number;
+}
+
+export interface CrewMemberStats {
+  user_id: string;
+  user_name: string;
+  role: string;
+  wos_assigned: number;
+  wos_completed: number;
+  avg_days_to_complete: number | null;
+  inspections_completed: number;
+  signs_inspected: number;
+}
+
+export interface CrewProductivityReport {
+  start_date: string;
+  end_date: string;
+  crew_stats: CrewMemberStats[];
+}
+
+export interface WorkOrderReportParams {
+  start_date?: string;
+  end_date?: string;
+  assigned_to?: string;
+  priority?: string;
+  work_type?: string;
+}
+
+export interface InspectionReportParams {
+  start_date?: string;
+  end_date?: string;
+  inspector_id?: string;
+  inspection_type?: string;
+}
+
+export interface InventoryReportParams {
+  as_of_date?: string;
+}
+
+export interface CrewProductivityReportParams {
+  start_date?: string;
+  end_date?: string;
+}
+
 export interface ComplianceDashboard {
   total_signs: number;
   total_supports: number;

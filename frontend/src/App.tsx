@@ -7,6 +7,7 @@ import { InspectionsPage } from './routes/inspections-page';
 import { DashboardPage } from './routes/dashboard-page';
 import { SettingsPage } from './routes/settings-page';
 import { HelpPage } from './routes/help-page';
+import { ReportsPage } from './routes/reports-page';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="work-orders" element={<WorkOrdersPage />} />
             <Route path="inspections" element={<InspectionsPage />} />
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="help" element={<HelpPage />} />
             <Route path="settings" element={<SettingsPage />} />
             {/* Legacy route — redirect to settings */}
