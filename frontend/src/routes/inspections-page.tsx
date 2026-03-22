@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Filter, ChevronDown } from 'lucide-react';
+import { Plus, Search, Filter, ChevronDown, X } from 'lucide-react';
 import {
   useInspectionsList,
   useCreateInspection,
@@ -15,7 +15,7 @@ import { InspectionListPanel } from '../components/inspections/inspection-list-p
 import { InspectionMap } from '../components/map/inspection-map';
 import { InspectionTable } from '../components/inspections/inspection-table';
 import { ViewModeToggle, type ViewMode } from '../components/shared/view-mode-toggle';
-import type { Inspection, InspectionCreate, InspectionUpdate } from '../api/types';
+import type { Sign, Inspection, InspectionCreate, InspectionUpdate } from '../api/types';
 import {
   INSPECTION_STATUS_OPTIONS,
   INSPECTION_TYPE_OPTIONS,
@@ -41,6 +41,12 @@ export function InspectionsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const handledRouteState = useRef(false);
+
+  // Asset selection mode for creating inspections from the map
+  type CreationMode = 'idle' | 'selecting' | 'form';
+  const [creationMode, setCreationMode] = useState<CreationMode>('idle');
+  const [selectionCoords, setSelectionCoords] = useState<{ lng: number; lat: number } | null>(null);
+  const [formCoordinates, setFormCoordinates] = useState<{ lng: number; lat: number } | null>(null);
 
   // Fetch signs for the base layer
   const { data: signsData } = useSignsList({ page_size: 1000 });
@@ -109,11 +115,62 @@ export function InspectionsPage() {
   }, [detailInspection, selectedInspectionId]);
 
   const handleCreate = () => {
+    // In table mode (no map visible), skip selection and go straight to form
+    if (viewMode === 'table') {
+      setAssetContext(null);
+      setFormCoordinates(null);
+      setFormMode('create');
+      setSubmitError(null);
+      setShowForm(true);
+      return;
+    }
+    // In map or split mode, enter asset selection mode
+    setSelectedInspection(null);
+    setSelectedInspectionId(null);
+    setSelectionCoords(null);
+    setCreationMode('selecting');
+  };
+
+  const handleSelectionCancel = () => {
+    setCreationMode('idle');
+    setSelectionCoords(null);
+  };
+
+  const handleSelectionSkip = () => {
+    setCreationMode('idle');
+    setSelectionCoords(null);
     setAssetContext(null);
+    setFormCoordinates(null);
     setFormMode('create');
     setSubmitError(null);
     setShowForm(true);
   };
+
+  const handleSignSelect = useCallback((sign: Sign) => {
+    setCreationMode('idle');
+    setSelectionCoords(null);
+    setAssetContext({
+      assets: [{
+        asset_type: 'sign',
+        asset_id: sign.sign_id,
+        label: `${sign.mutcd_code || 'Sign'} — ${sign.description || sign.road_name || sign.sign_id}`,
+      }],
+    });
+    setFormCoordinates({ lng: sign.longitude, lat: sign.latitude });
+    setFormMode('create');
+    setSubmitError(null);
+    setShowForm(true);
+  }, []);
+
+  const handleLocationSelect = useCallback((lng: number, lat: number) => {
+    setCreationMode('idle');
+    setSelectionCoords(null);
+    setAssetContext(null);
+    setFormCoordinates({ lng, lat });
+    setFormMode('create');
+    setSubmitError(null);
+    setShowForm(true);
+  }, []);
 
   const handleEdit = () => {
     if (!selectedInspection) return;
@@ -129,6 +186,8 @@ export function InspectionsPage() {
         const created = await createInspection.mutateAsync(formData as InspectionCreate);
         setShowForm(false);
         setAssetContext(null);
+        setFormCoordinates(null);
+        setCreationMode('idle');
         setSelectedInspection(created);
         setSelectedInspectionId(created.inspection_id);
       } else if (selectedInspection) {
@@ -313,30 +372,58 @@ export function InspectionsPage() {
             <InspectionMap
               signs={signs}
               inspections={filteredInspections}
-              selectedInspId={selectedInspection?.inspection_id ?? null}
+              selectedInspId={creationMode === 'selecting' ? null : (selectedInspection?.inspection_id ?? null)}
               onInspClick={handleInspSelect}
               onDeselect={handleMapDeselect}
               highlightedSignIds={highlightedSignIds}
+              assetSelectionMode={creationMode === 'selecting'}
+              onSignSelect={handleSignSelect}
+              onLocationSelect={handleLocationSelect}
+              selectionCoords={selectionCoords}
             />
 
-            {/* Status bar with Create button */}
-            <div className="absolute top-4 left-4 flex items-center gap-2">
-              <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
-                {filteredInspections.length === (data?.total ?? 0) ? (
-                  <span>{data?.total ?? 0} inspections{geoInspCount < filteredInspections.length ? ` (${geoInspCount} mapped)` : ''}</span>
-                ) : (
-                  <span>{filteredInspections.length} of {data?.total ?? 0} inspections</span>
-                )}
+            {/* Asset selection mode banner */}
+            {creationMode === 'selecting' && (
+              <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
+                <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                  <span>Click a sign to attach it, click the map for a new location, or</span>
+                  <button
+                    onClick={handleSelectionSkip}
+                    className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded text-white font-medium transition-colors"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    onClick={handleSelectionCancel}
+                    className="p-1 hover:bg-white/20 rounded transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
+            )}
 
-              <button
-                onClick={handleCreate}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
-              >
-                <Plus size={14} />
-                New Inspection
-              </button>
-            </div>
+            {/* Status bar with Create button (hidden during selection) */}
+            {creationMode !== 'selecting' && (
+              <div className="absolute top-4 left-4 flex items-center gap-2">
+                <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
+                  {filteredInspections.length === (data?.total ?? 0) ? (
+                    <span>{data?.total ?? 0} inspections{geoInspCount < filteredInspections.length ? ` (${geoInspCount} mapped)` : ''}</span>
+                  ) : (
+                    <span>{filteredInspections.length} of {data?.total ?? 0} inspections</span>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleCreate}
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                >
+                  <Plus size={14} />
+                  New Inspection
+                </button>
+              </div>
+            )}
 
             {/* View mode toggle — top center */}
             <div className="absolute top-4 left-1/2 -translate-x-1/2">
@@ -405,11 +492,37 @@ export function InspectionsPage() {
                 <InspectionMap
                   signs={signs}
                   inspections={filteredInspections}
-                  selectedInspId={selectedInspection?.inspection_id ?? null}
+                  selectedInspId={creationMode === 'selecting' ? null : (selectedInspection?.inspection_id ?? null)}
                   onInspClick={handleInspSelect}
                   onDeselect={handleMapDeselect}
                   highlightedSignIds={highlightedSignIds}
+                  assetSelectionMode={creationMode === 'selecting'}
+                  onSignSelect={handleSignSelect}
+                  onLocationSelect={handleLocationSelect}
+                  selectionCoords={selectionCoords}
                 />
+
+                {/* Asset selection mode banner (split view) */}
+                {creationMode === 'selecting' && (
+                  <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
+                    <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      <span>Click a sign to attach it, click the map for a new location, or</span>
+                      <button
+                        onClick={handleSelectionSkip}
+                        className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded text-white font-medium transition-colors"
+                      >
+                        Skip
+                      </button>
+                      <button
+                        onClick={handleSelectionCancel}
+                        className="p-1 hover:bg-white/20 rounded transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Divider */}
@@ -450,8 +563,9 @@ export function InspectionsPage() {
           mode={formMode}
           inspection={formMode === 'edit' ? selectedInspection : null}
           assetContext={assetContext}
+          coordinates={formMode === 'create' ? formCoordinates : null}
           onSubmit={handleFormSubmit}
-          onCancel={() => { setShowForm(false); setAssetContext(null); setSubmitError(null); }}
+          onCancel={() => { setShowForm(false); setAssetContext(null); setFormCoordinates(null); setCreationMode('idle'); setSubmitError(null); }}
           isSubmitting={createInspection.isPending || updateInspection.isPending}
           error={submitError}
         />

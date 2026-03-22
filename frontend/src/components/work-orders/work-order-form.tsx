@@ -15,6 +15,8 @@ interface WorkOrderFormProps {
   workOrder?: WorkOrder | null;
   /** Pre-fill context when creating from assets */
   assetContext?: AssetContext | null;
+  /** Coordinates from map selection (location click or sign location) */
+  coordinates?: { lng: number; lat: number } | null;
   onSubmit: (data: WorkOrderCreate | WorkOrderUpdate) => void;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -33,6 +35,7 @@ export function WorkOrderForm({
   mode,
   workOrder,
   assetContext,
+  coordinates,
   onSubmit,
   onCancel,
   isSubmitting,
@@ -88,6 +91,8 @@ export function WorkOrderForm({
         address: address || undefined,
         instructions: instructions || undefined,
         notes: notes || undefined,
+        longitude: coordinates?.lng,
+        latitude: coordinates?.lat,
       };
 
       // Multi-asset context
@@ -142,6 +147,14 @@ export function WorkOrderForm({
         {hasAssets && mode === 'create' && (
           <div className="px-5 py-2 bg-blue-50 border-b text-xs text-blue-700">
             <span className="font-medium">{assetRows.length} asset{assetRows.length !== 1 ? 's' : ''}</span> will be attached to this work order
+          </div>
+        )}
+
+        {/* Location banner (from map selection) */}
+        {coordinates && mode === 'create' && !hasAssets && (
+          <div className="px-5 py-2 bg-green-50 border-b text-xs text-green-700 flex items-center gap-1.5">
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>Location: {coordinates.lat.toFixed(4)}, {coordinates.lng.toFixed(4)}</span>
           </div>
         )}
 

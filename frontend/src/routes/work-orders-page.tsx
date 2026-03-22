@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Plus, Search, Filter, ChevronDown } from 'lucide-react';
+import { Plus, Search, Filter, ChevronDown, X } from 'lucide-react';
 import {
   useWorkOrdersList,
   useCreateWorkOrder,
@@ -14,7 +14,7 @@ import { WorkOrderListPanel } from '../components/work-orders/work-order-list-pa
 import { WorkOrderMap } from '../components/map/work-order-map';
 import { WorkOrderTable } from '../components/work-orders/work-order-table';
 import { ViewModeToggle, type ViewMode } from '../components/shared/view-mode-toggle';
-import type { WorkOrder, WorkOrderCreate, WorkOrderUpdate } from '../api/types';
+import type { Sign, WorkOrder, WorkOrderCreate, WorkOrderUpdate } from '../api/types';
 import type { AssetContext } from '../components/work-orders/work-order-form';
 import {
   WO_STATUS_OPTIONS,
@@ -42,6 +42,12 @@ export function WorkOrdersPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const handledRouteState = useRef(false);
+
+  // Asset selection mode for creating WOs from the map
+  type CreationMode = 'idle' | 'selecting' | 'form';
+  const [creationMode, setCreationMode] = useState<CreationMode>('idle');
+  const [selectionCoords, setSelectionCoords] = useState<{ lng: number; lat: number } | null>(null);
+  const [formCoordinates, setFormCoordinates] = useState<{ lng: number; lat: number } | null>(null);
 
   // Fetch signs for the base layer
   const { data: signsData } = useSignsList({ page_size: 1000 });
@@ -112,11 +118,61 @@ export function WorkOrdersPage() {
   }, [routeState, data?.work_orders]);
 
   const handleCreate = () => {
+    // In table mode (no map visible), skip selection and go straight to form
+    if (viewMode === 'table') {
+      setAssetContext(null);
+      setFormCoordinates(null);
+      setFormMode('create');
+      setSubmitError(null);
+      setShowForm(true);
+      return;
+    }
+    // In map or split mode, enter asset selection mode
+    setSelectedWO(null);
+    setSelectionCoords(null);
+    setCreationMode('selecting');
+  };
+
+  const handleSelectionCancel = () => {
+    setCreationMode('idle');
+    setSelectionCoords(null);
+  };
+
+  const handleSelectionSkip = () => {
+    setCreationMode('idle');
+    setSelectionCoords(null);
     setAssetContext(null);
+    setFormCoordinates(null);
     setFormMode('create');
     setSubmitError(null);
     setShowForm(true);
   };
+
+  const handleSignSelect = useCallback((sign: Sign) => {
+    setCreationMode('idle');
+    setSelectionCoords(null);
+    setAssetContext({
+      assets: [{
+        asset_type: 'sign',
+        asset_id: sign.sign_id,
+        label: `${sign.mutcd_code || 'Sign'} — ${sign.description || sign.road_name || sign.sign_id}`,
+      }],
+    });
+    setFormCoordinates({ lng: sign.longitude, lat: sign.latitude });
+    setFormMode('create');
+    setSubmitError(null);
+    setShowForm(true);
+  }, []);
+
+  const handleLocationSelect = useCallback((lng: number, lat: number) => {
+    setCreationMode('idle');
+    setSelectionCoords(null);
+    setAssetContext(null);
+    setFormCoordinates({ lng, lat });
+    setFormMode('create');
+    setSubmitError(null);
+    setShowForm(true);
+  }, []);
 
   const handleEdit = () => {
     if (!selectedWO) return;
@@ -132,6 +188,8 @@ export function WorkOrdersPage() {
         const created = await createWO.mutateAsync(formData as WorkOrderCreate);
         setShowForm(false);
         setAssetContext(null);
+        setFormCoordinates(null);
+        setCreationMode('idle');
         setSelectedWO(created);
       } else if (selectedWO) {
         const updated = await updateWO.mutateAsync({
@@ -312,30 +370,58 @@ export function WorkOrdersPage() {
             <WorkOrderMap
               signs={signs}
               workOrders={filteredWOs}
-              selectedWOId={selectedWO?.work_order_id ?? null}
+              selectedWOId={creationMode === 'selecting' ? null : (selectedWO?.work_order_id ?? null)}
               onWOClick={handleWOSelect}
               onDeselect={handleMapDeselect}
               highlightedSignIds={highlightedSignIds}
+              assetSelectionMode={creationMode === 'selecting'}
+              onSignSelect={handleSignSelect}
+              onLocationSelect={handleLocationSelect}
+              selectionCoords={selectionCoords}
             />
 
-            {/* Status bar with Create button and view toggle */}
-            <div className="absolute top-4 left-4 flex items-center gap-2">
-              <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
-                {filteredWOs.length === (data?.total ?? 0) ? (
-                  <span>{data?.total ?? 0} work orders{geoWOCount < filteredWOs.length ? ` (${geoWOCount} mapped)` : ''}</span>
-                ) : (
-                  <span>{filteredWOs.length} of {data?.total ?? 0} work orders</span>
-                )}
+            {/* Asset selection mode banner */}
+            {creationMode === 'selecting' && (
+              <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
+                <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                  <span>Click a sign to attach it, click the map for a new location, or</span>
+                  <button
+                    onClick={handleSelectionSkip}
+                    className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded text-white font-medium transition-colors"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    onClick={handleSelectionCancel}
+                    className="p-1 hover:bg-white/20 rounded transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
+            )}
 
-              <button
-                onClick={handleCreate}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
-              >
-                <Plus size={14} />
-                Create Work Order
-              </button>
-            </div>
+            {/* Status bar with Create button and view toggle (hidden during selection) */}
+            {creationMode !== 'selecting' && (
+              <div className="absolute top-4 left-4 flex items-center gap-2">
+                <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
+                  {filteredWOs.length === (data?.total ?? 0) ? (
+                    <span>{data?.total ?? 0} work orders{geoWOCount < filteredWOs.length ? ` (${geoWOCount} mapped)` : ''}</span>
+                  ) : (
+                    <span>{filteredWOs.length} of {data?.total ?? 0} work orders</span>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleCreate}
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
+                >
+                  <Plus size={14} />
+                  Create Work Order
+                </button>
+              </div>
+            )}
 
             {/* View mode toggle — top center */}
             <div className="absolute top-4 left-1/2 -translate-x-1/2">
@@ -394,11 +480,37 @@ export function WorkOrdersPage() {
                 <WorkOrderMap
                   signs={signs}
                   workOrders={filteredWOs}
-                  selectedWOId={selectedWO?.work_order_id ?? null}
+                  selectedWOId={creationMode === 'selecting' ? null : (selectedWO?.work_order_id ?? null)}
                   onWOClick={handleWOSelect}
                   onDeselect={handleMapDeselect}
                   highlightedSignIds={highlightedSignIds}
+                  assetSelectionMode={creationMode === 'selecting'}
+                  onSignSelect={handleSignSelect}
+                  onLocationSelect={handleLocationSelect}
+                  selectionCoords={selectionCoords}
                 />
+
+                {/* Asset selection mode banner (split view) */}
+                {creationMode === 'selecting' && (
+                  <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
+                    <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
+                      <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      <span>Click a sign to attach it, click the map for a new location, or</span>
+                      <button
+                        onClick={handleSelectionSkip}
+                        className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded text-white font-medium transition-colors"
+                      >
+                        Skip
+                      </button>
+                      <button
+                        onClick={handleSelectionCancel}
+                        className="p-1 hover:bg-white/20 rounded transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Divider */}
@@ -434,8 +546,9 @@ export function WorkOrdersPage() {
           mode={formMode}
           workOrder={formMode === 'edit' ? selectedWO : null}
           assetContext={assetContext}
+          coordinates={formMode === 'create' ? formCoordinates : null}
           onSubmit={handleFormSubmit}
-          onCancel={() => { setShowForm(false); setAssetContext(null); setSubmitError(null); }}
+          onCancel={() => { setShowForm(false); setAssetContext(null); setFormCoordinates(null); setCreationMode('idle'); setSubmitError(null); }}
           isSubmitting={createWO.isPending || updateWO.isPending}
           error={submitError}
         />

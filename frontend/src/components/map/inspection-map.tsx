@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
-import Map, { Source, Layer, NavigationControl, Popup } from 'react-map-gl/maplibre';
+import Map, { Source, Layer, NavigationControl, Popup, Marker } from 'react-map-gl/maplibre';
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre';
 import { Home } from 'lucide-react';
 import type { Sign, Inspection } from '../../api/types';
@@ -12,6 +12,10 @@ interface InspectionMapProps {
   onInspClick?: (insp: Inspection) => void;
   onDeselect?: () => void;
   highlightedSignIds?: string[];
+  assetSelectionMode?: boolean;
+  onSignSelect?: (sign: Sign) => void;
+  onLocationSelect?: (lng: number, lat: number) => void;
+  selectionCoords?: { lng: number; lat: number } | null;
 }
 
 const INITIAL_VIEW = {
@@ -40,6 +44,10 @@ export function InspectionMap({
   onInspClick,
   onDeselect,
   highlightedSignIds = [],
+  assetSelectionMode = false,
+  onSignSelect,
+  onLocationSelect,
+  selectionCoords,
 }: InspectionMapProps) {
   const mapRef = useRef<MapRef>(null);
   const hasFittedBounds = useRef(false);
@@ -134,6 +142,21 @@ export function InspectionMap({
   }, [inspections]);
 
   const handleClick = useCallback((e: MapLayerMouseEvent) => {
+    // Asset selection mode: check for sign clicks first, then location clicks
+    if (assetSelectionMode) {
+      const feature = e.features?.[0];
+      if (feature?.properties?.sign_id) {
+        const sign = signs.find((s) => s.sign_id === feature.properties?.sign_id);
+        if (sign) {
+          onSignSelect?.(sign);
+          return;
+        }
+      }
+      // No sign feature hit — treat as location click
+      onLocationSelect?.(e.lngLat.lng, e.lngLat.lat);
+      return;
+    }
+
     const feature = e.features?.[0];
     if (!feature) {
       setPopupInsp(null);
@@ -149,7 +172,7 @@ export function InspectionMap({
         onInspClick?.(insp);
       }
     }
-  }, [inspections, onInspClick, onDeselect]);
+  }, [inspections, signs, onInspClick, onDeselect, assetSelectionMode, onSignSelect, onLocationSelect]);
 
   return (
     <Map
@@ -157,9 +180,9 @@ export function InspectionMap({
       initialViewState={INITIAL_VIEW}
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-      interactiveLayerIds={['insp-markers']}
+      interactiveLayerIds={assetSelectionMode ? ['signs-base-circle', 'insp-markers'] : ['insp-markers']}
       onClick={handleClick}
-      cursor="pointer"
+      cursor={assetSelectionMode ? 'crosshair' : 'pointer'}
     >
       <NavigationControl position="top-right" />
 
@@ -174,36 +197,44 @@ export function InspectionMap({
         </button>
       </div>
 
-      {/* Signs base layer (dimmed) */}
+      {/* Signs base layer (dimmed normally, full color in selection mode) */}
       <Source id="signs-base" type="geojson" data={signsGeojson}>
         <Layer
           id="signs-base-circle"
           type="circle"
           paint={{
-            'circle-radius': [
-              'case',
-              ['==', ['get', 'is_highlighted'], 1],
-              6,
-              3.5,
-            ],
-            'circle-color': [
-              'case',
-              ['==', ['get', 'is_highlighted'], 1],
-              '#3b82f6',
-              '#9ca3af',
-            ],
-            'circle-opacity': [
-              'case',
-              ['==', ['get', 'is_highlighted'], 1],
-              0.8,
-              0.4,
-            ],
-            'circle-stroke-width': [
-              'case',
-              ['==', ['get', 'is_highlighted'], 1],
-              1.5,
-              0,
-            ],
+            'circle-radius': assetSelectionMode
+              ? ['interpolate', ['linear'], ['zoom'], 10, 4, 15, 7, 18, 10]
+              : [
+                  'case',
+                  ['==', ['get', 'is_highlighted'], 1],
+                  6,
+                  3.5,
+                ],
+            'circle-color': assetSelectionMode
+              ? '#3b82f6'
+              : [
+                  'case',
+                  ['==', ['get', 'is_highlighted'], 1],
+                  '#3b82f6',
+                  '#9ca3af',
+                ],
+            'circle-opacity': assetSelectionMode
+              ? 0.85
+              : [
+                  'case',
+                  ['==', ['get', 'is_highlighted'], 1],
+                  0.8,
+                  0.4,
+                ],
+            'circle-stroke-width': assetSelectionMode
+              ? 1.5
+              : [
+                  'case',
+                  ['==', ['get', 'is_highlighted'], 1],
+                  1.5,
+                  0,
+                ],
             'circle-stroke-color': '#ffffff',
           }}
         />
@@ -309,27 +340,45 @@ export function InspectionMap({
         </Popup>
       )}
 
-      {/* Legend — bottom-left */}
-      <div className="absolute bottom-8 left-4 bg-white rounded-lg shadow-lg p-3 text-xs">
-        <div className="font-semibold text-gray-700 mb-1">Inspection Status</div>
-        {[
-          { label: 'Follow-up needed', color: '#ef4444' },
-          { label: 'Follow-up (WO linked)', color: '#3b82f6' },
-          { label: 'Completed', color: '#22c55e' },
-          { label: 'Open / In Progress', color: '#eab308' },
-        ].map((item) => (
-          <div key={item.label} className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="text-gray-600">{item.label}</span>
+      {/* Selection mode marker */}
+      {assetSelectionMode && selectionCoords && (
+        <Marker
+          longitude={selectionCoords.lng}
+          latitude={selectionCoords.lat}
+          anchor="bottom"
+        >
+          <div className="flex flex-col items-center">
+            <div className="w-6 h-6 bg-blue-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+              <div className="w-2 h-2 bg-white rounded-full" />
+            </div>
+            <div className="w-0.5 h-3 bg-blue-600" />
           </div>
-        ))}
-        <div className="border-t border-gray-100 mt-1.5 pt-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-gray-300 opacity-50" />
-            <span className="text-gray-400">Signs (base layer)</span>
+        </Marker>
+      )}
+
+      {/* Legend — bottom-left */}
+      {!assetSelectionMode && (
+        <div className="absolute bottom-8 left-4 bg-white rounded-lg shadow-lg p-3 text-xs">
+          <div className="font-semibold text-gray-700 mb-1">Inspection Status</div>
+          {[
+            { label: 'Follow-up needed', color: '#ef4444' },
+            { label: 'Follow-up (WO linked)', color: '#3b82f6' },
+            { label: 'Completed', color: '#22c55e' },
+            { label: 'Open / In Progress', color: '#eab308' },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+              <span className="text-gray-600">{item.label}</span>
+            </div>
+          ))}
+          <div className="border-t border-gray-100 mt-1.5 pt-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-gray-300 opacity-50" />
+              <span className="text-gray-400">Signs (base layer)</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </Map>
   );
 }
