@@ -1,14 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- Background circle -->
-  <circle cx="256" cy="256" r="256" fill="#1e3a5f"/>
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="96" fill="#1e3a5f"/>
 
-  <!-- Map pin body -->
-  <path d="M256 72c-74.4 0-134.7 60.3-134.7 134.7 0 100.5 134.7 233.3 134.7 233.3s134.7-132.8 134.7-233.3C390.7 132.3 330.4 72 256 72z" fill="#3b82f6" stroke="#ffffff" stroke-width="12"/>
+  <!-- Large chain link - left oval -->
+  <rect x="80" y="160" width="200" height="192" rx="96" fill="none" stroke="#3b82f6" stroke-width="44"/>
 
-  <!-- Inner circle (map pin center) -->
-  <circle cx="256" cy="206" r="52" fill="#1e3a5f" stroke="#ffffff" stroke-width="8"/>
+  <!-- Large chain link - right oval -->
+  <rect x="232" y="160" width="200" height="192" rx="96" fill="none" stroke="#3b82f6" stroke-width="44"/>
 
-  <!-- Link chain - two interlocking ovals -->
-  <ellipse cx="238" cy="206" rx="28" ry="18" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
-  <ellipse cx="274" cy="206" rx="28" ry="18" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+  <!-- Map pin dot - sits at the intersection of the two links -->
+  <circle cx="332" cy="148" r="36" fill="#60a5fa"/>
+  <circle cx="332" cy="148" r="16" fill="#1e3a5f"/>
+
+  <!-- Small pin tail -->
+  <path d="M332 184 L332 208" stroke="#60a5fa" stroke-width="12" stroke-linecap="round"/>
 </svg>
