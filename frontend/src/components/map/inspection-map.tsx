@@ -112,6 +112,18 @@ export function InspectionMap({
     }
   }, [inspections]);
 
+  // When entering asset selection mode, zoom in so signs are clickable
+  useEffect(() => {
+    if (!assetSelectionMode || !mapRef.current) return;
+    const currentZoom = mapRef.current.getZoom();
+    if (currentZoom < 15) {
+      mapRef.current.flyTo({
+        zoom: 15,
+        duration: 600,
+      });
+    }
+  }, [assetSelectionMode]);
+
   // Fly to selected inspection
   useEffect(() => {
     if (!selectedInspId || !mapRef.current) return;
@@ -204,15 +216,13 @@ export function InspectionMap({
           type="circle"
           paint={{
             'circle-radius': assetSelectionMode
-              ? ['interpolate', ['linear'], ['zoom'], 10, 6, 13, 8, 15, 10, 18, 14]
+              ? ['interpolate', ['linear'], ['zoom'], 10, 3.5, 15, 7, 18, 10]
               : [
                   'case',
                   ['==', ['get', 'is_highlighted'], 1],
                   6,
                   3.5,
                 ],
-            'circle-stroke-width': assetSelectionMode ? 2 : 0,
-            'circle-stroke-color': assetSelectionMode ? '#ffffff' : 'transparent',
             'circle-color': assetSelectionMode
               ? '#3b82f6'
               : [
