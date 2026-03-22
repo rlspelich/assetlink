@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
-import { useSignsList, useCreateSign, useUpdateSign, useDeleteSign } from '../hooks/use-signs';
+import { useSignsList, useSign, useCreateSign, useUpdateSign, useDeleteSign } from '../hooks/use-signs';
 import { AssetMap } from '../components/map/asset-map';
 import { SignListPanel } from '../components/signs/sign-list-panel';
 import { SignDetailPanel } from '../components/signs/sign-detail-panel';
@@ -41,18 +41,23 @@ export function SignsPage() {
   const updateSign = useUpdateSign();
   const deleteSign = useDeleteSign();
 
+  // Fetch a specific sign when navigating from dashboard priority table
+  const highlightSignId = (!handledRouteState.current && routeState?.highlightSignId) ? routeState.highlightSignId : undefined;
+  const { data: highlightedSignData } = useSign(highlightSignId);
+
   // Handle route state — pre-select a sign (e.g. from dashboard priority table)
   useEffect(() => {
-    if (handledRouteState.current || !routeState?.highlightSignId || !data?.signs) return;
-    handledRouteState.current = true;
-    const sign = data.signs.find((s) => s.sign_id === routeState.highlightSignId);
+    if (handledRouteState.current || !routeState?.highlightSignId) return;
+    // Try to find in the list first, then fall back to the dedicated fetch
+    const sign = data?.signs?.find((s) => s.sign_id === routeState.highlightSignId) ?? highlightedSignData ?? null;
     if (sign) {
+      handledRouteState.current = true;
       setSelectedSign(sign);
       setViewingSupport(null);
       setDrilledFromSupport(null);
+      window.history.replaceState({}, document.title);
     }
-    window.history.replaceState({}, document.title);
-  }, [routeState, data?.signs]);
+  }, [routeState, data?.signs, highlightedSignData]);
 
   // Build a lookup: support_id -> array of sign_ids that share it
   const supportSignCounts = useMemo(() => {
