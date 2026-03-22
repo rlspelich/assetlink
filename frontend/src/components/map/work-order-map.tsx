@@ -205,13 +205,15 @@ export function WorkOrderMap({
           type="circle"
           paint={{
             'circle-radius': assetSelectionMode
-              ? ['interpolate', ['linear'], ['zoom'], 10, 4, 15, 7, 18, 10]
+              ? ['interpolate', ['linear'], ['zoom'], 10, 6, 13, 8, 15, 10, 18, 14]
               : [
                   'case',
                   ['==', ['get', 'is_highlighted'], 1],
                   6,
                   3.5,
                 ],
+            'circle-stroke-width': assetSelectionMode ? 2 : 0,
+            'circle-stroke-color': assetSelectionMode ? '#ffffff' : 'transparent',
             'circle-color': assetSelectionMode
               ? '#3b82f6'
               : [
