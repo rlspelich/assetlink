@@ -3,7 +3,7 @@ import Map, { Source, Layer, Popup, Marker, NavigationControl } from 'react-map-
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre';
 import { Home } from 'lucide-react';
 import type { Sign } from '../../api/types';
-import { getSignColor, CONDITION_COLORS, UNRATED_COLOR, INACTIVE_COLOR } from '../../lib/constants';
+import { getSignColor, CONDITION_COLORS, UNRATED_COLOR, INACTIVE_COLOR, INACTIVE_STATUSES } from '../../lib/constants';
 
 interface AssetMapProps {
   signs: Sign[];
@@ -20,6 +20,16 @@ const INITIAL_VIEW = {
   zoom: 13,
 };
 
+/**
+ * Convert condition_rating + status into a numeric value for cluster aggregation.
+ * Lower = worse: 0 = damaged/missing/faded, 1-5 = condition, 6 = unrated active.
+ */
+function conditionToNum(condition: number | null, status: string): number {
+  if (INACTIVE_STATUSES.has(status) || status === 'damaged' || status === 'faded') return 0;
+  if (condition && condition >= 1 && condition <= 5) return condition;
+  return 6;
+}
+
 function calcBounds(signs: Sign[]): [[number, number], [number, number]] | null {
   if (signs.length === 0) return null;
   let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
@@ -31,6 +41,23 @@ function calcBounds(signs: Sign[]): [[number, number], [number, number]] | null 
   }
   return [[minLng, minLat], [maxLng, maxLat]];
 }
+
+/**
+ * Cluster color based on the worst (min) condition number in the cluster.
+ * 0 = red (damaged/inactive), 1 = red (critical), 2 = orange, 3 = yellow,
+ * 4 = lime, 5 = green, 6 = gray (unrated).
+ */
+const CLUSTER_COLOR: unknown = [
+  'step',
+  ['get', 'worst_condition'],
+  INACTIVE_COLOR.hex,             // default (0): damaged/inactive
+  0.5, CONDITION_COLORS[1].hex,   // 1: critical
+  1.5, CONDITION_COLORS[2].hex,   // 2: poor
+  2.5, CONDITION_COLORS[3].hex,   // 3: fair
+  3.5, CONDITION_COLORS[4].hex,   // 4: good
+  4.5, CONDITION_COLORS[5].hex,   // 5: excellent
+  5.5, UNRATED_COLOR.hex,         // 6: unrated
+];
 
 export function AssetMap({
   signs,
@@ -59,6 +86,7 @@ export function AssetMap({
         road_name: s.road_name || '',
         status: s.status,
         condition_rating: s.condition_rating,
+        condition_num: conditionToNum(s.condition_rating, s.status),
         color: getSignColor(s.condition_rating, s.status),
         is_selected: s.sign_id === selectedSignId ? 1 : 0,
       },
@@ -123,7 +151,7 @@ export function AssetMap({
       return;
     }
 
-    // Check if the clicked feature is a cluster
+    // Cluster click — zoom in to expand
     if (feature.properties?.cluster) {
       const clusterId = feature.properties.cluster_id as number;
       const map = mapRef.current?.getMap();
@@ -157,7 +185,7 @@ export function AssetMap({
       initialViewState={INITIAL_VIEW}
       style={{ width: '100%', height: '100%' }}
       mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-      interactiveLayerIds={placementMode ? [] : ['signs-circle']}
+      interactiveLayerIds={placementMode ? [] : ['signs-clusters', 'signs-unclustered']}
       onClick={handleClick}
       cursor={placementMode ? 'crosshair' : 'pointer'}
     >
@@ -174,11 +202,57 @@ export function AssetMap({
         </button>
       </div>
 
-      <Source id="signs" type="geojson" data={geojson}>
-        {/* Sign circles */}
+      <Source
+        id="signs"
+        type="geojson"
+        data={geojson}
+        cluster={true}
+        clusterMaxZoom={14}
+        clusterRadius={50}
+        clusterProperties={{
+          worst_condition: ['min', ['get', 'condition_num']],
+        }}
+      >
+        {/* --- Cluster layers --- */}
         <Layer
-          id="signs-circle"
+          id="signs-clusters"
           type="circle"
+          filter={['has', 'point_count']}
+          paint={{
+            'circle-color': CLUSTER_COLOR as string,
+            'circle-radius': [
+              'step', ['get', 'point_count'],
+              15,    // default: 2-9 points
+              10, 18,  // 10-49
+              50, 22,  // 50-99
+              100, 26, // 100+
+            ],
+            'circle-opacity': 0.85,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+          }}
+        />
+
+        {/* Cluster count label */}
+        <Layer
+          id="signs-cluster-count"
+          type="symbol"
+          filter={['has', 'point_count']}
+          layout={{
+            'text-field': '{point_count_abbreviated}',
+            'text-size': 12,
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          }}
+          paint={{
+            'text-color': '#ffffff',
+          }}
+        />
+
+        {/* --- Unclustered sign circles --- */}
+        <Layer
+          id="signs-unclustered"
+          type="circle"
+          filter={['!', ['has', 'point_count']]}
           paint={{
             'circle-radius': [
               'interpolate', ['linear'], ['zoom'],
@@ -202,11 +276,12 @@ export function AssetMap({
             'circle-opacity': 0.9,
           }}
         />
-        {/* Selected sign pulse ring */}
+
+        {/* Selected sign ring */}
         <Layer
           id="signs-selected-ring"
           type="circle"
-          filter={['==', ['get', 'is_selected'], 1]}
+          filter={['all', ['!', ['has', 'point_count']], ['==', ['get', 'is_selected'], 1]]}
           paint={{
             'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 12, 15, 18, 18, 24],
             'circle-color': 'transparent',
@@ -215,10 +290,12 @@ export function AssetMap({
             'circle-stroke-opacity': 0.4,
           }}
         />
-        {/* MUTCD code labels */}
+
+        {/* MUTCD code labels (only at street zoom, unclustered) */}
         <Layer
           id="signs-label"
           type="symbol"
+          filter={['!', ['has', 'point_count']]}
           minzoom={15}
           layout={{
             'text-field': ['get', 'mutcd_code'],
