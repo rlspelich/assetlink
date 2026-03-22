@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Pencil, Trash2, Loader2, Wrench, MapPin, Calendar, DollarSign, FileText, Signpost, Landmark, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Pencil, Trash2, Loader2, Wrench, MapPin, Calendar, DollarSign, FileText, Signpost, Landmark, ChevronDown, ChevronUp, Printer, Mail } from 'lucide-react';
 import type { WorkOrder, WorkOrderAsset, WorkOrderAssetUpdate } from '../../api/types';
 import {
   getWoStatusOption,
@@ -11,6 +11,9 @@ import {
   getWoAssetStatusOption,
 } from '../../lib/constants';
 import { useUpdateWorkOrderAsset } from '../../hooks/use-work-orders';
+import { printWorkOrder } from './work-order-print';
+import { EmailDialog } from '../shared/email-dialog';
+import { sendWorkOrderEmail } from '../../api/email';
 
 interface WorkOrderDetailPanelProps {
   workOrder: WorkOrder;
@@ -219,6 +222,7 @@ function AssetCard({
 
 export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isDeleting }: WorkOrderDetailPanelProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const statusOpt = getWoStatusOption(workOrder.status);
   const priorityOpt = getWoPriorityOption(workOrder.priority);
 
@@ -247,6 +251,20 @@ export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isD
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => printWorkOrder(workOrder)}
+            title="Print work order"
+            className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
+          >
+            <Printer size={16} />
+          </button>
+          <button
+            onClick={() => setShowEmailDialog(true)}
+            title="Email work order"
+            className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
+          >
+            <Mail size={16} />
+          </button>
           {onEdit && (
             <button
               onClick={onEdit}
@@ -418,6 +436,15 @@ export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isD
         <div>Updated: {formatDateTime(workOrder.updated_at)}</div>
         <div className="font-mono truncate mt-0.5">{workOrder.work_order_id}</div>
       </div>
+
+      {/* Email dialog */}
+      <EmailDialog
+        open={showEmailDialog}
+        onClose={() => setShowEmailDialog(false)}
+        itemLabel={workOrder.work_order_number || 'Work Order'}
+        itemDescription={workOrder.description}
+        onSend={(data) => sendWorkOrderEmail(workOrder.work_order_id, data)}
+      />
     </div>
   );
 }

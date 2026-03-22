@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     gcs_bucket: str = ""
     upload_dir: str = "uploads"  # Local fallback for dev
 
+    # Email (SMTP) — when smtp_host is empty, emails are logged instead of sent
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "noreply@assetlink.com"
+    smtp_use_tls: bool = True
+
     # Pagination
     default_page_size: int = 50
     max_page_size: int = 200

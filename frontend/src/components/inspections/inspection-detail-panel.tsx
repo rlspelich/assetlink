@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X, ClipboardCheck, Calendar, Eye, Signpost, Landmark, Wrench,
-  Pencil, Trash2, Loader2, ExternalLink, AlertCircle,
+  Pencil, Trash2, Loader2, ExternalLink, AlertCircle, Printer, Mail,
 } from 'lucide-react';
 import type { Inspection } from '../../api/types';
 import { useCreateWorkOrderFromInspection } from '../../hooks/use-inspections';
@@ -14,6 +14,9 @@ import {
   getInspectionActionOption,
   formatEnumLabel,
 } from '../../lib/constants';
+import { printInspection } from './inspection-print';
+import { EmailDialog } from '../shared/email-dialog';
+import { sendInspectionEmail } from '../../api/email';
 
 interface InspectionDetailPanelProps {
   inspection: Inspection;
@@ -88,6 +91,7 @@ export function InspectionDetailPanel({
   const [woError, setWoError] = useState<string | null>(null);
   const [createdWO, setCreatedWO] = useState<{ id: string; number: string } | null>(null);
 
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const typeOpt = getInspectionTypeOption(inspection.inspection_type);
   const statusOpt = getInspectionStatusOption(inspection.status);
 
@@ -137,6 +141,20 @@ export function InspectionDetailPanel({
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => printInspection(inspection)}
+            title="Print inspection"
+            className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
+          >
+            <Printer size={16} />
+          </button>
+          <button
+            onClick={() => setShowEmailDialog(true)}
+            title="Email inspection"
+            className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
+          >
+            <Mail size={16} />
+          </button>
           {onEdit && (
             <button
               onClick={onEdit}
@@ -336,6 +354,15 @@ export function InspectionDetailPanel({
         <div>Updated: {formatDate(inspection.updated_at)}</div>
         <div className="font-mono truncate mt-0.5">{inspection.inspection_id}</div>
       </div>
+
+      {/* Email dialog */}
+      <EmailDialog
+        open={showEmailDialog}
+        onClose={() => setShowEmailDialog(false)}
+        itemLabel={inspection.inspection_number || 'Inspection'}
+        itemDescription={inspection.findings}
+        onSend={(data) => sendInspectionEmail(inspection.inspection_id, data)}
+      />
     </div>
   );
 }
