@@ -45,3 +45,16 @@ export async function importSignsCsv(file: File): Promise<SignImportResult> {
   formData.append('file', file);
   return api.post('signs/import/csv', { body: formData, timeout: 120_000 }).json();
 }
+
+export async function importSupportsCsv(file: File): Promise<SignImportResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('supports/import/csv', { body: formData, timeout: 120_000 }).json();
+}
+
+export async function importSignsAndSupportsCsv(signsFile: File, supportsFile: File): Promise<SignImportResult> {
+  const formData = new FormData();
+  formData.append('signs_file', signsFile);
+  formData.append('supports_file', supportsFile);
+  return api.post('import/signs-and-supports', { body: formData, timeout: 120_000 }).json();
+}

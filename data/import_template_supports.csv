@@ -1,0 +1,6 @@
+asset_tag,latitude,longitude,support_type,material,condition_rating,height_inches,status,install_date,notes
+POST-001,39.7817,-89.6501,u_channel,galvanized_steel,4,96,active,2019-03-10,Corner of Main and Elm
+POST-002,39.7825,-89.6510,square_tube,aluminum,5,84,active,2022-03-01,Near Oak Ave curve
+POST-003,39.7830,-89.6520,wood,,3,108,active,2015-06-01,
+POST-004,39.7840,-89.6530,round_tube,steel,4,72,active,2020-11-20,Park entrance
+POST-005,39.7850,-89.6540,mast_arm,steel,5,240,active,2023-01-15,Traffic signal support

@@ -154,3 +154,14 @@ class SignImportOut(BaseModel):
     unmapped_columns: list[str] = []
     duration_seconds: float | None = None
     rows_per_second: float | None = None
+    # Extended fields for combined sign+support import
+    signs_created: int = 0
+    signs_skipped: int = 0
+    signs_total_rows: int = 0
+    supports_created: int = 0
+    supports_skipped: int = 0
+    supports_total_rows: int = 0
+    import_mode: str = "signs_only"
+    support_groups: int = 0
+    signs_linked_to_supports: int = 0
+    support_column_mapping: dict[str, str] = {}

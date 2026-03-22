@@ -330,3 +330,244 @@ async def test_import_large_batch(seeded_client):
     assert data["created"] == 100
     assert data["total_rows"] == 100
     assert data["errors"] == []
+
+
+# --- SUPPORT IMPORT TESTS ---
+
+
+@pytest.mark.asyncio
+async def test_import_flat_csv_with_support_columns(seeded_client):
+    """Flat CSV with support columns should auto-detect and create supports."""
+    csv_data = _make_csv([
+        "latitude,longitude,mutcd_code,road_name,status,support_asset_tag,support_type,support_material",
+        "39.78,-89.65,R1-1,Main Street,active,POST-001,u_channel,galvanized_steel",
+        "39.78,-89.65,R1-2,Main Street,active,POST-001,u_channel,galvanized_steel",
+        "39.79,-89.66,W1-1,Oak Avenue,active,POST-002,square_tube,aluminum",
+    ])
+
+    resp = await seeded_client.post(
+        "/api/v1/signs/import/csv",
+        files={"file": ("signs.csv", io.BytesIO(csv_data), "text/csv")},
+        headers=tenant_a_headers(),
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["import_mode"] == "signs_and_supports"
+    assert data["signs_created"] == 3
+    assert data["supports_created"] == 2
+    assert data["support_groups"] == 2
+    assert data["signs_linked_to_supports"] == 3
+
+    # Verify supports were actually created
+    supports_resp = await seeded_client.get("/api/v1/supports", headers=tenant_a_headers())
+    supports_data = supports_resp.json()
+    assert supports_data["total"] == 2
+
+    # Verify signs are linked to supports
+    signs_resp = await seeded_client.get("/api/v1/signs", headers=tenant_a_headers())
+    signs = signs_resp.json()["signs"]
+    assert len(signs) == 3
+    assert all(s["support_id"] is not None for s in signs)
+
+
+@pytest.mark.asyncio
+async def test_import_support_grouping_by_tag(seeded_client):
+    """Rows with the same support_asset_tag should create one support."""
+    csv_data = _make_csv([
+        "latitude,longitude,status,support_asset_tag,support_type",
+        "39.78,-89.65,active,POST-A,u_channel",
+        "39.781,-89.651,active,POST-A,u_channel",
+        "39.782,-89.652,active,POST-A,u_channel",
+    ])
+
+    resp = await seeded_client.post(
+        "/api/v1/signs/import/csv",
+        files={"file": ("signs.csv", io.BytesIO(csv_data), "text/csv")},
+        headers=tenant_a_headers(),
+    )
+    data = resp.json()
+    assert data["signs_created"] == 3
+    assert data["supports_created"] == 1
+    assert data["support_groups"] == 1
+
+    # All three signs should share the same support_id
+    signs_resp = await seeded_client.get("/api/v1/signs", headers=tenant_a_headers())
+    signs = signs_resp.json()["signs"]
+    support_ids = {s["support_id"] for s in signs}
+    assert len(support_ids) == 1
+    assert None not in support_ids
+
+
+@pytest.mark.asyncio
+async def test_import_support_grouping_by_location(seeded_client):
+    """Rows with same lat/lon and support columns but no asset_tag should group by location."""
+    csv_data = _make_csv([
+        "latitude,longitude,status,support_type",
+        "39.78,-89.65,active,u_channel",
+        "39.78,-89.65,active,u_channel",
+        "39.79,-89.66,active,square_tube",
+    ])
+
+    resp = await seeded_client.post(
+        "/api/v1/signs/import/csv",
+        files={"file": ("signs.csv", io.BytesIO(csv_data), "text/csv")},
+        headers=tenant_a_headers(),
+    )
+    data = resp.json()
+    assert data["signs_created"] == 3
+    assert data["supports_created"] == 2
+    assert data["support_groups"] == 2
+
+
+@pytest.mark.asyncio
+async def test_import_no_support_columns_unchanged(seeded_client):
+    """CSV without any support columns should use signs-only mode (backward compat)."""
+    csv_data = _make_csv([
+        "latitude,longitude,mutcd_code,road_name,status",
+        "39.78,-89.65,R1-1,Main Street,active",
+        "39.79,-89.66,W1-1,Oak Avenue,active",
+    ])
+
+    resp = await seeded_client.post(
+        "/api/v1/signs/import/csv",
+        files={"file": ("signs.csv", io.BytesIO(csv_data), "text/csv")},
+        headers=tenant_a_headers(),
+    )
+    data = resp.json()
+    assert data["import_mode"] == "signs_only"
+    assert data["created"] == 2
+    assert data["supports_created"] == 0
+    assert data["support_groups"] == 0
+
+
+@pytest.mark.asyncio
+async def test_import_support_type_normalization(seeded_client):
+    """Various support type spellings should be normalized correctly."""
+    csv_data = _make_csv([
+        "latitude,longitude,status,support_asset_tag,support_type",
+        "39.78,-89.65,active,POST-A,U Channel",
+        "39.79,-89.66,active,POST-B,Square Tube",
+        "39.80,-89.67,active,POST-C,wooden",
+        "39.81,-89.68,active,POST-D,mast arm",
+        "39.82,-89.69,active,POST-E,bogus_type",
+    ])
+
+    resp = await seeded_client.post(
+        "/api/v1/signs/import/csv",
+        files={"file": ("signs.csv", io.BytesIO(csv_data), "text/csv")},
+        headers=tenant_a_headers(),
+    )
+    data = resp.json()
+    assert data["signs_created"] == 5
+    assert data["supports_created"] == 5
+
+    # Verify normalization by checking each support
+    supports_resp = await seeded_client.get("/api/v1/supports", headers=tenant_a_headers())
+    support_types = {s["support_type"] for s in supports_resp.json()["supports"]}
+    assert "u_channel" in support_types
+    assert "square_tube" in support_types
+    assert "wood" in support_types
+    assert "mast_arm" in support_types
+    # bogus_type should default to u_channel
+    assert any("bogus_type" in e["message"] for e in data["errors"])
+
+
+@pytest.mark.asyncio
+async def test_import_supports_only_endpoint(seeded_client):
+    """POST /supports/import/csv should import standalone supports."""
+    csv_data = _make_csv([
+        "asset_tag,latitude,longitude,support_type,material,condition_rating,height_inches,status",
+        "POST-001,39.78,-89.65,u_channel,galvanized_steel,4,96,active",
+        "POST-002,39.79,-89.66,square_tube,aluminum,5,84,active",
+        "POST-003,39.80,-89.67,wood,,3,108,active",
+    ])
+
+    resp = await seeded_client.post(
+        "/api/v1/supports/import/csv",
+        files={"file": ("supports.csv", io.BytesIO(csv_data), "text/csv")},
+        headers=tenant_a_headers(),
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["import_mode"] == "supports_only"
+    assert data["supports_created"] == 3
+    assert data["supports_total_rows"] == 3
+
+    # Verify supports were actually created
+    supports_resp = await seeded_client.get("/api/v1/supports", headers=tenant_a_headers())
+    assert supports_resp.json()["total"] == 3
+
+
+@pytest.mark.asyncio
+async def test_import_two_files(seeded_client):
+    """POST /import/signs-and-supports with two files should link signs to supports."""
+    supports_csv = _make_csv([
+        "asset_tag,latitude,longitude,support_type,status",
+        "POST-001,39.78,-89.65,u_channel,active",
+        "POST-002,39.79,-89.66,square_tube,active",
+    ])
+
+    signs_csv = _make_csv([
+        "latitude,longitude,mutcd_code,status,support_asset_tag",
+        "39.78,-89.65,R1-1,active,POST-001",
+        "39.78,-89.65,R1-2,active,POST-001",
+        "39.79,-89.66,W1-1,active,POST-002",
+        "39.80,-89.67,,active,POST-999",
+    ])
+
+    resp = await seeded_client.post(
+        "/api/v1/import/signs-and-supports",
+        files={
+            "signs_file": ("signs.csv", io.BytesIO(signs_csv), "text/csv"),
+            "supports_file": ("supports.csv", io.BytesIO(supports_csv), "text/csv"),
+        },
+        headers=tenant_a_headers(),
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["import_mode"] == "two_files"
+    assert data["supports_created"] == 2
+    assert data["signs_created"] == 4
+    assert data["signs_linked_to_supports"] == 3  # POST-999 not found
+    # Should have an error about POST-999 not found
+    assert any("POST-999" in e["message"] for e in data["errors"])
+
+    # Verify actual DB state
+    supports_resp = await seeded_client.get("/api/v1/supports", headers=tenant_a_headers())
+    assert supports_resp.json()["total"] == 2
+
+    signs_resp = await seeded_client.get("/api/v1/signs", headers=tenant_a_headers())
+    signs = signs_resp.json()["signs"]
+    assert len(signs) == 4
+    linked = [s for s in signs if s["support_id"] is not None]
+    assert len(linked) == 3
+
+
+@pytest.mark.asyncio
+async def test_import_backward_compat_response(seeded_client):
+    """The response should include both old fields (created, skipped, total_rows)
+    and new fields (signs_created, supports_created, import_mode)."""
+    csv_data = _make_csv([
+        "latitude,longitude,status",
+        "39.78,-89.65,active",
+    ])
+
+    resp = await seeded_client.post(
+        "/api/v1/signs/import/csv",
+        files={"file": ("signs.csv", io.BytesIO(csv_data), "text/csv")},
+        headers=tenant_a_headers(),
+    )
+    data = resp.json()
+    # Old fields still present
+    assert "created" in data
+    assert "skipped" in data
+    assert "total_rows" in data
+    assert data["created"] == 1
+    assert data["skipped"] == 0
+    assert data["total_rows"] == 1
+    # New fields present with defaults
+    assert data["import_mode"] == "signs_only"
+    assert data["supports_created"] == 0
+    assert data["support_groups"] == 0
+    assert data["signs_linked_to_supports"] == 0
+    assert data["support_column_mapping"] == {}

@@ -166,6 +166,16 @@ async def import_signs_csv(
         unmapped_columns=result.unmapped_columns,
         duration_seconds=result.duration_seconds,
         rows_per_second=result.rows_per_second,
+        signs_created=result.signs_created,
+        signs_skipped=result.signs_skipped,
+        signs_total_rows=result.signs_total_rows,
+        supports_created=result.supports_created,
+        supports_skipped=result.supports_skipped,
+        supports_total_rows=result.supports_total_rows,
+        import_mode=result.import_mode,
+        support_groups=result.support_groups,
+        signs_linked_to_supports=result.signs_linked_to_supports,
+        support_column_mapping=result.support_column_mapping,
     )
 
 

@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,7 +13,7 @@ from app.models.sign import Sign, SignSupport
 from app.models.work_order import WorkOrder
 from app.models.work_order_asset import WorkOrderAsset
 from app.schemas.inspection import InspectionListOut, InspectionOut
-from app.schemas.sign import SignOut
+from app.schemas.sign import SignImportOut, SignOut
 from app.schemas.work_order import WorkOrderListOut, WorkOrderOut
 from app.schemas.support import (
     SignSupportCreate,
@@ -22,6 +22,7 @@ from app.schemas.support import (
     SignSupportOut,
     SignSupportUpdate,
 )
+from app.services.import_service import import_supports_from_csv
 
 router = APIRouter()
 
@@ -405,6 +406,53 @@ async def list_support_inspections(
 
     return InspectionListOut(
         inspections=inspections, total=total, page=page, page_size=page_size
+    )
+
+
+@router.post("/import/csv", response_model=SignImportOut)
+async def import_supports_csv(
+    file: UploadFile = File(...),
+    tenant_id: uuid.UUID = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+):
+    """Import sign supports from a CSV file. Returns per-row results.
+
+    Supports files up to 50 MB. Rows are processed in batches of 500.
+    The entire import is atomic.
+    """
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="File must be a .csv")
+
+    content = await file.read()
+    max_size = settings.max_import_file_size
+    if len(content) > max_size:
+        max_mb = max_size // (1024 * 1024)
+        raise HTTPException(status_code=400, detail=f"File too large. Maximum {max_mb} MB.")
+
+    result = await import_supports_from_csv(content, tenant_id, db)
+
+    return SignImportOut(
+        created=result.created,
+        skipped=result.skipped,
+        total_rows=result.total_rows,
+        errors=[
+            {"row": e.row, "field": e.field, "message": e.message}
+            for e in result.errors
+        ],
+        column_mapping=result.column_mapping,
+        unmapped_columns=result.unmapped_columns,
+        duration_seconds=result.duration_seconds,
+        rows_per_second=result.rows_per_second,
+        signs_created=result.signs_created,
+        signs_skipped=result.signs_skipped,
+        signs_total_rows=result.signs_total_rows,
+        supports_created=result.supports_created,
+        supports_skipped=result.supports_skipped,
+        supports_total_rows=result.supports_total_rows,
+        import_mode=result.import_mode,
+        support_groups=result.support_groups,
+        signs_linked_to_supports=result.signs_linked_to_supports,
+        support_column_mapping=result.support_column_mapping,
     )
 
 

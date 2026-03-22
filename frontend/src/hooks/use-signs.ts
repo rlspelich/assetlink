@@ -73,3 +73,20 @@ export function useImportSignsCsv() {
     onSuccess: () => qc.invalidateQueries({ queryKey: signKeys.lists() }),
   });
 }
+
+export function useImportSupportsCsv() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => signsApi.importSupportsCsv(file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: signKeys.lists() }),
+  });
+}
+
+export function useImportSignsAndSupportsCsv() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ signsFile, supportsFile }: { signsFile: File; supportsFile: File }) =>
+      signsApi.importSignsAndSupportsCsv(signsFile, supportsFile),
+    onSuccess: () => qc.invalidateQueries({ queryKey: signKeys.lists() }),
+  });
+}

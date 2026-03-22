@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import dashboard, email, signs, supports, work_orders, inspections, users
+from app.api.v1 import dashboard, email, imports, signs, supports, work_orders, inspections, users
 from app.config import settings
 
 
@@ -36,6 +36,7 @@ app.add_middleware(
 # API routes
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
 app.include_router(email.router, prefix="/api/v1/email", tags=["Email"])
+app.include_router(imports.router, prefix="/api/v1/import", tags=["Import"])
 app.include_router(signs.router, prefix="/api/v1/signs", tags=["Signs"])
 app.include_router(supports.router, prefix="/api/v1/supports", tags=["Sign Supports"])
 app.include_router(work_orders.router, prefix="/api/v1/work-orders", tags=["Work Orders"])

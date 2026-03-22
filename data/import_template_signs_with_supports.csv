@@ -1,0 +1,5 @@
+latitude,longitude,mutcd_code,description,road_name,status,condition_rating,install_date,support_asset_tag,support_type,support_material,support_condition_rating,support_height_inches,support_status,support_install_date,support_notes
+39.7817,-89.6501,R1-1,Stop Sign,Main Street,active,4,2020-06-15,POST-001,u_channel,galvanized_steel,4,96,active,2019-03-10,Corner of Main and Elm
+39.7817,-89.6501,R1-2,Speed Limit 25,Main Street,active,3,2021-01-20,POST-001,u_channel,galvanized_steel,4,96,active,2019-03-10,Corner of Main and Elm
+39.7825,-89.6510,W1-1,Curve Warning,Oak Avenue,active,5,2022-03-01,POST-002,square_tube,aluminum,5,84,active,2022-03-01,Near Oak Ave curve
+39.7830,-89.6520,R2-1,Speed Limit 35,Elm Street,active,2,2018-09-15,POST-003,wood,,3,108,active,2015-06-01,

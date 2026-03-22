@@ -94,9 +94,22 @@ export interface SignType {
 }
 
 export interface SignImportResult {
+  // Backward compat
   created: number;
   skipped: number;
   total_rows: number;
+  // New detailed counts
+  signs_created: number;
+  signs_skipped: number;
+  signs_total_rows: number;
+  supports_created: number;
+  supports_skipped: number;
+  supports_total_rows: number;
+  import_mode: string; // "signs_only" | "signs_and_supports" | "supports_only"
+  support_groups: number;
+  signs_linked_to_supports: number;
+  support_column_mapping: Record<string, string>;
+  // Existing
   errors: Array<{ row: number; field: string; message: string }>;
   column_mapping: Record<string, string>;
   unmapped_columns: string[];
