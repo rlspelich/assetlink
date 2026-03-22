@@ -44,11 +44,11 @@ export function WorkOrdersPage() {
   const handledRouteState = useRef(false);
 
   // Fetch signs for the base layer
-  const { data: signsData } = useSignsList({ page_size: 200 });
+  const { data: signsData } = useSignsList({ page_size: 1000 });
   const signs = signsData?.signs ?? [];
 
   const { data, isLoading } = useWorkOrdersList({
-    page_size: 200,
+    page_size: 1000,
     status: statusFilter || undefined,
     priority: priorityFilter || undefined,
     work_type: workTypeFilter || undefined,

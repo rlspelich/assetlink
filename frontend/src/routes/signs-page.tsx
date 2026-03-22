@@ -32,7 +32,7 @@ export function SignsPage() {
   const [drilledFromSupport, setDrilledFromSupport] = useState<string | null>(null);
 
   const { data, isLoading } = useSignsList({
-    page_size: 200,
+    page_size: 1000,
     status: statusFilter || undefined,
     sign_category: categoryFilter || undefined,
   });

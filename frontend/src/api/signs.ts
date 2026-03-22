@@ -43,5 +43,5 @@ export async function listSignTypes(category?: string): Promise<SignType[]> {
 export async function importSignsCsv(file: File): Promise<SignImportResult> {
   const formData = new FormData();
   formData.append('file', file);
-  return api.post('signs/import/csv', { body: formData }).json();
+  return api.post('signs/import/csv', { body: formData, timeout: 120_000 }).json();
 }

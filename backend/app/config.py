@@ -34,7 +34,11 @@ class Settings(BaseSettings):
 
     # Pagination
     default_page_size: int = 50
-    max_page_size: int = 200
+    max_page_size: int = 1000
+
+    # Import
+    max_import_file_size: int = 50 * 1024 * 1024  # 50 MB
+    import_batch_size: int = 500
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

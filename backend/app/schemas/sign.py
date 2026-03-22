@@ -151,3 +151,6 @@ class SignImportOut(BaseModel):
     total_rows: int
     errors: list[dict]
     column_mapping: dict[str, str]
+    unmapped_columns: list[str] = []
+    duration_seconds: float | None = None
+    rows_per_second: float | None = None

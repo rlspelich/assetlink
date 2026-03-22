@@ -13,6 +13,7 @@ Design principles:
 import csv
 import io
 import re
+import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import date
@@ -20,6 +21,7 @@ from datetime import date
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.sign import Sign, SignType
 
 # Column name aliases — maps common CSV header variations to our field names
@@ -136,6 +138,9 @@ class ImportResult:
     errors: list[RowError] = field(default_factory=list)
     total_rows: int = 0
     column_mapping: dict[str, str] = field(default_factory=dict)
+    unmapped_columns: list[str] = field(default_factory=list)
+    duration_seconds: float | None = None
+    rows_per_second: float | None = None
 
 
 def _normalize_header(header: str) -> str:
@@ -172,9 +177,14 @@ async def import_signs_from_csv(
     """
     Import signs from a CSV file.
 
+    Processes rows in batches to keep memory usage manageable for large imports
+    (20K+ rows). Each batch is flushed to the database, but the caller controls
+    commit/rollback so the entire import remains atomic.
+
     Returns an ImportResult with counts and per-row errors.
     Does NOT commit — caller is responsible for commit/rollback.
     """
+    start_time = time.monotonic()
     result = ImportResult()
 
     # Decode CSV
@@ -203,6 +213,7 @@ async def import_signs_from_csv(
             unmapped.append(col)
 
     result.column_mapping = {k: v for k, v in column_map.items()}
+    result.unmapped_columns = unmapped
 
     # Validate required columns
     mapped_fields = set(column_map.values())
@@ -217,8 +228,9 @@ async def import_signs_from_csv(
     mutcd_result = await db.execute(select(SignType.mutcd_code))
     valid_mutcd_codes = {row[0] for row in mutcd_result.all()}
 
-    # Process rows
-    signs_to_add: list[Sign] = []
+    # Process rows in batches
+    batch: list[Sign] = []
+    batch_size = settings.import_batch_size
 
     for row_num, row in enumerate(reader, start=2):  # Row 1 is header
         result.total_rows += 1
@@ -371,12 +383,25 @@ async def import_signs_from_csv(
             custom_fields=custom_fields if custom_fields else None,
             geometry=func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326),
         )
-        signs_to_add.append(sign)
+        batch.append(sign)
 
-    # Bulk add
-    if signs_to_add:
-        db.add_all(signs_to_add)
+        # Flush each batch to keep the session identity map small
+        if len(batch) >= batch_size:
+            db.add_all(batch)
+            await db.flush()
+            result.created += len(batch)
+            batch = []
+
+    # Flush remaining rows
+    if batch:
+        db.add_all(batch)
         await db.flush()
-        result.created = len(signs_to_add)
+        result.created += len(batch)
+
+    # Record timing
+    elapsed = time.monotonic() - start_time
+    result.duration_seconds = round(elapsed, 2)
+    if result.total_rows > 0 and elapsed > 0:
+        result.rows_per_second = round(result.total_rows / elapsed, 1)
 
     return result

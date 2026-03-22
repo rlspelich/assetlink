@@ -99,6 +99,9 @@ export interface SignImportResult {
   total_rows: number;
   errors: Array<{ row: number; field: string; message: string }>;
   column_mapping: Record<string, string>;
+  unmapped_columns: string[];
+  duration_seconds: number | null;
+  rows_per_second: number | null;
 }
 
 export interface WorkOrderAsset {

@@ -137,13 +137,20 @@ async def import_signs_csv(
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    """Import signs from a CSV file. Returns per-row results."""
+    """Import signs from a CSV file. Returns per-row results.
+
+    Supports files up to 50 MB and 20,000+ rows. Rows are processed in batches
+    of 500 for memory efficiency. The entire import is atomic — if any batch
+    fails, all rows are rolled back.
+    """
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a .csv")
 
     content = await file.read()
-    if len(content) > 10 * 1024 * 1024:  # 10 MB limit
-        raise HTTPException(status_code=400, detail="File too large. Maximum 10 MB.")
+    max_size = settings.max_import_file_size
+    if len(content) > max_size:
+        max_mb = max_size // (1024 * 1024)
+        raise HTTPException(status_code=400, detail=f"File too large. Maximum {max_mb} MB.")
 
     result = await import_signs_from_csv(content, tenant_id, db)
 
@@ -156,6 +163,9 @@ async def import_signs_csv(
             for e in result.errors
         ],
         column_mapping=result.column_mapping,
+        unmapped_columns=result.unmapped_columns,
+        duration_seconds=result.duration_seconds,
+        rows_per_second=result.rows_per_second,
     )
 
 

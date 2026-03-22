@@ -1,7 +1,20 @@
 import { useState, useCallback } from 'react';
 import { useImportSignsCsv } from '../hooks/use-signs';
-import { Upload, Download, FileText, CheckCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Upload, Download, FileText, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Clock, Zap, AlertTriangle } from 'lucide-react';
 import type { SignImportResult } from '../api/types';
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — matches backend limit
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function estimateRowCount(bytes: number): number {
+  // Rough estimate: ~150 bytes per row for a typical sign CSV with 20+ columns
+  return Math.round(bytes / 150);
+}
 
 const TEMPLATE_CSV = `Asset_ID,MUTCD_Code,Description,Sign_Category,Legend_Text,Latitude,Longitude,Road_Name,Intersection_With,Side_of_Road,Condition_Rating,Status,Install_Date,Sheeting_Type,Sheeting_Manufacturer,Facing_Direction,Mount_Height,Shape,Background_Color,Width,Height,Expected_Life_Years,Location_Notes
 SGN-0001,R1-1,Stop Sign,regulatory,STOP,39.7990,-89.6440,S 5th St,E Capitol Ave,W,5,active,06/15/2023,Type III,3M,180,84,octagon,red,30,30,12,NW corner of intersection
@@ -55,9 +68,34 @@ export function ImportPage() {
   const [result, setResult] = useState<SignImportResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [showFieldRef, setShowFieldRef] = useState(false);
+  const [fileInfo, setFileInfo] = useState<{ name: string; size: number; estimatedRows: number } | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const handleFile = useCallback(async (file: File) => {
     setResult(null);
+    setFileError(null);
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError(`File too large (${formatFileSize(file.size)}). Maximum is ${formatFileSize(MAX_FILE_SIZE)}.`);
+      setFileInfo(null);
+      return;
+    }
+
+    // Validate file extension
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setFileError('File must be a .csv file.');
+      setFileInfo(null);
+      return;
+    }
+
+    // Show file info
+    setFileInfo({
+      name: file.name,
+      size: file.size,
+      estimatedRows: estimateRowCount(file.size),
+    });
+
     const res = await importMutation.mutateAsync(file);
     setResult(res);
   }, [importMutation]);
@@ -137,15 +175,44 @@ export function ImportPage() {
             <div className="mt-3 text-xs text-gray-400 space-y-1">
               <p>Column names are automatically matched (e.g., "lat" → Latitude, "street" → Road Name)</p>
               <p>Unrecognized columns are stored in custom fields — no data is lost</p>
+              <p>Maximum file size: 50 MB. Supports 20,000+ rows.</p>
             </div>
           </div>
+
+          {/* File validation error */}
+          {fileError && (
+            <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
+              <span className="text-sm text-red-700">{fileError}</span>
+            </div>
+          )}
+
+          {/* File info after selection */}
+          {fileInfo && !fileError && (
+            <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
+              <span className="font-medium text-gray-800">{fileInfo.name}</span>
+              <span className="mx-2 text-gray-400">—</span>
+              <span>{formatFileSize(fileInfo.size)}</span>
+              <span className="mx-2 text-gray-400">—</span>
+              <span>~{fileInfo.estimatedRows.toLocaleString()} rows (estimated)</span>
+            </div>
+          )}
         </div>
 
         {importMutation.isPending && (
-          <div className="mb-6 text-center text-gray-500 text-sm">
-            <div className="inline-flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              Importing signs...
+          <div className="mb-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+              <div className="inline-flex items-center gap-2 text-blue-700 text-sm font-medium">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                {fileInfo
+                  ? `Processing ~${fileInfo.estimatedRows.toLocaleString()} rows... This may take a moment for large files.`
+                  : 'Importing signs...'}
+              </div>
+              {fileInfo && fileInfo.estimatedRows > 5000 && (
+                <p className="text-xs text-blue-500 mt-2">
+                  Large imports are processed in batches of 500 for reliability. Please do not close this page.
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -162,18 +229,53 @@ export function ImportPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-green-700">{result.created}</div>
+                  <div className="text-2xl font-bold text-green-700">{result.created.toLocaleString()}</div>
                   <div className="text-sm text-green-600">Created</div>
                 </div>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-yellow-700">{result.skipped}</div>
+                  <div className="text-2xl font-bold text-yellow-700">{result.skipped.toLocaleString()}</div>
                   <div className="text-sm text-yellow-600">Skipped</div>
                 </div>
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-gray-700">{result.total_rows}</div>
+                  <div className="text-2xl font-bold text-gray-700">{result.total_rows.toLocaleString()}</div>
                   <div className="text-sm text-gray-600">Total Rows</div>
                 </div>
               </div>
+
+              {/* Timing info */}
+              {result.duration_seconds != null && (
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span className="inline-flex items-center gap-1">
+                    <Clock size={12} />
+                    {result.duration_seconds < 1
+                      ? `${(result.duration_seconds * 1000).toFixed(0)}ms`
+                      : `${result.duration_seconds.toFixed(1)}s`}
+                  </span>
+                  {result.rows_per_second != null && (
+                    <span className="inline-flex items-center gap-1">
+                      <Zap size={12} />
+                      {result.rows_per_second.toLocaleString()} rows/sec
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Unmapped columns warning */}
+              {result.unmapped_columns.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-amber-800">
+                        {result.unmapped_columns.length} unmapped column{result.unmapped_columns.length !== 1 ? 's' : ''} stored in custom fields:
+                      </span>
+                      <span className="text-amber-700 ml-1">
+                        {result.unmapped_columns.join(', ')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Column mapping */}
               {Object.keys(result.column_mapping).length > 0 && (

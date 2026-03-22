@@ -43,11 +43,11 @@ export function InspectionsPage() {
   const handledRouteState = useRef(false);
 
   // Fetch signs for the base layer
-  const { data: signsData } = useSignsList({ page_size: 200 });
+  const { data: signsData } = useSignsList({ page_size: 1000 });
   const signs = signsData?.signs ?? [];
 
   const { data, isLoading } = useInspectionsList({
-    page_size: 200,
+    page_size: 1000,
     status: statusFilter || undefined,
     inspection_type: typeFilter || undefined,
     follow_up_required: followUpFilter === '' ? undefined : followUpFilter === 'true',

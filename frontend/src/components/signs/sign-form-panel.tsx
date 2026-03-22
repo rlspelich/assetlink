@@ -268,7 +268,7 @@ function SupportPicker({
   onSelect: (supportId: string) => void;
   coordinates?: { lng: number; lat: number } | null;
 }) {
-  const { data } = useSupportsList({ page_size: 200 });
+  const { data } = useSupportsList({ page_size: 1000 });
   const createSupport = useCreateSupport();
   const [showCreate, setShowCreate] = useState(false);
   const [newType, setNewType] = useState('');
