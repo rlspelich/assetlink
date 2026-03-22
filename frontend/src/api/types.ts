@@ -385,3 +385,74 @@ export interface SignSupportListResponse {
   page: number;
   page_size: number;
 }
+
+// --- Compliance Dashboard ---
+
+export interface ConditionBucket {
+  rating: number | null;
+  label: string;
+  count: number;
+}
+
+export interface AgeBucket {
+  range: string;
+  count: number;
+}
+
+export interface SheetingBucket {
+  sheeting_type: string;
+  count: number;
+}
+
+export interface CategoryBucket {
+  category: string;
+  count: number;
+}
+
+export interface PrioritySign {
+  sign_id: string;
+  asset_tag: string | null;
+  mutcd_code: string | null;
+  description: string | null;
+  road_name: string | null;
+  intersection_with: string | null;
+  condition_rating: number | null;
+  status: string;
+  install_date: string | null;
+  expected_replacement_date: string | null;
+  days_overdue: number | null;
+  measured_value: number | null;
+  passes_minimum: boolean | null;
+  sheeting_type: string | null;
+  last_inspected_date: string | null;
+  replacement_cost_estimate: number | null;
+  longitude: number;
+  latitude: number;
+  priority_score: number;
+}
+
+export interface ComplianceDashboard {
+  total_signs: number;
+  total_supports: number;
+  signs_passing_retro: number;
+  signs_failing_retro: number;
+  signs_retro_unknown: number;
+  compliance_rate: number | null;
+  signs_overdue_replacement: number;
+  signs_due_soon: number;
+  signs_missing: number;
+  signs_damaged: number;
+  signs_faded: number;
+  signs_never_inspected: number;
+  signs_inspection_overdue: number;
+  signs_inspected_recently: number;
+  condition_distribution: ConditionBucket[];
+  age_distribution: AgeBucket[];
+  sheeting_distribution: SheetingBucket[];
+  estimated_replacement_cost: number;
+  replacements_this_year: number;
+  replacements_next_year: number;
+  replacements_year_after: number;
+  priority_signs: PrioritySign[];
+  category_distribution: CategoryBucket[];
+}

@@ -5,7 +5,7 @@ import { SignsPage } from './routes/signs-page';
 import { WorkOrdersPage } from './routes/work-orders-page';
 import { InspectionsPage } from './routes/inspections-page';
 import { ImportPage } from './routes/import-page';
-import { PlaceholderPage } from './routes/placeholder-page';
+import { DashboardPage } from './routes/dashboard-page';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +27,7 @@ export default function App() {
             <Route path="work-orders" element={<WorkOrdersPage />} />
             <Route path="inspections" element={<InspectionsPage />} />
             <Route path="import" element={<ImportPage />} />
-            <Route path="dashboard" element={<PlaceholderPage title="Compliance Dashboard" />} />
+            <Route path="dashboard" element={<DashboardPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
