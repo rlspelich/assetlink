@@ -169,7 +169,36 @@ async def _update_signs_from_inspection_assets(
             sign.passes_minimum = ia.passes_minimum_retro
 
 
-# --- Generate WO number (same as work_orders.py) ---
+# --- Generate inspection and WO numbers ---
+
+
+async def _generate_inspection_number(
+    tenant_id: uuid.UUID, db: AsyncSession
+) -> str:
+    """Generate INS-YYYYMMDD-NNN sequential number per tenant per day."""
+    today = date.today()
+    prefix = f"INS-{today.strftime('%Y%m%d')}-"
+
+    result = await db.execute(
+        select(Inspection.inspection_number)
+        .where(
+            Inspection.tenant_id == tenant_id,
+            Inspection.inspection_number.like(f"{prefix}%"),
+        )
+        .order_by(Inspection.inspection_number.desc())
+        .limit(1)
+    )
+    last = result.scalar_one_or_none()
+
+    if last:
+        try:
+            seq = int(last.split("-")[-1]) + 1
+        except (ValueError, IndexError):
+            seq = 1
+    else:
+        seq = 1
+
+    return f"{prefix}{seq:03d}"
 
 
 async def _generate_work_order_number(
@@ -288,8 +317,11 @@ async def create_inspection(
         )
         support_signs = list(signs_result.scalars().all())
 
+    inspection_number = await _generate_inspection_number(tenant_id, db)
+
     inspection = Inspection(
         tenant_id=tenant_id,
+        inspection_number=inspection_number,
         asset_type=data.asset_type,
         asset_id=data.asset_id,
         sign_id=data.sign_id,

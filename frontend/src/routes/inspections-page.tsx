@@ -235,6 +235,7 @@ export function InspectionsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 sticky top-0">
                 <tr className="text-left text-xs text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2 font-medium">INS #</th>
                   <th className="px-4 py-2 font-medium">Date</th>
                   <th className="px-4 py-2 font-medium">Type</th>
                   <th className="px-4 py-2 font-medium">Assets</th>
@@ -270,6 +271,9 @@ export function InspectionsPage() {
                           : 'hover:bg-gray-50'
                       }`}
                     >
+                      <td className="px-4 py-2.5 font-mono text-xs text-gray-900 whitespace-nowrap">
+                        {insp.inspection_number || '—'}
+                      </td>
                       <td className="px-4 py-2.5 text-gray-900 whitespace-nowrap text-xs">
                         {formatDate(insp.inspection_date)}
                       </td>

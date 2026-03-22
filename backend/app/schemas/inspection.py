@@ -81,6 +81,7 @@ class InspectionUpdate(BaseModel):
 class InspectionOut(BaseModel):
     inspection_id: uuid.UUID
     tenant_id: uuid.UUID
+    inspection_number: str | None = None
     asset_type: str | None = None
     asset_id: uuid.UUID | None = None
     sign_id: uuid.UUID | None = None

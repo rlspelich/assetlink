@@ -265,6 +265,7 @@ export interface InspectionAssetCreatePayload {
 export interface Inspection {
   inspection_id: string;
   tenant_id: string;
+  inspection_number: string | null;
   asset_type: string | null;
   asset_id: string | null;
   sign_id: string | null;

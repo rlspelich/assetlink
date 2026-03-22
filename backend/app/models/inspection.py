@@ -31,6 +31,8 @@ class Inspection(Base, TenantMixin, TimestampMixin):
     inspection_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    # Human-readable number: INS-YYYYMMDD-NNN (per tenant per day)
+    inspection_number: Mapped[str | None] = mapped_column(String(30), index=True)
 
     # --- Asset Link (polymorphic) ---
     asset_type: Mapped[str | None] = mapped_column(String(30), index=True)
