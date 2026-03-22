@@ -78,11 +78,17 @@ export function SignsPage() {
   }, [data?.signs]);
 
   // Client-side search filtering (road, MUTCD, description)
+  // Also ensures the selected sign is always in the list (even if fetched separately)
   const filteredSigns = useMemo(() => {
-    if (!data?.signs) return [];
-    if (!searchQuery.trim()) return data.signs;
+    if (!data?.signs) return selectedSign ? [selectedSign] : [];
+    let signs = data.signs;
+    // Inject selected sign if it was fetched separately and isn't in the list
+    if (selectedSign && !signs.find((s) => s.sign_id === selectedSign.sign_id)) {
+      signs = [selectedSign, ...signs];
+    }
+    if (!searchQuery.trim()) return signs;
     const q = searchQuery.toLowerCase();
-    return data.signs.filter((s) =>
+    return signs.filter((s) =>
       (s.mutcd_code && s.mutcd_code.toLowerCase().includes(q)) ||
       (s.description && s.description.toLowerCase().includes(q)) ||
       (s.road_name && s.road_name.toLowerCase().includes(q)) ||
