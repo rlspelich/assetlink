@@ -9,6 +9,6 @@
   <rect x="232" y="170" width="200" height="192" rx="96" fill="none" stroke="#3b82f6" stroke-width="44"/>
 
   <!-- Classic map pin (Google style) - red, larger, at top-right -->
-  <path d="M340 56c-30.9 0-56 25.1-56 56 0 42 56 97 56 97s56-55 56-97c0-30.9-25.1-56-56-56z" fill="#ef4444"/>
-  <circle cx="340" cy="112" r="20" fill="#ffffff"/>
+  <path d="M340 42c-37.5 0-68 30.5-68 68 0 51 68 118 68 118s68-67 68-118c0-37.5-30.5-68-68-68z" fill="#ef4444"/>
+  <circle cx="340" cy="110" r="24" fill="#ffffff"/>
 </svg>
