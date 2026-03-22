@@ -6,6 +6,7 @@ import {
   getWoPriorityOption,
   formatEnumLabel,
 } from '../../lib/constants';
+import { useUsersList } from '../../hooks/use-users';
 
 interface WorkOrderTableProps {
   workOrders: WorkOrder[];
@@ -61,6 +62,16 @@ export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrd
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const selectedRef = useRef<HTMLTableRowElement>(null);
+
+  // User lookup for assigned_to display
+  const { data: usersData } = useUsersList();
+  const userMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const u of usersData?.users ?? []) {
+      map.set(u.user_id, `${u.first_name} ${u.last_name}`);
+    }
+    return map;
+  }, [usersData]);
 
   useEffect(() => {
     if (selectedRef.current) {
@@ -208,7 +219,7 @@ export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrd
                   )}
                 </td>
                 <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
-                  {wo.assigned_to || <span className="text-gray-300">\u2014</span>}
+                  {wo.assigned_to ? (userMap.get(wo.assigned_to) ?? 'Unknown') : <span className="text-gray-300">{'\u2014'}</span>}
                 </td>
                 <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
                   {wo.due_date ? formatShortDate(wo.due_date) : <span className="text-gray-300">\u2014</span>}

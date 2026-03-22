@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Settings, Upload, Database, Users, Bell } from 'lucide-react';
 import { ImportPage } from './import-page';
+import { UsersPanel } from '../components/settings/users-panel';
 
 type SettingsTab = 'import' | 'data' | 'users' | 'notifications';
 
 const TABS: { id: SettingsTab; label: string; icon: React.ElementType; available: boolean }[] = [
   { id: 'import', label: 'Import Data', icon: Upload, available: true },
   { id: 'data', label: 'Data Management', icon: Database, available: false },
-  { id: 'users', label: 'Users & Roles', icon: Users, available: false },
+  { id: 'users', label: 'Users & Roles', icon: Users, available: true },
   { id: 'notifications', label: 'Notifications', icon: Bell, available: false },
 ];
 
@@ -56,25 +57,17 @@ export function SettingsPage() {
             <div className="text-center">
               <Database size={32} className="mx-auto mb-2" />
               <p className="text-sm font-medium">Data Management</p>
-              <p className="text-xs mt-1">Seed data, export, backup — coming soon</p>
+              <p className="text-xs mt-1">Seed data, export, backup -- coming soon</p>
             </div>
           </div>
         )}
-        {activeTab === 'users' && (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            <div className="text-center">
-              <Users size={32} className="mx-auto mb-2" />
-              <p className="text-sm font-medium">Users & Roles</p>
-              <p className="text-xs mt-1">Manage team members and permissions — coming soon</p>
-            </div>
-          </div>
-        )}
+        {activeTab === 'users' && <UsersPanel />}
         {activeTab === 'notifications' && (
           <div className="flex items-center justify-center h-full text-gray-400">
             <div className="text-center">
               <Bell size={32} className="mx-auto mb-2" />
               <p className="text-sm font-medium">Notifications</p>
-              <p className="text-xs mt-1">Email and in-app notification settings — coming soon</p>
+              <p className="text-xs mt-1">Email and in-app notification settings -- coming soon</p>
             </div>
           </div>
         )}

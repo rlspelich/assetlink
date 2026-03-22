@@ -22,6 +22,18 @@ export function getSignColor(condition: number | null, status: string): string {
   return UNRATED_COLOR.hex;
 }
 
+// --- User Role constants ---
+
+export const USER_ROLE_OPTIONS = [
+  { value: 'admin', label: 'Admin', description: 'Full access to all features and settings', color: 'bg-purple-100 text-purple-800' },
+  { value: 'supervisor', label: 'Supervisor', description: 'Manage work orders, inspections, and assign work', color: 'bg-blue-100 text-blue-800' },
+  { value: 'crew_chief', label: 'Crew Chief', description: 'View and update assigned work orders', color: 'bg-green-100 text-green-800' },
+] as const;
+
+export function getUserRoleOption(value: string) {
+  return USER_ROLE_OPTIONS.find((o) => o.value === value) ?? USER_ROLE_OPTIONS[2];
+}
+
 // --- Work Order constants ---
 
 export const WO_STATUS_OPTIONS = [

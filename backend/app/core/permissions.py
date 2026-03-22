@@ -1,7 +1,7 @@
 """
 Role-based permission checks.
 
-Roles: admin, supervisor, field_worker, viewer
+Roles: admin, supervisor, crew_chief
 """
 
 from enum import StrEnum
@@ -10,5 +10,4 @@ from enum import StrEnum
 class Role(StrEnum):
     ADMIN = "admin"
     SUPERVISOR = "supervisor"
-    FIELD_WORKER = "field_worker"
-    VIEWER = "viewer"
+    CREW_CHIEF = "crew_chief"

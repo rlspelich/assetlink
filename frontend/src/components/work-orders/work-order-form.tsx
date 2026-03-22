@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { X, Loader2, Signpost, Landmark } from 'lucide-react';
 import type { WorkOrder, WorkOrderCreate, WorkOrderUpdate } from '../../api/types';
 import { WO_WORK_TYPE_OPTIONS, WO_PRIORITY_OPTIONS, WO_ACTION_OPTIONS } from '../../lib/constants';
+import { useUsersList } from '../../hooks/use-users';
+import { getUserRoleOption } from '../../lib/constants';
 
 export interface AssetContext {
   support_id?: string;
@@ -40,8 +42,14 @@ export function WorkOrderForm({
   const [workType, setWorkType] = useState(workOrder?.work_type ?? 'repair');
   const [priority, setPriority] = useState(workOrder?.priority ?? 'routine');
   const [category, setCategory] = useState(workOrder?.category ?? '');
-  const [assignedTo, setAssignedTo] = useState('');
+  const [assignedTo, setAssignedTo] = useState(workOrder?.assigned_to ?? '');
   const [dueDate, setDueDate] = useState(workOrder?.due_date ?? '');
+
+  // Fetch active users for the assignment dropdown
+  const { data: usersData } = useUsersList({ is_active: true });
+  const assignableUsers = (usersData?.users ?? []).filter(
+    (u) => u.role === 'supervisor' || u.role === 'crew_chief',
+  );
   const [address, setAddress] = useState(workOrder?.address ?? '');
   const [instructions, setInstructions] = useState(workOrder?.instructions ?? '');
   const [notes, setNotes] = useState(workOrder?.notes ?? '');
@@ -75,6 +83,7 @@ export function WorkOrderForm({
         description: description || undefined,
         priority,
         category: category || undefined,
+        assigned_to: assignedTo || undefined,
         due_date: dueDate || undefined,
         address: address || undefined,
         instructions: instructions || undefined,
@@ -104,6 +113,7 @@ export function WorkOrderForm({
         work_type: workType,
         priority,
         category: category || undefined,
+        assigned_to: assignedTo || undefined,
         due_date: dueDate || undefined,
         address: address || undefined,
         instructions: instructions || undefined,
@@ -192,13 +202,18 @@ export function WorkOrderForm({
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Assigned To</label>
-              <input
-                type="text"
+              <select
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
                 className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Name (user picker later)"
-              />
+              >
+                <option value="">Unassigned</option>
+                {assignableUsers.map((u) => (
+                  <option key={u.user_id} value={u.user_id}>
+                    {u.first_name} {u.last_name} ({getUserRoleOption(u.role).label})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

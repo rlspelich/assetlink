@@ -23,9 +23,14 @@ class AppUser(Base):
         index=True,
     )
     email: Mapped[str] = mapped_column(String(254), nullable=False)
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
-    # admin, supervisor, field_worker, viewer
-    role: Mapped[str] = mapped_column(String(20), nullable=False, default="viewer")
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    # Keep name for backward compat (nullable, computed on write)
+    name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Municipality employee number
+    employee_id: Mapped[str | None] = mapped_column(String(50))
+    # admin, supervisor, crew_chief
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="crew_chief")
     phone: Mapped[str | None] = mapped_column(String(20))
     # Which modules this user can access (empty = all tenant modules)
     modules_access: Mapped[dict | None] = mapped_column(JSONB)
@@ -47,3 +52,7 @@ class AppUser(Base):
 
     # Relationships
     tenant = relationship("Tenant", back_populates="users")
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}"

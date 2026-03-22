@@ -345,6 +345,47 @@ export interface InspectionListResponse {
   page_size: number;
 }
 
+// --- Users ---
+
+export interface User {
+  user_id: string;
+  tenant_id: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  email: string;
+  role: string;
+  employee_id: string | null;
+  phone: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserCreate {
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  employee_id?: string;
+  phone?: string;
+}
+
+export interface UserUpdate {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  role?: string;
+  employee_id?: string | null;
+  phone?: string | null;
+  is_active?: boolean;
+}
+
+export interface UserListResponse {
+  users: User[];
+  total: number;
+}
+
 // --- Sign Supports ---
 
 export interface SignSupport {

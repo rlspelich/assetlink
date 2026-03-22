@@ -6,7 +6,9 @@ import {
   INSPECTION_ACTION_OPTIONS,
   CONDITION_COLORS,
   UNRATED_COLOR,
+  getUserRoleOption,
 } from '../../lib/constants';
+import { useUsersList } from '../../hooks/use-users';
 
 export interface InspectionAssetContext {
   support_id?: string;
@@ -85,6 +87,11 @@ export function InspectionForm({
 
   const [inspectionType, setInspectionType] = useState(inspection?.inspection_type ?? 'sign_condition');
   const [inspectionDate, setInspectionDate] = useState(inspection?.inspection_date ?? today);
+  const [inspectorId, setInspectorId] = useState(inspection?.inspector_id ?? '');
+
+  // Fetch active users for the inspector dropdown
+  const { data: usersData } = useUsersList({ is_active: true });
+  const inspectors = usersData?.users ?? [];
   const [overallCondition, setOverallCondition] = useState<number | null>(inspection?.condition_rating ?? null);
   const [findings, setFindings] = useState(inspection?.findings ?? '');
   const [recommendations, setRecommendations] = useState(inspection?.recommendations ?? '');
@@ -121,6 +128,7 @@ export function InspectionForm({
       const data: InspectionCreate = {
         inspection_type: inspectionType,
         inspection_date: inspectionDate,
+        inspector_id: inspectorId || undefined,
         status,
         condition_rating: overallCondition ?? undefined,
         findings: findings || undefined,
@@ -157,6 +165,7 @@ export function InspectionForm({
       const data: InspectionUpdate = {
         inspection_type: inspectionType,
         inspection_date: inspectionDate,
+        inspector_id: inspectorId || undefined,
         status,
         condition_rating: overallCondition ?? undefined,
         findings: findings || undefined,
@@ -215,6 +224,23 @@ export function InspectionForm({
                 className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+          </div>
+
+          {/* Inspector */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Inspector</label>
+            <select
+              value={inspectorId}
+              onChange={(e) => setInspectorId(e.target.value)}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select inspector...</option>
+              {inspectors.map((u) => (
+                <option key={u.user_id} value={u.user_id}>
+                  {u.first_name} {u.last_name} ({getUserRoleOption(u.role).label})
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Overall condition + Status row */}
