@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Plus, Wrench, Loader2, Search } from 'lucide-react';
 import {
@@ -50,6 +50,7 @@ export function WorkOrdersPage() {
   const [assetContext, setAssetContext] = useState<AssetContext | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const handledRouteState = useRef(false);
 
   const { data, isLoading } = useWorkOrdersList({
     page,
@@ -63,14 +64,17 @@ export function WorkOrdersPage() {
   const updateWO = useUpdateWorkOrder();
   const deleteWO = useDeleteWorkOrder();
 
-  // Handle route state (navigate from sign/support detail or direct link)
+  // Handle route state (navigate from sign/support detail or direct link) — once only
   useEffect(() => {
+    if (handledRouteState.current) return;
     if (routeState?.assetContext) {
+      handledRouteState.current = true;
       setAssetContext(routeState.assetContext);
       setFormMode('create');
       setShowForm(true);
       window.history.replaceState({}, document.title);
     } else if (routeState?.signContext) {
+      handledRouteState.current = true;
       // Legacy support: convert old signContext to new assetContext format
       setAssetContext({
         assets: [{

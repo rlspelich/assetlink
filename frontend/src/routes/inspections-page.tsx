@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Plus, ClipboardCheck, Loader2, Search } from 'lucide-react';
 import {
@@ -51,6 +51,7 @@ export function InspectionsPage() {
   const [assetContext, setAssetContext] = useState<InspectionAssetContext | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const handledRouteState = useRef(false);
 
   const { data, isLoading } = useInspectionsList({
     page,
@@ -67,9 +68,11 @@ export function InspectionsPage() {
   const updateInspection = useUpdateInspection();
   const deleteInspection = useDeleteInspection();
 
-  // Handle route state (navigate from sign/support detail)
+  // Handle route state (navigate from sign/support detail) — once only
   useEffect(() => {
+    if (handledRouteState.current) return;
     if (routeState?.assetContext) {
+      handledRouteState.current = true;
       setAssetContext(routeState.assetContext);
       setFormMode('create');
       setShowForm(true);
