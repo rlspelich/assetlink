@@ -96,7 +96,7 @@ export function SignsPage() {
       (s.intersection_with && s.intersection_with.toLowerCase().includes(q)) ||
       (s.legend_text && s.legend_text.toLowerCase().includes(q))
     );
-  }, [data?.signs, searchQuery]);
+  }, [data?.signs, searchQuery, selectedSign]);
 
   const handleSignSelect = (sign: Sign) => {
     if (mode !== 'view') return; // Don't select signs while adding/editing
