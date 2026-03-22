@@ -208,7 +208,7 @@ export function AssetMap({
         data={geojson}
         cluster={true}
         clusterMaxZoom={14}
-        clusterRadius={50}
+        clusterRadius={30}
         clusterProperties={{
           worst_condition: ['min', ['get', 'condition_num']],
         }}
@@ -222,10 +222,11 @@ export function AssetMap({
             'circle-color': CLUSTER_COLOR as string,
             'circle-radius': [
               'step', ['get', 'point_count'],
-              15,    // default: 2-9 points
-              10, 18,  // 10-49
-              50, 22,  // 50-99
-              100, 26, // 100+
+              12,      // 2-9 points
+              10, 15,  // 10-49
+              50, 19,  // 50-99
+              100, 22, // 100-499
+              500, 26, // 500+
             ],
             'circle-opacity': 0.85,
             'circle-stroke-width': 2,
