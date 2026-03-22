@@ -305,9 +305,20 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - [x] Toggleable view modes: Map View, Table View, Split View on WO and inspection pages
 - [x] Asset tag field (municipality barcode/sticker ID) on signs and supports
 - [x] Human-readable IDs: WO-YYYYMMDD-NNN, INS-YYYYMMDD-NNN
-- [ ] MUTCD compliance dashboard
+- [x] MUTCD compliance dashboard (KPIs, condition/age/sheeting/category charts, replacement planning, priority action table)
+- [x] Map clustering (30px radius, condition-color clusters, click-to-expand, tuned for 10K+)
+- [x] Dynamic viewport sign count (updates on pan/zoom)
+- [x] Print work orders and inspections (preview overlay + iframe print, crew completion fields)
+- [x] Email work orders and inspections (SMTP-ready, preview mode when unconfigured)
+- [x] Users & Roles management (Admin/Supervisor/Crew Chief, CRUD, user picker on WO/inspections)
+- [x] Settings page (Import Data, Users & Roles, with placeholders for Data Management and Notifications)
+- [x] Help page placeholder (7 topic cards for future documentation)
+- [x] Import template CSV + field reference guide (23 fields documented with aliases)
+- [x] Import scalability (batch processing, 50MB limit, 120s timeout, handles 20K+ rows)
+- [x] Custom AssetLink icon (blue chain links + red map pin)
+- [x] Dashboard → sign deep-link (click priority sign → signs page with pre-selected asset)
+- [x] 2,000-sign Springfield IL test dataset with generation script
 - [ ] Photo upload
-- [ ] Map clustering (for 10K+ signs — auto-fit and home button done)
 - [ ] Deploy to Google Cloud (Cloud Run + Cloud SQL)
 - [ ] Pilot municipality onboarded
 
@@ -450,5 +461,13 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - **Toggleable view modes:** Map View (field crew), Table View (operations supervisor), Split View (director). Full sortable tables with all operational columns. Selection/filters persist across mode switches.
 - **Asset tag field:** Municipality-assigned identifier (sticker/barcode) on signs and supports. CSV import fuzzy matches asset_tag/asset_id/barcode/tag columns.
 - **Human-readable IDs:** WO-YYYYMMDD-NNN and INS-YYYYMMDD-NNN auto-generated per tenant per day.
-- **137+ integration tests passing.** All backend and frontend TypeScript compile clean.
-- **Known issues:** work_order_number unique constraint is global not per-tenant. Map clustering deferred (auto-fit bounds and home button done).
+- **MUTCD Compliance Dashboard:** Executive dashboard with 6 KPI cards (color-coded thresholds), condition/age/sheeting/category distribution charts (pure CSS), replacement planning with cost estimates, priority action table (top 20 signs ranked by composite risk score). Click priority sign → navigates to signs page with asset pre-selected.
+- **Map clustering:** MapLibre native clustering (30px radius, clusterMaxZoom 14). Cluster color = worst condition in group. Click to expand. Handles 10K+ signs on GPU. Dynamic viewport sign counter updates on pan/zoom.
+- **Print & Email:** Print preview overlay with crew completion fields (checkboxes, signature line, notes). Email via SMTP (configurable, preview mode when unconfigured). Print/email buttons on WO and inspection detail panels.
+- **Users & Roles:** 3 roles (Admin/Supervisor/Crew Chief). User CRUD with first_name, last_name, employee_id, email, phone. Soft-delete/reactivate. Email + employee_id uniqueness per tenant. User picker dropdown replaces text "Assigned To" on work orders and "Inspector" on inspections. 18 tests.
+- **Settings page:** Tabbed layout — Import Data (with template CSV download + field reference guide), Users & Roles, Data Management (coming soon), Notifications (coming soon). Help page placeholder with 7 topic cards.
+- **Import scalability:** Batch processing (500 rows/flush), 50MB file limit, 120s timeout, file size validation, progress messaging, timing stats (rows/sec), unmapped column tracking. Handles 20K+ rows.
+- **Custom branding:** AssetLink icon (blue chain links + red Google-style map pin). Browser tab title. Sidebar icon.
+- **2,000-sign test dataset:** Realistic Springfield IL inventory with generation script. All MUTCD codes, age/condition/sheeting correlations, real street names.
+- **155+ integration tests passing.** All backend and frontend TypeScript compile clean.
+- **Known issues:** work_order_number unique constraint is global not per-tenant.
