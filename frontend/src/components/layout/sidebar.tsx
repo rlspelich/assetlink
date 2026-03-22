@@ -1,11 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { Map, Wrench, ClipboardCheck, Upload, BarChart3 } from 'lucide-react';
+import { Map, Wrench, ClipboardCheck, BarChart3, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/signs', icon: Map, label: 'Signs' },
   { to: '/work-orders', icon: Wrench, label: 'Work Orders' },
   { to: '/inspections', icon: ClipboardCheck, label: 'Inspections' },
-  { to: '/import', icon: Upload, label: 'Import' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
 ];
 
@@ -38,10 +37,28 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="px-3 py-3 border-t border-gray-800 text-xs text-gray-500 whitespace-nowrap overflow-hidden">
-        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          Springfield DPW
-        </span>
+      {/* Bottom: Settings + tenant name */}
+      <div className="border-t border-gray-800">
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors whitespace-nowrap ${
+              isActive
+                ? 'bg-gray-800 text-white border-r-2 border-blue-500'
+                : 'hover:bg-gray-800 hover:text-white'
+            }`
+          }
+        >
+          <Settings size={18} className="shrink-0" />
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            Settings
+          </span>
+        </NavLink>
+        <div className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap overflow-hidden">
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            Springfield DPW
+          </span>
+        </div>
       </div>
     </aside>
   );

@@ -4,8 +4,8 @@ import { AppShell } from './components/layout/app-shell';
 import { SignsPage } from './routes/signs-page';
 import { WorkOrdersPage } from './routes/work-orders-page';
 import { InspectionsPage } from './routes/inspections-page';
-import { ImportPage } from './routes/import-page';
 import { DashboardPage } from './routes/dashboard-page';
+import { SettingsPage } from './routes/settings-page';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,8 +26,10 @@ export default function App() {
             <Route path="signs" element={<SignsPage />} />
             <Route path="work-orders" element={<WorkOrdersPage />} />
             <Route path="inspections" element={<InspectionsPage />} />
-            <Route path="import" element={<ImportPage />} />
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            {/* Legacy route — redirect to settings */}
+            <Route path="import" element={<Navigate to="/settings" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>
