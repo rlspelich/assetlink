@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, MapPin, Ruler, Calendar, Shield, Wrench, Eye, Pencil, Trash2, Loader2, Landmark, ChevronLeft, Plus, AlertTriangle, ClipboardCheck } from 'lucide-react';
+import { X, MapPin, Ruler, Calendar, Shield, Wrench, Eye, Pencil, Trash2, Loader2, Landmark, ChevronLeft, Plus, ClipboardCheck } from 'lucide-react';
 import type { Sign } from '../../api/types';
 import { CONDITION_COLORS, UNRATED_COLOR, INACTIVE_STATUSES, INACTIVE_COLOR, formatEnumLabel, getWoStatusOption, getWoPriorityOption, getInspectionTypeOption, getInspectionStatusOption } from '../../lib/constants';
 import { useSignWorkOrders } from '../../hooks/use-work-orders';
@@ -129,7 +129,6 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, o
                 })}
                 className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
               >
-                <AlertTriangle size={12} />
                 Create Work Order
               </button>
             )}

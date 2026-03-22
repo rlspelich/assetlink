@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Landmark, MapPin, Calendar, Pencil, Trash2, Loader2, AlertTriangle, ClipboardCheck } from 'lucide-react';
+import { X, Landmark, MapPin, Calendar, Pencil, Trash2, Loader2, ClipboardCheck } from 'lucide-react';
 import { useSupport, useDeleteSupport } from '../../hooks/use-supports';
 import type { Sign } from '../../api/types';
 import { CONDITION_COLORS, UNRATED_COLOR, INACTIVE_STATUSES, INACTIVE_COLOR, formatEnumLabel } from '../../lib/constants';
@@ -148,7 +148,6 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                 })}
                 className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
               >
-                <AlertTriangle size={12} />
                 Create Work Order
               </button>
             )}
