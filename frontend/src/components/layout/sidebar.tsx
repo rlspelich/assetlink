@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Map, Wrench, ClipboardCheck, BarChart3, Settings } from 'lucide-react';
+import { Map, Wrench, ClipboardCheck, BarChart3, HelpCircle, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/signs', icon: Map, label: 'Signs' },
@@ -37,8 +37,23 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      {/* Bottom: Settings + tenant name */}
+      {/* Bottom: Help + Settings + tenant name */}
       <div className="border-t border-gray-800">
+        <NavLink
+          to="/help"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors whitespace-nowrap ${
+              isActive
+                ? 'bg-gray-800 text-white border-r-2 border-blue-500'
+                : 'hover:bg-gray-800 hover:text-white'
+            }`
+          }
+        >
+          <HelpCircle size={18} className="shrink-0" />
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            Help
+          </span>
+        </NavLink>
         <NavLink
           to="/settings"
           className={({ isActive }) =>
