@@ -1,0 +1,4 @@
+Asset_ID,MUTCD_Code,Description,Sign_Category,Legend_Text,Latitude,Longitude,Road_Name,Intersection_With,Side_of_Road,Condition_Rating,Status,Install_Date,Sheeting_Type,Sheeting_Manufacturer,Facing_Direction,Mount_Height,Shape,Background_Color,Width,Height,Expected_Life_Years,Location_Notes
+SGN-0001,R1-1,Stop Sign,regulatory,STOP,39.7990,-89.6440,S 5th St,E Capitol Ave,W,5,active,06/15/2023,Type III,3M,180,84,octagon,red,30,30,12,NW corner of intersection
+SGN-0002,R2-1,Speed Limit 25,regulatory,SPEED LIMIT 25,39.7975,-89.6425,S 6th St,E Monroe St,E,4,active,03/10/2022,Type III,,0,84,rectangle,white,24,30,12,
+SGN-0003,W1-1,Turn Warning,warning,,39.7920,-89.6460,Wabash Ave,S Walnut St,N,3,active,08/12/2021,Type III,Avery Dennison,45,84,diamond,yellow,30,30,10,Sharp curve ahead
