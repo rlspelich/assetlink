@@ -1,17 +1,55 @@
-# Virtual environment
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
 env/
 venv/
 .venv/
 
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-
 # IDE
 .idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Environment variables
 .env
+.env.local
+.env.production
+.clerk.env
+
+# Docker
+docker-compose.override.yml
+
+# Alembic
+alembic/versions/__pycache__/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Node (frontend)
+node_modules/
+frontend/dist/
+frontend/build/
+.next/
+
+# Logs
+*.log
+
+# Uploads (local dev)
+uploads/

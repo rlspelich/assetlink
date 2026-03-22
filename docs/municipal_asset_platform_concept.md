@@ -550,6 +550,51 @@ ROLES & PERMISSIONS
 | Email | SendGrid | Notifications, work order alerts |
 | Error Tracking | Sentry | Runtime error monitoring |
 | Analytics | PostHog | Per-tenant usage analytics |
+| Report Engine | Jinja2 + WeasyPrint | HTML templates → PDF, no licensing cost |
+| Report Charts | Matplotlib / Plotly | Charts rendered as PNG/SVG in reports |
+
+### Report Generation Architecture
+
+```
+MVP Stack: Jinja2 + WeasyPrint + Matplotlib
+┌─────────────────────────────────────────────┐
+│           Report Generation Flow            │
+│                                             │
+│  SQL Query (PostGIS)                        │
+│       ↓                                     │
+│  Pandas DataFrame                           │
+│       ↓                                     │
+│  Matplotlib/Plotly → Charts (PNG/SVG)       │
+│       ↓                                     │
+│  Jinja2 HTML Template + Data + Charts       │
+│       ↓                                     │
+│  WeasyPrint → PDF                           │
+│       ↓                                     │
+│  Cloud Storage (or direct download)         │
+└─────────────────────────────────────────────┘
+```
+
+**Why Jinja2 + WeasyPrint (not Crystal Reports / ActiveReports):**
+
+- **$0 licensing cost** — Crystal Reports and ActiveReports charge $2,000–$10,000+/year
+- **HTML/CSS templates** — same skills as frontend development, no proprietary designer
+- **Jinja2 is native to FastAPI** — same template engine, zero integration friction
+- **WeasyPrint handles CSS print layouts** — page breaks, headers/footers, page numbers
+- **Matplotlib/Plotly for charts** — render as images, embed in HTML template
+- **Data pipeline is natural** — PostGIS → SQLAlchemy → Pandas → Jinja2 → PDF
+
+**MVP Reports:**
+
+| Report | Type | Content |
+|--------|------|---------|
+| Sign Inventory | Table | All signs with compliance status, location, condition |
+| MUTCD Compliance Summary | Dashboard | % compliant, upcoming replacements, charts by type |
+| Work Order Printout | Form | Single WO with details, tasks, costs, photos |
+| Inspection Report | Form | Condition ratings, observations, photos, recommendations |
+| Annual Replacement Plan | Table + Chart | Signs due by year, cost projections |
+| Asset Export | Data | Full inventory export (CSV, GeoJSON, Shapefile) |
+
+**Upgrade Path:** If municipalities need a visual report designer for custom reports, Stimulsoft Reports.PYTHON (~$2,000–5,000/year, royalty-free) provides a full WYSIWYG designer, 200+ chart types, banded reports, and subreports — the closest Python equivalent to Crystal Reports.
 
 ### Python GIS Ecosystem
 
@@ -1200,6 +1245,51 @@ Additional Modules (future)
 ├── Parks & Facilities
 └── Fleet / Equipment
 ```
+
+### Future Architecture — BigQuery Analytics Layer
+
+BigQuery is **not a replacement for PostGIS** — it's a complement. PostGIS is the operational database (CRUD, map tiles, real-time queries). BigQuery is an analytics warehouse added when the platform has enough tenants and data to make cross-platform analytics valuable.
+
+**BigQuery GIS capabilities:** Native `GEOGRAPHY` type (WGS84), standard spatial functions (`ST_DISTANCE`, `ST_WITHIN`, `ST_INTERSECTS`, `ST_BUFFER`, etc.), petabyte-scale spatial joins.
+
+**When to add:** Phase 3+ when we have 50+ municipalities.
+
+```
+PostGIS (operational DB)         BigQuery (analytics warehouse)
+├── Sign/asset CRUD              ├── Platform-wide compliance trends
+├── Work order management        ├── Cross-municipality benchmarking
+├── Map tile serving             ├── "How do your signs compare to similar cities?"
+├── Inspection forms             ├── Predictive replacement modeling
+├── Real-time queries            ├── Cost trend analysis across all tenants
+└── Per-tenant isolation         └── Regulatory aggregate reporting
+
+         Cloud SQL (PostGIS)
+                │
+         ETL / CDC pipeline
+         (Dataflow or scheduled export)
+                │
+                ▼
+            BigQuery
+                │
+                ▼
+     Analytics Dashboards
+     Platform-wide Reports
+     ML / Predictive Models
+```
+
+**Why not BigQuery for core operations:**
+- Not designed for OLTP (row-level create/update/delete)
+- Cold start latency — not suitable for "click sign on map, get details"
+- Cannot serve vector tiles
+- Per-query pricing model ($6.25/TB scanned) is wrong for high-frequency small reads
+- PostGIS is already included in Cloud SQL — no additional cost
+
+**What BigQuery enables that PostGIS can't do well:**
+- Scan all tenant data simultaneously for platform analytics
+- Sub-10-second spatial joins across millions of records
+- Feed ML models for predictive asset replacement
+- Power a "municipality benchmarking" dashboard — a potential premium feature
+- Aggregate regulatory compliance reporting across the entire customer base
 
 ---
 
