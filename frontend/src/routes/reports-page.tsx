@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FileBarChart,
   RefreshCw,
@@ -16,6 +17,9 @@ import {
   BarChart3,
   Calendar,
   Award,
+  ChevronUp,
+  ChevronDown,
+  AlertCircle,
 } from 'lucide-react';
 import {
   useWorkOrderReport,
@@ -23,9 +27,23 @@ import {
   useInventoryReport,
   useCrewProductivityReport,
 } from '../hooks/use-reports';
-import { CONDITION_COLORS, UNRATED_COLOR, WO_PRIORITY_COLORS } from '../lib/constants';
+import { useWorkOrdersList } from '../hooks/use-work-orders';
+import { useInspectionsList } from '../hooks/use-inspections';
+import { useUsersList } from '../hooks/use-users';
+import {
+  CONDITION_COLORS,
+  UNRATED_COLOR,
+  WO_PRIORITY_COLORS,
+  getWoStatusOption,
+  getWoPriorityOption,
+  getInspectionTypeOption,
+  getInspectionStatusOption,
+  formatEnumLabel,
+} from '../lib/constants';
 import { openPrintPreview } from '../lib/print-utils';
 import type {
+  WorkOrder,
+  Inspection,
   WorkOrderReport,
   InspectionReport,
   InventoryReport,
@@ -488,6 +506,269 @@ function generateReportPrintHtml(
 // Tab 1: Work Orders Report
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Work Order Status List — sortable/filterable table for actionable worklist
+// ---------------------------------------------------------------------------
+
+type WoListFilter = 'all' | 'open' | 'overdue' | 'emergency' | 'unassigned' | 'completed';
+type WoListSortField = 'work_order_number' | 'priority' | 'status' | 'due_date' | 'days_open' | 'created_at';
+type SortDirection = 'asc' | 'desc';
+
+const WO_LIST_PRIORITY_ORDER: Record<string, number> = {
+  emergency: 0, urgent: 1, routine: 2, planned: 3,
+};
+
+const WO_LIST_STATUS_ORDER: Record<string, number> = {
+  open: 0, assigned: 1, in_progress: 2, on_hold: 3, completed: 4, cancelled: 5,
+};
+
+const OPEN_STATUSES = new Set(['open', 'assigned', 'in_progress', 'on_hold']);
+
+function calcDaysOpen(createdAt: string): number {
+  const created = new Date(createdAt);
+  const now = new Date();
+  return Math.max(0, Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function isOverdue(wo: WorkOrder): boolean {
+  if (!wo.due_date) return false;
+  return OPEN_STATUSES.has(wo.status) && new Date(wo.due_date) < new Date();
+}
+
+function WorkOrderStatusList({ startDate, endDate }: { startDate: string; endDate: string }) {
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState<WoListFilter>('all');
+  const [sortField, setSortField] = useState<WoListSortField>('created_at');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
+
+  const { data: woData, isLoading } = useWorkOrdersList({ page_size: 100 });
+  const { data: usersData } = useUsersList();
+
+  const userMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const u of usersData?.users ?? []) {
+      map.set(u.user_id, `${u.first_name} ${u.last_name}`);
+    }
+    return map;
+  }, [usersData]);
+
+  const allWOs = useMemo(() => {
+    const wos = woData?.work_orders ?? [];
+    // Filter to date range
+    return wos.filter((wo) => {
+      const created = wo.created_at.slice(0, 10);
+      return created >= startDate && created <= endDate;
+    });
+  }, [woData, startDate, endDate]);
+
+  const filtered = useMemo(() => {
+    let items = allWOs;
+    switch (filter) {
+      case 'open':
+        items = items.filter((wo) => OPEN_STATUSES.has(wo.status));
+        break;
+      case 'overdue':
+        items = items.filter(isOverdue);
+        break;
+      case 'emergency':
+        items = items.filter((wo) => wo.priority === 'emergency');
+        break;
+      case 'unassigned':
+        items = items.filter((wo) => !wo.assigned_to);
+        break;
+      case 'completed':
+        items = items.filter((wo) => wo.status === 'completed');
+        break;
+    }
+    return items;
+  }, [allWOs, filter]);
+
+  const sorted = useMemo(() => {
+    const items = [...filtered];
+    items.sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case 'work_order_number':
+          cmp = (a.work_order_number ?? '').localeCompare(b.work_order_number ?? '');
+          break;
+        case 'priority':
+          cmp = (WO_LIST_PRIORITY_ORDER[a.priority] ?? 99) - (WO_LIST_PRIORITY_ORDER[b.priority] ?? 99);
+          break;
+        case 'status':
+          cmp = (WO_LIST_STATUS_ORDER[a.status] ?? 99) - (WO_LIST_STATUS_ORDER[b.status] ?? 99);
+          break;
+        case 'due_date':
+          cmp = (a.due_date ?? '').localeCompare(b.due_date ?? '');
+          break;
+        case 'days_open':
+          cmp = calcDaysOpen(a.created_at) - calcDaysOpen(b.created_at);
+          break;
+        case 'created_at':
+          cmp = a.created_at.localeCompare(b.created_at);
+          break;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return items;
+  }, [filtered, sortField, sortDir]);
+
+  const handleSort = (field: WoListSortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: WoListSortField }) => {
+    if (sortField !== field) return <span className="w-3" />;
+    return sortDir === 'asc'
+      ? <ChevronUp size={12} className="text-blue-600" />
+      : <ChevronDown size={12} className="text-blue-600" />;
+  };
+
+  const thClass = (field: WoListSortField) =>
+    `px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 transition-colors whitespace-nowrap ${
+      sortField === field ? 'text-blue-700' : 'text-gray-500'
+    }`;
+
+  const filterPills: Array<{ id: WoListFilter; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'open', label: 'Open' },
+    { id: 'overdue', label: 'Overdue' },
+    { id: 'emergency', label: 'Emergency' },
+    { id: 'unassigned', label: 'Unassigned' },
+    { id: 'completed', label: 'Completed This Period' },
+  ];
+
+  const handleRowClick = (wo: WorkOrder) => {
+    navigate('/work-orders', { state: { selectedWorkOrderId: wo.work_order_id } });
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="px-5 py-3 border-b border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-sm font-semibold text-gray-700">Work Order Status List</h3>
+        <div className="flex flex-wrap gap-1.5">
+          {filterPills.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setFilter(p.id)}
+              className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors ${
+                filter === p.id
+                  ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {isLoading ? (
+        <div className="py-8 text-center text-sm text-gray-400">Loading work orders...</div>
+      ) : sorted.length === 0 ? (
+        <div className="py-8 text-center text-sm text-gray-400">No work orders match the current filter</div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th className={thClass('work_order_number')} onClick={() => handleSort('work_order_number')}>
+                    <span className="flex items-center gap-1">WO # <SortIcon field="work_order_number" /></span>
+                  </th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">Description</th>
+                  <th className={thClass('priority')} onClick={() => handleSort('priority')}>
+                    <span className="flex items-center gap-1">Priority <SortIcon field="priority" /></span>
+                  </th>
+                  <th className={thClass('status')} onClick={() => handleSort('status')}>
+                    <span className="flex items-center gap-1">Status <SortIcon field="status" /></span>
+                  </th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">Work Type</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">Assets</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">Assigned To</th>
+                  <th className={thClass('due_date')} onClick={() => handleSort('due_date')}>
+                    <span className="flex items-center gap-1">Due Date <SortIcon field="due_date" /></span>
+                  </th>
+                  <th className={thClass('days_open')} onClick={() => handleSort('days_open')}>
+                    <span className="flex items-center gap-1">Days Open <SortIcon field="days_open" /></span>
+                  </th>
+                  <th className={thClass('created_at')} onClick={() => handleSort('created_at')}>
+                    <span className="flex items-center gap-1">Created <SortIcon field="created_at" /></span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {sorted.slice(0, 100).map((wo) => {
+                  const priorityOpt = getWoPriorityOption(wo.priority);
+                  const statusOpt = getWoStatusOption(wo.status);
+                  const assetCount = wo.assets?.length ?? 0;
+                  const daysOpen = calcDaysOpen(wo.created_at);
+                  const overdue = isOverdue(wo);
+
+                  return (
+                    <tr
+                      key={wo.work_order_id}
+                      onClick={() => handleRowClick(wo)}
+                      className="cursor-pointer transition-colors hover:bg-gray-50"
+                    >
+                      <td className="px-3 py-2 font-mono text-xs font-semibold text-gray-900 whitespace-nowrap">
+                        {wo.work_order_number || '\u2014'}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600 max-w-[200px] truncate">
+                        {wo.description || 'No description'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-medium ${priorityOpt.color}`}>
+                          {priorityOpt.label}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-medium ${statusOpt.color}`}>
+                          {statusOpt.label}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                        {formatEnumLabel(wo.work_type)}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                        {assetCount > 0 ? (
+                          <span className="font-medium">{assetCount}</span>
+                        ) : (
+                          <span className="text-gray-300">{'\u2014'}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                        {wo.assigned_to ? (userMap.get(wo.assigned_to) ?? 'Unknown') : <span className="text-gray-300">{'\u2014'}</span>}
+                      </td>
+                      <td className={`px-3 py-2 text-xs whitespace-nowrap ${overdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                        {wo.due_date ? formatDateDisplay(wo.due_date) : <span className="text-gray-300">{'\u2014'}</span>}
+                      </td>
+                      <td className={`px-3 py-2 text-xs whitespace-nowrap ${daysOpen > 30 ? 'text-orange-600 font-medium' : 'text-gray-600'}`}>
+                        {OPEN_STATUSES.has(wo.status) ? daysOpen : <span className="text-gray-300">{'\u2014'}</span>}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-400 whitespace-nowrap">
+                        {formatDateDisplay(wo.created_at.slice(0, 10))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {sorted.length > 100 && (
+            <div className="px-5 py-2 text-xs text-gray-400 border-t border-gray-100">
+              Showing 100 of {sorted.length} work orders. Use filters to narrow results.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function WorkOrdersTab({
   startDate,
   endDate,
@@ -586,6 +867,11 @@ function WorkOrdersTab({
           emptyMessage="No work order assignments in this period"
         />
       </div>
+
+      {/* Section divider + Status List */}
+      <div className="border-t border-gray-200 pt-6">
+        <WorkOrderStatusList startDate={startDate} endDate={endDate} />
+      </div>
     </div>
   );
 }
@@ -601,6 +887,263 @@ const CONDITION_RATING_LABELS: Record<number, string> = {
   4: 'Good',
   5: 'Excellent',
 };
+
+// ---------------------------------------------------------------------------
+// Inspection Status List — sortable/filterable table for actionable worklist
+// ---------------------------------------------------------------------------
+
+type InspListFilter = 'all' | 'needs_followup' | 'no_wo' | 'completed' | 'open';
+type InspListSortField = 'inspection_number' | 'inspection_date' | 'condition_rating' | 'status' | 'created_at';
+
+const INSP_LIST_STATUS_ORDER: Record<string, number> = {
+  open: 0, in_progress: 1, completed: 2, cancelled: 3,
+};
+
+function InspectionStatusList({ startDate, endDate }: { startDate: string; endDate: string }) {
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState<InspListFilter>('all');
+  const [sortField, setSortField] = useState<InspListSortField>('created_at');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
+
+  const { data: inspData, isLoading } = useInspectionsList({ page_size: 100 });
+  const { data: usersData } = useUsersList();
+
+  const userMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const u of usersData?.users ?? []) {
+      map.set(u.user_id, `${u.first_name} ${u.last_name}`);
+    }
+    return map;
+  }, [usersData]);
+
+  const allInspections = useMemo(() => {
+    const insps = inspData?.inspections ?? [];
+    return insps.filter((insp) => {
+      const created = insp.created_at.slice(0, 10);
+      return created >= startDate && created <= endDate;
+    });
+  }, [inspData, startDate, endDate]);
+
+  const filtered = useMemo(() => {
+    let items = allInspections;
+    switch (filter) {
+      case 'needs_followup':
+        items = items.filter((insp) => insp.follow_up_required);
+        break;
+      case 'no_wo':
+        items = items.filter((insp) => insp.follow_up_required && !insp.follow_up_work_order_id);
+        break;
+      case 'completed':
+        items = items.filter((insp) => insp.status === 'completed');
+        break;
+      case 'open':
+        items = items.filter((insp) => insp.status === 'open' || insp.status === 'in_progress');
+        break;
+    }
+    return items;
+  }, [allInspections, filter]);
+
+  const sorted = useMemo(() => {
+    const items = [...filtered];
+    items.sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case 'inspection_number':
+          cmp = (a.inspection_number ?? '').localeCompare(b.inspection_number ?? '');
+          break;
+        case 'inspection_date':
+          cmp = (a.inspection_date ?? '').localeCompare(b.inspection_date ?? '');
+          break;
+        case 'condition_rating':
+          cmp = (a.condition_rating ?? 0) - (b.condition_rating ?? 0);
+          break;
+        case 'status':
+          cmp = (INSP_LIST_STATUS_ORDER[a.status] ?? 99) - (INSP_LIST_STATUS_ORDER[b.status] ?? 99);
+          break;
+        case 'created_at':
+          cmp = a.created_at.localeCompare(b.created_at);
+          break;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return items;
+  }, [filtered, sortField, sortDir]);
+
+  const handleSort = (field: InspListSortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: InspListSortField }) => {
+    if (sortField !== field) return <span className="w-3" />;
+    return sortDir === 'asc'
+      ? <ChevronUp size={12} className="text-blue-600" />
+      : <ChevronDown size={12} className="text-blue-600" />;
+  };
+
+  const thClass = (field: InspListSortField) =>
+    `px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 transition-colors whitespace-nowrap ${
+      sortField === field ? 'text-blue-700' : 'text-gray-500'
+    }`;
+
+  const filterPills: Array<{ id: InspListFilter; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'needs_followup', label: 'Needs Follow-up' },
+    { id: 'no_wo', label: 'No WO Created' },
+    { id: 'completed', label: 'Completed' },
+    { id: 'open', label: 'Open' },
+  ];
+
+  const handleRowClick = (insp: Inspection) => {
+    navigate('/inspections', { state: { selectedInspectionId: insp.inspection_id } });
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="px-5 py-3 border-b border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-sm font-semibold text-gray-700">Inspection Status List</h3>
+        <div className="flex flex-wrap gap-1.5">
+          {filterPills.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setFilter(p.id)}
+              className={`px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors ${
+                filter === p.id
+                  ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {isLoading ? (
+        <div className="py-8 text-center text-sm text-gray-400">Loading inspections...</div>
+      ) : sorted.length === 0 ? (
+        <div className="py-8 text-center text-sm text-gray-400">No inspections match the current filter</div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th className={thClass('inspection_number')} onClick={() => handleSort('inspection_number')}>
+                    <span className="flex items-center gap-1">INS # <SortIcon field="inspection_number" /></span>
+                  </th>
+                  <th className={thClass('inspection_date')} onClick={() => handleSort('inspection_date')}>
+                    <span className="flex items-center gap-1">Date <SortIcon field="inspection_date" /></span>
+                  </th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">Type</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">Assets</th>
+                  <th className={thClass('condition_rating')} onClick={() => handleSort('condition_rating')}>
+                    <span className="flex items-center gap-1">Condition <SortIcon field="condition_rating" /></span>
+                  </th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">Follow-up</th>
+                  <th className={thClass('status')} onClick={() => handleSort('status')}>
+                    <span className="flex items-center gap-1">Status <SortIcon field="status" /></span>
+                  </th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap">Inspector</th>
+                  <th className={thClass('created_at')} onClick={() => handleSort('created_at')}>
+                    <span className="flex items-center gap-1">Created <SortIcon field="created_at" /></span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {sorted.slice(0, 100).map((insp) => {
+                  const typeOpt = getInspectionTypeOption(insp.inspection_type);
+                  const statusOpt = getInspectionStatusOption(insp.status);
+                  const condColor = insp.condition_rating
+                    ? CONDITION_COLORS[insp.condition_rating]
+                    : UNRATED_COLOR;
+                  const assetCount = insp.assets?.length ?? 0;
+                  const firstAssetLabel = insp.assets?.[0]?.asset_label;
+
+                  let followUpBadge: { label: string; classes: string };
+                  if (insp.follow_up_required && insp.follow_up_work_order_id) {
+                    followUpBadge = { label: 'WO Linked', classes: 'bg-blue-100 text-blue-800' };
+                  } else if (insp.follow_up_required) {
+                    followUpBadge = { label: 'Required', classes: 'bg-red-100 text-red-800' };
+                  } else {
+                    followUpBadge = { label: 'No', classes: 'bg-gray-100 text-gray-500' };
+                  }
+
+                  return (
+                    <tr
+                      key={insp.inspection_id}
+                      onClick={() => handleRowClick(insp)}
+                      className="cursor-pointer transition-colors hover:bg-gray-50"
+                    >
+                      <td className="px-3 py-2 font-mono text-xs font-semibold text-gray-900 whitespace-nowrap">
+                        {insp.inspection_number || '\u2014'}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                        {formatDateDisplay(insp.inspection_date)}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${typeOpt.color}`}>
+                          {typeOpt.label}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                        {assetCount > 0 ? (
+                          <span>
+                            <span className="font-medium">{assetCount}</span>
+                            {firstAssetLabel && (
+                              <span className="text-gray-400 ml-1 truncate max-w-[100px] inline-block align-bottom">
+                                {firstAssetLabel}
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">{'\u2014'}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 text-xs" style={{ color: condColor.hex }}>
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: condColor.hex }} />
+                          {insp.condition_rating ? `${insp.condition_rating}/5` : 'Unrated'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${followUpBadge.classes}`}>
+                          {insp.follow_up_required && !insp.follow_up_work_order_id && (
+                            <AlertCircle size={9} />
+                          )}
+                          {followUpBadge.label}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-medium ${statusOpt.color}`}>
+                          {statusOpt.label}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                        {insp.inspector_id ? (userMap.get(insp.inspector_id) ?? 'Unknown') : <span className="text-gray-300">{'\u2014'}</span>}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-400 whitespace-nowrap">
+                        {formatDateDisplay(insp.created_at.slice(0, 10))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {sorted.length > 100 && (
+            <div className="px-5 py-2 text-xs text-gray-400 border-t border-gray-100">
+              Showing 100 of {sorted.length} inspections. Use filters to narrow results.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 function InspectionsTab({
   startDate,
@@ -694,6 +1237,11 @@ function InspectionsTab({
           ]}
           emptyMessage="No inspections in this period"
         />
+      </div>
+
+      {/* Section divider + Status List */}
+      <div className="border-t border-gray-200 pt-6">
+        <InspectionStatusList startDate={startDate} endDate={endDate} />
       </div>
     </div>
   );
