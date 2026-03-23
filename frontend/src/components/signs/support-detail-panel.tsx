@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Landmark, MapPin, Calendar, Pencil, Trash2, Loader2, ClipboardCheck } from 'lucide-react';
+import { X, Landmark, MapPin, Calendar, Pencil, Trash2, Loader2, ClipboardCheck, Plus, Unlink } from 'lucide-react';
 import { useSupport, useDeleteSupport } from '../../hooks/use-supports';
 import type { Sign } from '../../api/types';
 import { CONDITION_COLORS, UNRATED_COLOR, INACTIVE_STATUSES, INACTIVE_COLOR, formatEnumLabel } from '../../lib/constants';
@@ -18,6 +18,8 @@ interface SupportDetailPanelProps {
     support_id: string;
     assets: Array<{ asset_type: string; asset_id: string; label: string }>;
   }) => void;
+  onAddSignToSupport?: (supportId: string, coordinates: { lng: number; lat: number }) => void;
+  onRemoveSignFromSupport?: (signId: string) => void;
 }
 
 function formatDate(dateStr: string | null): string {
@@ -95,10 +97,11 @@ function getSignColor(sign: Sign) {
   return UNRATED_COLOR;
 }
 
-export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSelect, onCreateWorkOrder, onInspect }: SupportDetailPanelProps) {
+export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSelect, onCreateWorkOrder, onInspect, onAddSignToSupport, onRemoveSignFromSupport }: SupportDetailPanelProps) {
   const { data: support, isLoading } = useSupport(supportId);
   const deleteSupport = useDeleteSupport();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [confirmRemoveSignId, setConfirmRemoveSignId] = useState<string | null>(null);
 
   if (isLoading || !support) {
     return (
@@ -252,46 +255,93 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
 
         {/* Signs on this support */}
         <div className="py-4 border-b border-gray-100 last:border-b-0">
-          <h4 className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Signs on Support
-            <span className="bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
-              {support.signs.length}
-            </span>
-          </h4>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Signs on Support
+              <span className="bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+                {support.signs.length}
+              </span>
+            </h4>
+            {onAddSignToSupport && (
+              <button
+                onClick={() => onAddSignToSupport(supportId, { lng: support.longitude, lat: support.latitude })}
+                className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors"
+              >
+                <Plus size={12} />
+                Add Sign
+              </button>
+            )}
+          </div>
           <div className="space-y-1">
             {support.signs.map((sign) => {
               const color = getSignColor(sign);
               const isClicked = sign.sign_id === clickedSignId;
+              const isConfirmingRemove = confirmRemoveSignId === sign.sign_id;
               return (
-                <button
-                  key={sign.sign_id}
-                  onClick={() => onSignSelect(sign)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg border transition-colors ${
-                    isClicked
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'bg-gray-50 border-gray-100 hover:bg-gray-100 hover:border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-mono font-semibold text-gray-900 truncate">
-                          {sign.mutcd_code || '—'}
-                        </span>
-                        <span className="text-[10px] text-gray-400 capitalize shrink-0">
-                          {sign.status}
-                        </span>
+                <div key={sign.sign_id}>
+                  <div
+                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition-colors ${
+                      isClicked
+                        ? 'bg-blue-50 border-blue-200'
+                        : 'bg-gray-50 border-gray-100 hover:bg-gray-100 hover:border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0 mt-0.5 cursor-pointer"
+                        style={{ backgroundColor: color.hex }}
+                        onClick={() => onSignSelect(sign)}
+                      />
+                      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onSignSelect(sign)}>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs font-mono font-semibold text-gray-900 truncate">
+                            {sign.mutcd_code || '—'}
+                          </span>
+                          <span className="text-[10px] text-gray-400 capitalize shrink-0">
+                            {sign.status}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-gray-600 truncate">
+                          {sign.description || 'No description'}
+                        </div>
                       </div>
-                      <div className="text-[11px] text-gray-600 truncate">
-                        {sign.description || 'No description'}
-                      </div>
+                      {onRemoveSignFromSupport && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmRemoveSignId(sign.sign_id); }}
+                          title="Remove sign from this support"
+                          className="p-1 rounded hover:bg-gray-200 text-gray-300 hover:text-orange-600 shrink-0"
+                        >
+                          <Unlink size={12} />
+                        </button>
+                      )}
                     </div>
                   </div>
-                </button>
+                  {/* Inline confirmation for removing sign from support */}
+                  {isConfirmingRemove && (
+                    <div className="mt-1 mx-1 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p className="text-[11px] text-orange-800 mb-2">
+                        Detach <strong>{sign.mutcd_code}</strong> from this support? The sign will remain in inventory but won't be linked to any post.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setConfirmRemoveSignId(null)}
+                          className="flex-1 px-2 py-1 text-[11px] border border-gray-200 rounded bg-white text-gray-700 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            onRemoveSignFromSupport(sign.sign_id);
+                            setConfirmRemoveSignId(null);
+                          }}
+                          className="flex-1 px-2 py-1 text-[11px] bg-orange-600 text-white rounded hover:bg-orange-700"
+                        >
+                          Detach
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

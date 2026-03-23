@@ -197,10 +197,10 @@ DATE_FIELDS = {"install_date"}
 VALID_STATUSES = {"active", "damaged", "faded", "missing", "obscured", "replaced", "removed"}
 
 # Valid support types
-VALID_SUPPORT_TYPES = {"u_channel", "square_tube", "round_tube", "wood", "mast_arm", "span_wire", "bridge_mount"}
+VALID_SUPPORT_TYPES = {"u_channel", "square_tube", "round_tube", "wood", "mast_arm", "span_wire", "bridge_mount", "wall_mount"}
 
 # Valid support statuses
-VALID_SUPPORT_STATUSES = {"active", "damaged", "leaning", "missing", "removed"}
+VALID_SUPPORT_STATUSES = {"active", "damaged", "leaning", "rusted", "missing", "removed"}
 
 # Common support type variations -> normalized name
 _SUPPORT_TYPE_MAPPING: dict[str, str] = {
@@ -231,6 +231,11 @@ _SUPPORT_TYPE_MAPPING: dict[str, str] = {
     "bridgemount": "bridge_mount",
     "bridge": "bridge_mount",
     "overhead": "bridge_mount",
+    "wall_mount": "wall_mount",
+    "wallmount": "wall_mount",
+    "wall": "wall_mount",
+    "building_mount": "wall_mount",
+    "buildingmount": "wall_mount",
 }
 
 

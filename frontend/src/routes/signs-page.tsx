@@ -28,6 +28,7 @@ export function SignsPage() {
 
   // Support-centric view state
   const [viewingSupport, setViewingSupport] = useState<string | null>(null);
+  const [addToSupportId, setAddToSupportId] = useState<string | null>(null);
   const [clickedSignId, setClickedSignId] = useState<string | null>(null);
   // When drilling into a sign from the support panel, track it so we can go back
   const [drilledFromSupport, setDrilledFromSupport] = useState<string | null>(null);
@@ -171,13 +172,18 @@ export function SignsPage() {
     setMode('view');
     setPlacementCoords(null);
     setSubmitError(null);
+    setAddToSupportId(null);
   };
 
   const handleFormSubmit = async (formData: Record<string, unknown>) => {
     setSubmitError(null);
     try {
       if (mode === 'add-form') {
-        await createSign.mutateAsync(formData as unknown as Parameters<typeof createSign.mutateAsync>[0]);
+        // If adding to a specific support, inject support_id
+        const submitData = addToSupportId
+          ? { ...formData, support_id: addToSupportId }
+          : formData;
+        await createSign.mutateAsync(submitData as unknown as Parameters<typeof createSign.mutateAsync>[0]);
       } else if (mode === 'edit' && selectedSign) {
         const updated = await updateSign.mutateAsync({
           id: selectedSign.sign_id,
@@ -187,6 +193,7 @@ export function SignsPage() {
       }
       setMode('view');
       setPlacementCoords(null);
+      setAddToSupportId(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to save sign';
       setSubmitError(message);
@@ -230,6 +237,33 @@ export function SignsPage() {
   const handleCloseSupport = () => {
     setViewingSupport(null);
     setClickedSignId(null);
+  };
+
+  // Add a new sign to an existing support — opens form with support pre-linked
+  const handleAddSignToSupport = (supportId: string, coordinates: { lng: number; lat: number }) => {
+    setAddToSupportId(supportId);
+    setPlacementCoords(coordinates);
+    setSelectedSign(null);
+    setViewingSupport(null);
+    setClickedSignId(null);
+    setSubmitError(null);
+    setMode('add-form');
+  };
+
+  // Remove a sign from its support (detach, don't delete)
+  const handleRemoveSignFromSupport = async (signId: string) => {
+    try {
+      await updateSign.mutateAsync({
+        id: signId,
+        data: { support_id: null } as unknown as Parameters<typeof updateSign.mutateAsync>[0]['data'],
+      });
+      // Refresh the support panel by re-setting the viewing support
+      const currentSupport = viewingSupport;
+      setViewingSupport(null);
+      setTimeout(() => setViewingSupport(currentSupport), 50);
+    } catch (err: unknown) {
+      console.error('Failed to detach sign from support:', err);
+    }
   };
 
   const isPlacementMode = mode === 'add-placing' || mode === 'add-form';
@@ -312,6 +346,8 @@ export function SignsPage() {
           onSignSelect={handleDrillIntoSign}
           onCreateWorkOrder={handleCreateWorkOrder}
           onInspect={handleInspect}
+          onAddSignToSupport={handleAddSignToSupport}
+          onRemoveSignFromSupport={handleRemoveSignFromSupport}
         />
       )}
 
