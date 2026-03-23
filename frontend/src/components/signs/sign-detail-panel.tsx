@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, MapPin, Ruler, Calendar, Shield, Wrench, Eye, Pencil, Trash2, Loader2, Landmark, ChevronLeft, Plus, ClipboardCheck } from 'lucide-react';
 import type { Sign } from '../../api/types';
 import { CONDITION_COLORS, UNRATED_COLOR, INACTIVE_STATUSES, INACTIVE_COLOR, formatEnumLabel, getWoStatusOption, getWoPriorityOption, getInspectionTypeOption, getInspectionStatusOption } from '../../lib/constants';
+import { PhotoGallery } from '../photos/photo-gallery';
 import { useSignWorkOrders } from '../../hooks/use-work-orders';
 import { useSignInspections } from '../../hooks/use-inspections';
 
@@ -314,6 +315,11 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, o
             } />
           </Section>
         )}
+
+        {/* Photos */}
+        <div className="py-4 border-b border-gray-100">
+          <PhotoGallery entityType="sign" entityId={sign.sign_id} />
+        </div>
 
         {/* Work Orders */}
         <Section icon={Wrench} title="Work Orders">

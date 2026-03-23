@@ -5,6 +5,7 @@ import {
   Pencil, Trash2, Loader2, ExternalLink, AlertCircle, Printer, Mail,
 } from 'lucide-react';
 import type { Inspection } from '../../api/types';
+import { PhotoGallery } from '../photos/photo-gallery';
 import { useCreateWorkOrderFromInspection } from '../../hooks/use-inspections';
 import {
   CONDITION_COLORS,
@@ -348,6 +349,10 @@ export function InspectionDetailPanel({
             )}
           </Section>
         )}
+        {/* Photos */}
+        <div className="py-4 border-b border-gray-100">
+          <PhotoGallery entityType="inspection" entityId={inspection.inspection_id} />
+        </div>
       </div>
 
       {/* Footer with metadata */}

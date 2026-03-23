@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from app.api.v1 import dashboard, email, imports, reports, signs, supports, work_orders, inspections, users
+from app.api.v1 import attachments, dashboard, email, imports, reports, signs, supports, work_orders, inspections, users
 from app.config import settings
 
 
@@ -43,6 +45,12 @@ app.include_router(work_orders.router, prefix="/api/v1/work-orders", tags=["Work
 app.include_router(inspections.router, prefix="/api/v1/inspections", tags=["Inspections"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["Reports"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(attachments.router, prefix="/api/v1")
+
+# Serve uploaded files in dev (local storage)
+uploads_dir = Path(settings.upload_dir)
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 
 @app.get("/health")

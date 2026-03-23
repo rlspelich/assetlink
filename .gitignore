@@ -53,3 +53,6 @@ frontend/build/
 
 # Uploads (local dev)
 uploads/
+
+# Uploaded files (dev)
+uploads/

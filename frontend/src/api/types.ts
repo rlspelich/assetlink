@@ -668,3 +668,22 @@ export interface ComplianceDashboard {
   priority_signs: PrioritySign[];
   category_distribution: CategoryBucket[];
 }
+
+
+// --- Attachments ---
+
+export interface Attachment {
+  attachment_id: string;
+  tenant_id: string;
+  entity_type: string;
+  entity_id: string;
+  file_name: string;
+  file_url: string;
+  file_size_bytes: number | null;
+  content_type: string | null;
+  attachment_type: string;
+  title: string | null;
+  description: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
+}

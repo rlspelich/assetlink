@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Pencil, Trash2, Loader2, Wrench, MapPin, Calendar, DollarSign, FileText, Signpost, Landmark, ChevronDown, ChevronUp, Printer, Mail } from 'lucide-react';
 import type { WorkOrder, WorkOrderAsset, WorkOrderAssetUpdate } from '../../api/types';
+import { PhotoGallery } from '../photos/photo-gallery';
 import {
   getWoStatusOption,
   getWoPriorityOption,
@@ -428,6 +429,10 @@ export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isD
             )}
           </Section>
         )}
+        {/* Photos */}
+        <div className="py-4 border-b border-gray-100">
+          <PhotoGallery entityType="work_order" entityId={workOrder.work_order_id} />
+        </div>
       </div>
 
       {/* Footer with metadata */}
