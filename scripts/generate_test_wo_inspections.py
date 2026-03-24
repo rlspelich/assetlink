@@ -19,13 +19,14 @@ Usage:
 """
 
 import json
+import os
 import random
 import sys
 from datetime import date, datetime, timedelta
 
 import requests
 
-API_BASE = "http://localhost:8000/api/v1"
+API_BASE = os.environ.get("API_BASE", "http://localhost:8000/api/v1")
 TENANT_ID = "22222222-2222-2222-2222-222222222222"
 HEADERS = {"X-Tenant-ID": TENANT_ID, "Content-Type": "application/json"}
 
