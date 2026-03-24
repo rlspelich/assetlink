@@ -1,0 +1,114 @@
+name: Test & Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  GCP_PROJECT: bucket6-2025-01
+  GCP_REGION: us-central1
+  SERVICE_NAME: assetlink-api
+  CLOUD_SQL_INSTANCE: bucket6-2025-01:us-central1:optionsv2-db
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      # PostGIS database for integration tests
+      postgres:
+        image: postgis/postgis:15-3.4
+        env:
+          POSTGRES_DB: assetlink_test
+          POSTGRES_USER: assetlink_test
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U assetlink_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://assetlink_test:test_password@localhost:5432/assetlink_test
+      DATABASE_URL_SYNC: postgresql://assetlink_test:test_password@localhost:5432/assetlink_test
+      ENVIRONMENT: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      # System deps for GDAL, GeoPandas, WeasyPrint
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libpq-dev gdal-bin libgdal-dev libgeos-dev libproj-dev \
+            libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
+            libgdk-pixbuf-2.0-0 libffi-dev
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Enable PostGIS extension
+        run: |
+          PGPASSWORD=test_password psql -h localhost -U assetlink_test -d assetlink_test \
+            -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+      - name: Run Alembic migrations
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Run tests
+        working-directory: backend
+        run: pytest tests/ -x -q --tb=short
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/637582480568/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-deployer@bucket6-2025-01.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --source=./backend \
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT }} \
+            --add-cloudsql-instances=${{ env.CLOUD_SQL_INSTANCE }} \
+            --set-env-vars="ENVIRONMENT=production" \
+            --set-env-vars="GCP_PROJECT=${{ env.GCP_PROJECT }}" \
+            --set-env-vars="DATABASE_URL=postgresql+asyncpg://assetlink_user:${{ secrets.DB_PASSWORD }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ env.CLOUD_SQL_INSTANCE }}" \
+            --set-env-vars="DATABASE_URL_SYNC=postgresql://assetlink_user:${{ secrets.DB_PASSWORD }}@/${{ secrets.DB_NAME }}?host=/cloudsql/${{ env.CLOUD_SQL_INSTANCE }}" \
+            --allow-unauthenticated \
+            --memory=512Mi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=3 \
+            --timeout=120 \
+            --quiet
