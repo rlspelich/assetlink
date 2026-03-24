@@ -15,11 +15,8 @@ import {
 import { useComplianceDashboard } from '../hooks/use-dashboard';
 import { CONDITION_COLORS, UNRATED_COLOR } from '../lib/constants';
 import type {
-  ComplianceDashboard,
   ConditionBucket,
   AgeBucket,
-  SheetingBucket,
-  CategoryBucket,
   PrioritySign,
 } from '../api/types';
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Landmark, MapPin, Calendar, Pencil, Trash2, Loader2, ClipboardCheck, Plus, Unlink } from 'lucide-react';
+import { X, Landmark, MapPin, Calendar, Trash2, Loader2, ClipboardCheck, Plus, Unlink } from 'lucide-react';
 import { useSupport, useDeleteSupport } from '../../hooks/use-supports';
 import type { Sign } from '../../api/types';
 import { CONDITION_COLORS, UNRATED_COLOR, INACTIVE_STATUSES, INACTIVE_COLOR, formatEnumLabel } from '../../lib/constants';
@@ -416,7 +416,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                         </button>
                         <button
                           onClick={() => {
-                            onRemoveSignFromSupport(sign.sign_id);
+                            onRemoveSignFromSupport!(sign.sign_id);
                             setConfirmRemoveSignId(null);
                           }}
                           className="flex-1 px-2 py-1 text-[11px] bg-orange-600 text-white rounded hover:bg-orange-700"

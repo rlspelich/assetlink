@@ -7,7 +7,6 @@ import {
   CONDITION_COLORS,
   UNRATED_COLOR,
   getInspectionTypeOption,
-  getInspectionStatusOption,
   getInspectionMarkerColor,
 } from '../../lib/constants';
 
@@ -163,7 +162,7 @@ export function InspectionListPanel({
               ? CONDITION_COLORS[insp.condition_rating]
               : UNRATED_COLOR;
             const typeOpt = getInspectionTypeOption(insp.inspection_type);
-            const statusOpt = getInspectionStatusOption(insp.status);
+
             const assetCount = insp.assets?.length ?? 0;
             const markerColor = getInspectionMarkerColor(
               insp.follow_up_required,

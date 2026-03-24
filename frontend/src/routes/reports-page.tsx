@@ -2,8 +2,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileBarChart,
-  RefreshCw,
-  Loader2,
   AlertTriangle,
   Printer,
   ClipboardList,
@@ -44,23 +42,8 @@ import { openPrintPreview } from '../lib/print-utils';
 import type {
   WorkOrder,
   Inspection,
-  WorkOrderReport,
-  InspectionReport,
-  InventoryReport,
-  CrewProductivityReport,
-  PriorityBucket,
-  MonthBucket,
-  WorkTypeBucket,
   AssigneeBucket,
-  StatusBucket,
-  ConditionRatingBucket,
-  InspectionMonthBucket,
-  TypeBucket,
   InspectorBucket,
-  ConditionBucket,
-  AgeBucket,
-  SheetingBucket,
-  CrewMemberStats,
 } from '../api/types';
 
 // ---------------------------------------------------------------------------
@@ -841,7 +824,7 @@ function WorkOrdersTab({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <HorizontalBarChart items={priorityItems} title="By Priority (Created)" />
         <DualBarChart
-          items={d.by_month}
+          items={d.by_month as unknown as Array<Record<string, unknown>>}
           title="Monthly Trend"
           labelKey="month"
           bar1Key="created"

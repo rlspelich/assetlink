@@ -12,7 +12,7 @@ import {
   getWoAssetStatusOption,
 } from '../../lib/constants';
 import { useUpdateWorkOrderAsset } from '../../hooks/use-work-orders';
-import { printWorkOrder, previewWorkOrder } from './work-order-print';
+import { previewWorkOrder } from './work-order-print';
 import { EmailDialog } from '../shared/email-dialog';
 import { sendWorkOrderEmail } from '../../api/email';
 

@@ -24,7 +24,7 @@ function formatDatePrint(dateStr: string | null): string {
   }
 }
 
-function formatDateTimePrint(dateStr: string | null): string {
+export function formatDateTimePrint(dateStr: string | null): string {
   if (!dateStr) return '\u2014';
   try {
     return new Date(dateStr).toLocaleString('en-US', {

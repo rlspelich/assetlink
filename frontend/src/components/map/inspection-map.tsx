@@ -3,7 +3,7 @@ import Map, { Source, Layer, NavigationControl, Popup, Marker } from 'react-map-
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre';
 import { Home } from 'lucide-react';
 import type { Sign, Inspection } from '../../api/types';
-import { getInspectionMarkerColor, getInspectionTypeOption, getInspectionStatusOption, formatEnumLabel } from '../../lib/constants';
+import { getInspectionMarkerColor, getInspectionTypeOption, formatEnumLabel } from '../../lib/constants';
 
 interface InspectionMapProps {
   signs: Sign[];

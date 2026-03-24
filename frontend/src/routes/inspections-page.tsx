@@ -512,7 +512,7 @@ export function InspectionsPage() {
                 />
 
                 {/* Asset selection mode banner (split view) */}
-                {creationMode === 'selecting' && (
+                {(creationMode as string) === 'selecting' && (
                   <div className="absolute top-4 left-4 right-4 flex justify-center z-10 pointer-events-none">
                     <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
                       <div className="w-2 h-2 bg-white rounded-full animate-pulse" />

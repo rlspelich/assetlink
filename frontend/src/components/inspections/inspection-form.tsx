@@ -5,7 +5,6 @@ import {
   INSPECTION_TYPE_OPTIONS,
   INSPECTION_ACTION_OPTIONS,
   CONDITION_COLORS,
-  UNRATED_COLOR,
   getUserRoleOption,
 } from '../../lib/constants';
 import { useUsersList } from '../../hooks/use-users';
@@ -64,7 +63,7 @@ function ConditionButtons({
             style={{
               backgroundColor: color.hex + (isSelected ? '30' : '15'),
               color: color.hex,
-              ringColor: isSelected ? color.hex : undefined,
+              outlineColor: isSelected ? color.hex : undefined,
             }}
             title={`${rating}/5 — ${color.label}`}
           >

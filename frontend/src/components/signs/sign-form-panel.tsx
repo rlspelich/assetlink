@@ -10,10 +10,9 @@ import {
   STATUS_OPTIONS,
   SUPPORT_TYPE_OPTIONS,
   SUPPORT_MATERIAL_OPTIONS,
-  SUPPORT_STATUS_OPTIONS,
   formatEnumLabel,
 } from '../../lib/constants';
-import type { Sign, SignType, SignSupport } from '../../api/types';
+import type { Sign, SignType } from '../../api/types';
 
 // --- Form data type ---
 
@@ -42,6 +41,7 @@ interface SignFormData {
   longitude: number;
   latitude: number;
   support_id: string;
+  asset_tag: string;
 }
 
 // --- Props ---
@@ -732,6 +732,7 @@ function buildDefaults(
       longitude: sign.longitude,
       latitude: sign.latitude,
       support_id: sign.support_id || '',
+      asset_tag: sign.asset_tag || '',
     };
   }
   return {
@@ -759,5 +760,6 @@ function buildDefaults(
     longitude: coordinates?.lng ?? 0,
     latitude: coordinates?.lat ?? 0,
     support_id: '',
+    asset_tag: '',
   };
 }

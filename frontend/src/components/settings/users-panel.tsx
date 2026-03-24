@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, UserPlus, RotateCcw } from 'lucide-react';
+import { Search, UserPlus, RotateCcw } from 'lucide-react';
 import type { User, UserCreate, UserUpdate } from '../../api/types';
 import { useUsersList, useCreateUser, useUpdateUser, useDeleteUser, useReactivateUser } from '../../hooks/use-users';
 import { getUserRoleOption } from '../../lib/constants';

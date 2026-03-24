@@ -5,7 +5,6 @@ import {
   WO_STATUS_OPTIONS,
   WO_PRIORITY_OPTIONS,
   WO_WORK_TYPE_OPTIONS,
-  getWoPriorityOption,
   getWoStatusOption,
   getWoPriorityMarkerColor,
   formatEnumLabel,
@@ -160,7 +159,7 @@ export function WorkOrderListPanel({
         ) : (
           workOrders.map((wo) => {
             const isSelected = wo.work_order_id === selectedWOId;
-            const priorityOpt = getWoPriorityOption(wo.priority);
+
             const statusOpt = getWoStatusOption(wo.status);
             return (
               <div

@@ -3,7 +3,7 @@ import Map, { Source, Layer, NavigationControl, Popup, Marker } from 'react-map-
 import type { MapLayerMouseEvent, MapRef } from 'react-map-gl/maplibre';
 import { Home } from 'lucide-react';
 import type { Sign, WorkOrder } from '../../api/types';
-import { getWoPriorityMarkerColor, getWoPriorityOption, getWoStatusOption, formatEnumLabel } from '../../lib/constants';
+import { getWoPriorityMarkerColor, formatEnumLabel } from '../../lib/constants';
 import { useState } from 'react';
 
 interface WorkOrderMapProps {
