@@ -72,6 +72,10 @@ jobs:
         working-directory: backend
         run: alembic upgrade head
 
+      - name: Seed MUTCD sign types
+        working-directory: backend
+        run: python scripts/seed_sign_types.py
+
       - name: Run tests
         working-directory: backend
         run: pytest tests/ -x -q --tb=short
