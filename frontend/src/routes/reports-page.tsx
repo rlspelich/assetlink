@@ -324,7 +324,7 @@ function DualBarChart({
 
 interface Column<T> {
   header: string;
-  accessor: (row: T) => string | number | null;
+  accessor: (row: T) => React.ReactNode;
   align?: 'left' | 'right' | 'center';
   highlight?: (row: T) => boolean;
 }
@@ -759,6 +759,7 @@ function WorkOrdersTab({
   startDate: string;
   endDate: string;
 }) {
+  const navigate = useNavigate();
   const params = useMemo(
     () => ({ start_date: startDate, end_date: endDate }),
     [startDate, endDate]
@@ -843,9 +844,30 @@ function WorkOrdersTab({
           title="By Assignee"
           rows={d.by_assignee}
           columns={[
-            { header: 'Crew Member', accessor: (r) => r.user_name },
-            { header: 'Completed', accessor: (r) => fmt(r.completed), align: 'right' },
-            { header: 'Open', accessor: (r) => fmt(r.open), align: 'right' },
+            { header: 'Crew Member', accessor: (r) => (
+              <button
+                onClick={() => navigate('/work-orders', { state: { filterAssignedTo: r.user_id } })}
+                className="hover:underline hover:text-blue-600 transition-colors text-left"
+              >
+                {r.user_name}
+              </button>
+            ) },
+            { header: 'Completed', accessor: (r) => r.completed > 0 ? (
+              <button
+                onClick={() => navigate('/work-orders', { state: { filterAssignedTo: r.user_id, filterStatus: 'completed' } })}
+                className="hover:underline hover:text-blue-600 transition-colors"
+              >
+                {fmt(r.completed)}
+              </button>
+            ) : fmt(r.completed), align: 'right' },
+            { header: 'Open', accessor: (r) => r.open > 0 ? (
+              <button
+                onClick={() => navigate('/work-orders', { state: { filterAssignedTo: r.user_id, filterStatus: 'open' } })}
+                className="hover:underline hover:text-blue-600 transition-colors"
+              >
+                {fmt(r.open)}
+              </button>
+            ) : fmt(r.open), align: 'right' },
           ]}
           emptyMessage="No work order assignments in this period"
         />
@@ -1374,6 +1396,7 @@ function CrewProductivityTab({
   startDate: string;
   endDate: string;
 }) {
+  const navigate = useNavigate();
   const params = useMemo(
     () => ({ start_date: startDate, end_date: endDate }),
     [startDate, endDate]
@@ -1468,13 +1491,45 @@ function CrewProductivityTab({
                         )}
                       </td>
                       <td className={`px-4 py-2.5 whitespace-nowrap ${isTop ? 'font-semibold text-blue-800' : 'text-gray-900'}`}>
-                        {member.user_name}
+                        <button
+                          onClick={() => navigate('/work-orders', { state: { filterAssignedTo: member.user_id } })}
+                          className="hover:underline hover:text-blue-600 transition-colors text-left"
+                        >
+                          {member.user_name}
+                        </button>
                       </td>
                       <td className="px-4 py-2.5 whitespace-nowrap text-gray-500">{capitalize(member.role)}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-gray-700">{fmt(member.wos_assigned)}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-gray-700">{fmt(member.wos_completed)}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-gray-700">
+                        {member.wos_assigned > 0 ? (
+                          <button
+                            onClick={() => navigate('/work-orders', { state: { filterAssignedTo: member.user_id } })}
+                            className="hover:underline hover:text-blue-600 transition-colors"
+                          >
+                            {fmt(member.wos_assigned)}
+                          </button>
+                        ) : fmt(member.wos_assigned)}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-gray-700">
+                        {member.wos_completed > 0 ? (
+                          <button
+                            onClick={() => navigate('/work-orders', { state: { filterAssignedTo: member.user_id, filterStatus: 'completed' } })}
+                            className="hover:underline hover:text-blue-600 transition-colors"
+                          >
+                            {fmt(member.wos_completed)}
+                          </button>
+                        ) : fmt(member.wos_completed)}
+                      </td>
                       <td className="px-4 py-2.5 text-right text-gray-600">{fmtDays(member.avg_days_to_complete)}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-gray-700">{fmt(member.inspections_completed)}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-gray-700">
+                        {member.inspections_completed > 0 ? (
+                          <button
+                            onClick={() => navigate('/inspections', { state: { filterInspector: member.user_id } })}
+                            className="hover:underline hover:text-blue-600 transition-colors"
+                          >
+                            {fmt(member.inspections_completed)}
+                          </button>
+                        ) : fmt(member.inspections_completed)}
+                      </td>
                       <td className="px-4 py-2.5 text-right text-gray-600">{fmt(member.signs_inspected)}</td>
                     </tr>
                   );
