@@ -101,7 +101,7 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
-            --source=./backend \
+            --source=. \
             --region=${{ env.GCP_REGION }} \
             --project=${{ env.GCP_PROJECT }} \
             --add-cloudsql-instances=${{ env.CLOUD_SQL_INSTANCE }} \
