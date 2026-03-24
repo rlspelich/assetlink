@@ -280,6 +280,7 @@ async def list_inspections(
     inspection_type: str | None = None,
     status: str | None = None,
     follow_up_required: bool | None = None,
+    inspector_id: uuid.UUID | None = None,
 ):
     base_query = select(Inspection).where(Inspection.tenant_id == tenant_id)
 
@@ -291,6 +292,8 @@ async def list_inspections(
         base_query = base_query.where(Inspection.status == status)
     if follow_up_required is not None:
         base_query = base_query.where(Inspection.follow_up_required == follow_up_required)
+    if inspector_id:
+        base_query = base_query.where(Inspection.inspector_id == inspector_id)
 
     count_query = select(func.count()).select_from(base_query.subquery())
     total = (await db.execute(count_query)).scalar_one()

@@ -19,6 +19,7 @@ export function useInspectionsList(filters?: {
   status?: string;
   inspection_type?: string;
   follow_up_required?: boolean;
+  inspector_id?: string;
 }) {
   return useQuery({
     queryKey: inspectionKeys.list(filters ?? {}),

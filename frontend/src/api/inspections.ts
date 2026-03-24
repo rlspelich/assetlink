@@ -13,6 +13,7 @@ export async function listInspections(params?: {
   status?: string;
   inspection_type?: string;
   follow_up_required?: boolean;
+  inspector_id?: string;
 }): Promise<InspectionListResponse> {
   const searchParams = new URLSearchParams();
   if (params?.page) searchParams.set('page', String(params.page));
@@ -20,6 +21,7 @@ export async function listInspections(params?: {
   if (params?.status) searchParams.set('status', params.status);
   if (params?.inspection_type) searchParams.set('inspection_type', params.inspection_type);
   if (params?.follow_up_required !== undefined) searchParams.set('follow_up_required', String(params.follow_up_required));
+  if (params?.inspector_id) searchParams.set('inspector_id', params.inspector_id);
   return api.get('inspections', { searchParams }).json();
 }
 

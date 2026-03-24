@@ -26,12 +26,15 @@ export function InspectionsPage() {
   const routeState = location.state as {
     selectedInspectionId?: string;
     assetContext?: InspectionAssetContext;
+    filterInspector?: string;
+    filterStatus?: string;
   } | null;
 
   const [viewMode, setViewMode] = useState<ViewMode>('map');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(routeState?.filterStatus || '');
   const [typeFilter, setTypeFilter] = useState('');
   const [followUpFilter, setFollowUpFilter] = useState('');
+  const [inspectorFilter, setInspectorFilter] = useState(routeState?.filterInspector || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null);
   const [selectedInspectionId, setSelectedInspectionId] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export function InspectionsPage() {
     status: statusFilter || undefined,
     inspection_type: typeFilter || undefined,
     follow_up_required: followUpFilter === '' ? undefined : followUpFilter === 'true',
+    inspector_id: inspectorFilter || undefined,
   });
 
   // Fetch full detail for selected inspection (to get assets)
@@ -235,7 +239,7 @@ export function InspectionsPage() {
     [filteredInspections],
   );
 
-  const hasActiveFilters = statusFilter || typeFilter || followUpFilter;
+  const hasActiveFilters = statusFilter || typeFilter || followUpFilter || inspectorFilter;
 
   // Header bar with filters — used in table and split modes
   const headerBar = (
@@ -315,7 +319,7 @@ export function InspectionsPage() {
             </select>
             {hasActiveFilters && (
               <button
-                onClick={() => { setStatusFilter(''); setTypeFilter(''); setFollowUpFilter(''); setSelectedInspection(null); setSelectedInspectionId(null); }}
+                onClick={() => { setStatusFilter(''); setTypeFilter(''); setFollowUpFilter(''); setInspectorFilter(''); setSelectedInspection(null); setSelectedInspectionId(null); window.history.replaceState({}, document.title); }}
                 className="text-[10px] text-red-500 hover:text-red-700"
               >
                 Clear filters

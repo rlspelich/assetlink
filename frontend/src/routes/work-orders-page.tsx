@@ -28,12 +28,16 @@ export function WorkOrdersPage() {
     selectedWorkOrderId?: string;
     signContext?: { sign_id: string; description?: string; road_name?: string };
     assetContext?: AssetContext;
+    filterAssignedTo?: string;
+    filterStatus?: string;
+    filterPriority?: string;
   } | null;
 
   const [viewMode, setViewMode] = useState<ViewMode>('map');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(routeState?.filterStatus || '');
+  const [priorityFilter, setPriorityFilter] = useState(routeState?.filterPriority || '');
   const [workTypeFilter, setWorkTypeFilter] = useState('');
+  const [assignedToFilter, setAssignedToFilter] = useState(routeState?.filterAssignedTo || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -58,6 +62,7 @@ export function WorkOrdersPage() {
     status: statusFilter || undefined,
     priority: priorityFilter || undefined,
     work_type: workTypeFilter || undefined,
+    assigned_to: assignedToFilter || undefined,
   });
 
   const createWO = useCreateWorkOrder();
@@ -232,7 +237,7 @@ export function WorkOrdersPage() {
     [filteredWOs],
   );
 
-  const hasActiveFilters = statusFilter || priorityFilter || workTypeFilter;
+  const hasActiveFilters = statusFilter || priorityFilter || workTypeFilter || assignedToFilter;
 
   // Header bar with filters — used in table and split modes
   const headerBar = (
@@ -273,7 +278,7 @@ export function WorkOrdersPage() {
           Filters
           {hasActiveFilters && (
             <span className="bg-blue-100 text-blue-700 rounded-full px-1.5 text-[10px]">
-              {[statusFilter, priorityFilter, workTypeFilter].filter(Boolean).length}
+              {[statusFilter, priorityFilter, workTypeFilter, assignedToFilter].filter(Boolean).length}
             </span>
           )}
           <ChevronDown size={12} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
@@ -313,7 +318,7 @@ export function WorkOrdersPage() {
             </select>
             {hasActiveFilters && (
               <button
-                onClick={() => { setStatusFilter(''); setPriorityFilter(''); setWorkTypeFilter(''); setSelectedWO(null); }}
+                onClick={() => { setStatusFilter(''); setPriorityFilter(''); setWorkTypeFilter(''); setAssignedToFilter(''); setSelectedWO(null); window.history.replaceState({}, document.title); }}
                 className="text-[10px] text-red-500 hover:text-red-700"
               >
                 Clear filters
