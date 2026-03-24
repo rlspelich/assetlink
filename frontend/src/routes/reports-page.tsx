@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileBarChart,
@@ -1386,6 +1386,168 @@ function InventoryTab() {
 }
 
 // ---------------------------------------------------------------------------
+// Crew Member Detail — expandable inline detail for a crew member
+// ---------------------------------------------------------------------------
+
+function CrewMemberDetail({
+  userId,
+}: {
+  userId: string;
+  userName?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const navigate = useNavigate();
+  const { data: woData } = useWorkOrdersList({
+    page_size: 100,
+    assigned_to: userId,
+  });
+  const { data: inspData } = useInspectionsList({
+    page_size: 100,
+    inspector_id: userId,
+  });
+
+  const workOrders = woData?.work_orders ?? [];
+  const inspections = inspData?.inspections ?? [];
+
+  return (
+    <div className="space-y-3">
+      {/* Work Orders section */}
+      <div>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          Work Orders ({workOrders.length})
+        </h4>
+        {workOrders.length === 0 ? (
+          <p className="text-xs text-gray-400 italic">No work orders assigned</p>
+        ) : (
+          <div className="bg-white rounded border border-gray-200 overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-100 border-b">
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">WO #</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">Description</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">Priority</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">Status</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">Created</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {workOrders.slice(0, 20).map((wo) => (
+                  <tr
+                    key={wo.work_order_id}
+                    onClick={() => navigate('/work-orders', { state: { selectedWorkOrderId: wo.work_order_id } })}
+                    className="hover:bg-blue-50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-3 py-1.5 font-mono text-blue-600">{wo.work_order_number}</td>
+                    <td className="px-3 py-1.5 text-gray-700 truncate max-w-xs">{wo.description}</td>
+                    <td className="px-3 py-1.5">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${
+                        wo.priority === 'emergency' ? 'bg-red-100 text-red-700' :
+                        wo.priority === 'urgent' ? 'bg-orange-100 text-orange-700' :
+                        wo.priority === 'routine' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {wo.priority}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${
+                        wo.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        wo.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
+                        wo.status === 'open' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {wo.status?.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5 text-gray-500">{wo.created_at ? new Date(wo.created_at).toLocaleDateString() : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {workOrders.length > 20 && (
+              <div className="px-3 py-1.5 text-xs text-gray-400 border-t">
+                Showing 20 of {workOrders.length} —
+                <button
+                  onClick={() => navigate('/work-orders', { state: { filterAssignedTo: userId } })}
+                  className="text-blue-600 hover:underline ml-1"
+                >
+                  View all
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Inspections section */}
+      <div>
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          Inspections ({inspections.length})
+        </h4>
+        {inspections.length === 0 ? (
+          <p className="text-xs text-gray-400 italic">No inspections assigned</p>
+        ) : (
+          <div className="bg-white rounded border border-gray-200 overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-100 border-b">
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">INS #</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">Type</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">Status</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">Follow-Up</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-gray-500">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {inspections.slice(0, 20).map((insp) => (
+                  <tr
+                    key={insp.inspection_id}
+                    onClick={() => navigate('/inspections', { state: { selectedInspectionId: insp.inspection_id } })}
+                    className="hover:bg-blue-50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-3 py-1.5 font-mono text-blue-600">{insp.inspection_number}</td>
+                    <td className="px-3 py-1.5 text-gray-700 capitalize">{insp.inspection_type?.replace(/_/g, ' ')}</td>
+                    <td className="px-3 py-1.5">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${
+                        insp.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        insp.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {insp.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-1.5">
+                      {insp.follow_up_required ? (
+                        <span className="text-red-600 font-medium">Yes</span>
+                      ) : (
+                        <span className="text-gray-400">No</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-1.5 text-gray-500">{insp.inspection_date || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {inspections.length > 20 && (
+              <div className="px-3 py-1.5 text-xs text-gray-400 border-t">
+                Showing 20 of {inspections.length} —
+                <button
+                  onClick={() => navigate('/inspections', { state: { filterInspector: userId } })}
+                  className="text-blue-600 hover:underline ml-1"
+                >
+                  View all
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Tab 4: Crew Productivity
 // ---------------------------------------------------------------------------
 
@@ -1396,12 +1558,12 @@ function CrewProductivityTab({
   startDate: string;
   endDate: string;
 }) {
-  const navigate = useNavigate();
   const params = useMemo(
     () => ({ start_date: startDate, end_date: endDate }),
     [startDate, endDate]
   );
   const { data, isLoading, isError, error, refetch } = useCrewProductivityReport(params);
+  const [expandedCrewId, setExpandedCrewId] = useState<string | null>(null);
 
   if (isLoading) return <ReportSkeleton />;
   if (isError) return <ReportError message={error instanceof Error ? error.message : 'Unknown error'} onRetry={() => refetch()} />;
@@ -1476,62 +1638,40 @@ function CrewProductivityTab({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {sorted.map((member, idx) => {
+                {sorted.map((member) => {
                   const isTop = member.user_id === topPerformerId && member.wos_completed > 0;
+                  const isExpanded = expandedCrewId === member.user_id;
                   return (
-                    <tr
-                      key={member.user_id}
-                      className={`transition-colors ${isTop ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`}
-                    >
-                      <td className="px-4 py-2.5 text-center">
-                        {isTop ? (
-                          <Award size={16} className="text-blue-600 inline" />
-                        ) : (
-                          <span className="text-xs text-gray-400">{idx + 1}</span>
-                        )}
-                      </td>
-                      <td className={`px-4 py-2.5 whitespace-nowrap ${isTop ? 'font-semibold text-blue-800' : 'text-gray-900'}`}>
-                        <button
-                          onClick={() => navigate('/work-orders', { state: { filterAssignedTo: member.user_id } })}
-                          className="hover:underline hover:text-blue-600 transition-colors text-left"
-                        >
+                    <React.Fragment key={member.user_id}>
+                      <tr
+                        onClick={() => setExpandedCrewId(isExpanded ? null : member.user_id)}
+                        className={`transition-colors cursor-pointer ${isExpanded ? 'bg-blue-50' : isTop ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`}
+                      >
+                        <td className="px-4 py-2.5 text-center">
+                          {isTop && !isExpanded ? (
+                            <Award size={16} className="text-blue-600 inline" />
+                          ) : (
+                            <ChevronDown size={14} className={`inline text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          )}
+                        </td>
+                        <td className={`px-4 py-2.5 whitespace-nowrap ${isTop || isExpanded ? 'font-semibold text-blue-800' : 'text-gray-900'}`}>
                           {member.user_name}
-                        </button>
-                      </td>
-                      <td className="px-4 py-2.5 whitespace-nowrap text-gray-500">{capitalize(member.role)}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-gray-700">
-                        {member.wos_assigned > 0 ? (
-                          <button
-                            onClick={() => navigate('/work-orders', { state: { filterAssignedTo: member.user_id } })}
-                            className="hover:underline hover:text-blue-600 transition-colors"
-                          >
-                            {fmt(member.wos_assigned)}
-                          </button>
-                        ) : fmt(member.wos_assigned)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-medium text-gray-700">
-                        {member.wos_completed > 0 ? (
-                          <button
-                            onClick={() => navigate('/work-orders', { state: { filterAssignedTo: member.user_id, filterStatus: 'completed' } })}
-                            className="hover:underline hover:text-blue-600 transition-colors"
-                          >
-                            {fmt(member.wos_completed)}
-                          </button>
-                        ) : fmt(member.wos_completed)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-gray-600">{fmtDays(member.avg_days_to_complete)}</td>
-                      <td className="px-4 py-2.5 text-right font-medium text-gray-700">
-                        {member.inspections_completed > 0 ? (
-                          <button
-                            onClick={() => navigate('/inspections', { state: { filterInspector: member.user_id } })}
-                            className="hover:underline hover:text-blue-600 transition-colors"
-                          >
-                            {fmt(member.inspections_completed)}
-                          </button>
-                        ) : fmt(member.inspections_completed)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-gray-600">{fmt(member.signs_inspected)}</td>
-                    </tr>
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap text-gray-500">{capitalize(member.role)}</td>
+                        <td className="px-4 py-2.5 text-right font-medium text-gray-700">{fmt(member.wos_assigned)}</td>
+                        <td className="px-4 py-2.5 text-right font-medium text-gray-700">{fmt(member.wos_completed)}</td>
+                        <td className="px-4 py-2.5 text-right text-gray-600">{fmtDays(member.avg_days_to_complete)}</td>
+                        <td className="px-4 py-2.5 text-right font-medium text-gray-700">{fmt(member.inspections_completed)}</td>
+                        <td className="px-4 py-2.5 text-right text-gray-600">{fmt(member.signs_inspected)}</td>
+                      </tr>
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={8} className="bg-gray-50 px-6 py-3">
+                            <CrewMemberDetail userId={member.user_id!} userName={member.user_name} startDate={startDate} endDate={endDate} />
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
