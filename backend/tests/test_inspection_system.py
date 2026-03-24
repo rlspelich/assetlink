@@ -134,7 +134,8 @@ async def test_delete_inspection_cancelled(seeded_client):
 
 
 @pytest.mark.asyncio
-async def test_delete_inspection_completed_blocked(seeded_client):
+async def test_delete_inspection_completed_allowed(seeded_client):
+    """Completed inspections can be deleted (data entry errors, archive preferred)."""
     create_resp = await _create_inspection(
         seeded_client, tenant_a_headers(), status="completed"
     )
@@ -143,8 +144,7 @@ async def test_delete_inspection_completed_blocked(seeded_client):
     del_resp = await seeded_client.delete(
         f"/api/v1/inspections/{insp_id}", headers=tenant_a_headers()
     )
-    assert del_resp.status_code == 409
-    assert "completed" in del_resp.json()["detail"]
+    assert del_resp.status_code == 204
 
 
 @pytest.mark.asyncio
