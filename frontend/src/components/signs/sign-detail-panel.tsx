@@ -12,7 +12,9 @@ interface SignDetailPanelProps {
   onClose: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onArchive?: () => void;
   isDeleting?: boolean;
+  isArchiving?: boolean;
   /** When set, shows a "Back to Support" link at the top */
   onBackToSupport?: () => void;
   onCreateWorkOrder?: (context: { assets: Array<{ asset_type: string; asset_id: string; label: string }> }) => void;
@@ -90,7 +92,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, onBackToSupport, onCreateWorkOrder, onInspect }: SignDetailPanelProps) {
+export function SignDetailPanel({ sign, onClose, onEdit, onDelete, onArchive, isDeleting, isArchiving, onBackToSupport, onCreateWorkOrder, onInspect }: SignDetailPanelProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const navigate = useNavigate();
   const { data: woData } = useSignWorkOrders(sign.sign_id);
@@ -174,35 +176,52 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, isDeleting, o
         </div>
       </div>
 
-      {/* Delete confirmation */}
+      {/* Delete / Archive confirmation */}
       {showDeleteConfirm && (
-        <div className="px-4 py-3 bg-red-50 border-b border-red-200">
-          <p className="text-xs text-red-800 font-medium mb-2">
-            Delete this sign? This cannot be undone.
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <p className="text-xs text-gray-800 font-medium mb-1">
+            Remove {sign.mutcd_code || 'this sign'}?
           </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded bg-white text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
+          <p className="text-[11px] text-gray-500 mb-3">
+            Choose how to handle this sign:
+          </p>
+          <div className="space-y-2">
+            {onArchive && sign.status !== 'archived' && (
+              <button
+                onClick={() => {
+                  onArchive();
+                  setShowDeleteConfirm(false);
+                }}
+                disabled={isArchiving}
+                className="w-full px-3 py-2 text-xs bg-slate-600 text-white rounded hover:bg-slate-700 disabled:opacity-50 text-left"
+              >
+                <div className="font-medium">Archive</div>
+                <div className="text-slate-300 text-[10px] mt-0.5">
+                  Removes from active inventory. Record preserved for legal/historical reference.
+                </div>
+              </button>
+            )}
             <button
               onClick={() => {
                 onDelete?.();
                 setShowDeleteConfirm(false);
               }}
               disabled={isDeleting}
-              className="flex-1 px-2 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-1"
+              className="w-full px-3 py-2 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-left"
             >
-              {isDeleting ? (
-                <>
-                  <Loader2 size={12} className="animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
+              <div className="font-medium flex items-center gap-1">
+                {isDeleting && <Loader2 size={10} className="animate-spin" />}
+                Delete Permanently
+              </div>
+              <div className="text-red-200 text-[10px] mt-0.5">
+                Removes all data including history. Cannot be undone. Use for data entry errors only.
+              </div>
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded bg-white text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
             </button>
           </div>
         </div>

@@ -10,10 +10,12 @@ export const CONDITION_COLORS: Record<number, { label: string; hex: string; tw: 
 export const UNRATED_COLOR = { label: 'Unrated', hex: '#6b7280', tw: 'bg-gray-500' };
 export const INACTIVE_COLOR = { label: 'Inactive', hex: '#9ca3af', tw: 'bg-gray-400' };
 
-export const INACTIVE_STATUSES = new Set(['missing', 'removed', 'replaced']);
+export const INACTIVE_STATUSES = new Set(['missing', 'removed', 'replaced', 'archived']);
+
+export const ARCHIVED_COLOR = { label: 'Archived', hex: '#64748b', tw: 'bg-slate-500' };
 
 export const STATUS_OPTIONS = [
-  'active', 'damaged', 'faded', 'missing', 'obscured', 'replaced', 'removed',
+  'active', 'damaged', 'faded', 'missing', 'obscured', 'replaced', 'removed', 'archived',
 ] as const;
 
 export function getSignColor(condition: number | null, status: string): string {

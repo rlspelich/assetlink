@@ -20,6 +20,9 @@ interface SupportDetailPanelProps {
   }) => void;
   onAddSignToSupport?: (supportId: string, coordinates: { lng: number; lat: number }) => void;
   onRemoveSignFromSupport?: (signId: string) => void;
+  onArchiveSupport?: (supportId: string) => void;
+  onArchiveSupportAndSigns?: (supportId: string) => void;
+  onDeleteSupportAndSigns?: (supportId: string) => void;
 }
 
 function formatDate(dateStr: string | null): string {
@@ -97,7 +100,7 @@ function getSignColor(sign: Sign) {
   return UNRATED_COLOR;
 }
 
-export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSelect, onCreateWorkOrder, onInspect, onAddSignToSupport, onRemoveSignFromSupport }: SupportDetailPanelProps) {
+export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSelect, onCreateWorkOrder, onInspect, onAddSignToSupport, onRemoveSignFromSupport, onArchiveSupport, onArchiveSupportAndSigns, onDeleteSupportAndSigns }: SupportDetailPanelProps) {
   const { data: support, isLoading } = useSupport(supportId);
   const deleteSupport = useDeleteSupport();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -113,11 +116,32 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
     );
   }
 
-  const handleDelete = async () => {
+  const handleDetachAndDelete = async () => {
     try {
-      await deleteSupport.mutateAsync(supportId);
-      setShowDeleteConfirm(false);
-      onClose();
+      // If there are signs, detach them first via parent callbacks
+      if (support.signs.length > 0 && onRemoveSignFromSupport) {
+        for (const sign of support.signs) {
+          await new Promise<void>((resolve) => {
+            onRemoveSignFromSupport(sign.sign_id);
+            // Small delay to let each detach complete
+            setTimeout(resolve, 100);
+          });
+        }
+        // Wait a bit for detaches to propagate, then delete
+        setTimeout(async () => {
+          try {
+            await deleteSupport.mutateAsync(supportId);
+            setShowDeleteConfirm(false);
+            onClose();
+          } catch (err: unknown) {
+            console.error('Delete support after detach failed:', err);
+          }
+        }, 500);
+      } else {
+        await deleteSupport.mutateAsync(supportId);
+        setShowDeleteConfirm(false);
+        onClose();
+      }
     } catch (err: unknown) {
       console.error('Delete support failed:', err);
     }
@@ -188,32 +212,93 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
         </div>
       </div>
 
-      {/* Delete confirmation */}
+      {/* Delete / Archive confirmation */}
       {showDeleteConfirm && (
-        <div className="px-4 py-3 bg-red-50 border-b border-red-200">
-          <p className="text-xs text-red-800 font-medium mb-2">
-            Delete this support and detach all signs? This cannot be undone.
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <p className="text-xs text-gray-800 font-medium mb-1">
+            Remove this {formatEnumLabel(support.support_type)}?
           </p>
-          <div className="flex gap-2">
+          {support.signs.length > 0 && (
+            <div className="text-[11px] text-gray-500 mb-2">
+              {support.signs.length} {support.signs.length === 1 ? 'sign' : 'signs'} attached:
+              <ul className="mt-1 ml-3 list-disc text-[10px] text-gray-400">
+                {support.signs.slice(0, 5).map((s) => (
+                  <li key={s.sign_id}>{s.mutcd_code} — {s.description || 'Unknown'}</li>
+                ))}
+                {support.signs.length > 5 && <li>...and {support.signs.length - 5} more</li>}
+              </ul>
+            </div>
+          )}
+          <div className="space-y-2 mt-3">
+            {support.signs.length > 0 && (
+              <button
+                onClick={() => handleDetachAndDelete()}
+                disabled={deleteSupport.isPending}
+                className="w-full px-3 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-left"
+              >
+                <div className="font-medium">Detach Signs & Delete Support</div>
+                <div className="text-blue-200 text-[10px] mt-0.5">
+                  Signs remain in inventory unlinked. Only the post is removed.
+                </div>
+              </button>
+            )}
+            {onArchiveSupportAndSigns && support.signs.length > 0 && (
+              <button
+                onClick={() => {
+                  onArchiveSupportAndSigns(supportId);
+                  setShowDeleteConfirm(false);
+                }}
+                className="w-full px-3 py-2 text-xs bg-slate-600 text-white rounded hover:bg-slate-700 text-left"
+              >
+                <div className="font-medium">Archive Everything</div>
+                <div className="text-slate-300 text-[10px] mt-0.5">
+                  Support + all {support.signs.length} signs archived. Records preserved for legal/historical reference.
+                </div>
+              </button>
+            )}
+            {onArchiveSupport && support.signs.length === 0 && (
+              <button
+                onClick={() => {
+                  onArchiveSupport(supportId);
+                  setShowDeleteConfirm(false);
+                }}
+                className="w-full px-3 py-2 text-xs bg-slate-600 text-white rounded hover:bg-slate-700 text-left"
+              >
+                <div className="font-medium">Archive</div>
+                <div className="text-slate-300 text-[10px] mt-0.5">
+                  Record preserved for legal/historical reference.
+                </div>
+              </button>
+            )}
+            {onDeleteSupportAndSigns && support.signs.length > 0 && (
+              <button
+                onClick={() => {
+                  onDeleteSupportAndSigns(supportId);
+                  setShowDeleteConfirm(false);
+                }}
+                className="w-full px-3 py-2 text-xs bg-red-600 text-white rounded hover:bg-red-700 text-left"
+              >
+                <div className="font-medium">Delete Everything Permanently</div>
+                <div className="text-red-200 text-[10px] mt-0.5">
+                  Support + all signs gone forever. Use for data entry errors only.
+                </div>
+              </button>
+            )}
+            {support.signs.length === 0 && (
+              <button
+                onClick={() => handleDetachAndDelete()}
+                disabled={deleteSupport.isPending}
+                className="w-full px-3 py-2 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-left"
+              >
+                <div className="font-medium">Delete Permanently</div>
+                <div className="text-red-200 text-[10px] mt-0.5">Cannot be undone.</div>
+              </button>
+            )}
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded bg-white text-gray-700 hover:bg-gray-50"
+              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded bg-white text-gray-700 hover:bg-gray-50"
             >
               Cancel
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleteSupport.isPending}
-              className="flex-1 px-2 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-1"
-            >
-              {deleteSupport.isPending ? (
-                <>
-                  <Loader2 size={12} className="animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
             </button>
           </div>
         </div>

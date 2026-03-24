@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
 import { useSignsList, useSign, useCreateSign, useUpdateSign, useDeleteSign } from '../hooks/use-signs';
+import { useUpdateSupport, useDeleteSupport } from '../hooks/use-supports';
 import { AssetMap } from '../components/map/asset-map';
 import { SignListPanel } from '../components/signs/sign-list-panel';
 import { SignDetailPanel } from '../components/signs/sign-detail-panel';
@@ -42,6 +43,8 @@ export function SignsPage() {
   const createSign = useCreateSign();
   const updateSign = useUpdateSign();
   const deleteSign = useDeleteSign();
+  const updateSupport = useUpdateSupport();
+  const deleteSupport = useDeleteSupport();
 
   // Fetch a specific sign when navigating from dashboard priority table
   const highlightSignId = (!handledRouteState.current && routeState?.highlightSignId) ? routeState.highlightSignId : undefined;
@@ -200,6 +203,21 @@ export function SignsPage() {
     }
   };
 
+  const handleArchive = async () => {
+    if (!selectedSign) return;
+    try {
+      await updateSign.mutateAsync({
+        id: selectedSign.sign_id,
+        data: { status: 'archived' } as unknown as Parameters<typeof updateSign.mutateAsync>[0]['data'],
+      });
+      setSelectedSign(null);
+      setDrilledFromSupport(null);
+      setMode('view');
+    } catch (err: unknown) {
+      console.error('Archive failed:', err);
+    }
+  };
+
   const handleDelete = async () => {
     if (!selectedSign) return;
     try {
@@ -263,6 +281,60 @@ export function SignsPage() {
       setTimeout(() => setViewingSupport(currentSupport), 50);
     } catch (err: unknown) {
       console.error('Failed to detach sign from support:', err);
+    }
+  };
+
+  // Archive a support only (no signs)
+  const handleArchiveSupport = async (supportId: string) => {
+    try {
+      await updateSupport.mutateAsync({
+        id: supportId,
+        data: { status: 'archived' } as unknown as Parameters<typeof updateSupport.mutateAsync>[0]['data'],
+      });
+      setViewingSupport(null);
+      setClickedSignId(null);
+    } catch (err: unknown) {
+      console.error('Archive support failed:', err);
+    }
+  };
+
+  // Archive support + all its signs
+  const handleArchiveSupportAndSigns = async (supportId: string) => {
+    try {
+      // First archive all signs on this support
+      const signs = data?.signs?.filter(s => s.support_id === supportId) ?? [];
+      for (const sign of signs) {
+        await updateSign.mutateAsync({
+          id: sign.sign_id,
+          data: { status: 'archived' } as unknown as Parameters<typeof updateSign.mutateAsync>[0]['data'],
+        });
+      }
+      // Then archive the support
+      await updateSupport.mutateAsync({
+        id: supportId,
+        data: { status: 'archived' } as unknown as Parameters<typeof updateSupport.mutateAsync>[0]['data'],
+      });
+      setViewingSupport(null);
+      setClickedSignId(null);
+    } catch (err: unknown) {
+      console.error('Archive support + signs failed:', err);
+    }
+  };
+
+  // Delete support + all its signs permanently
+  const handleDeleteSupportAndSigns = async (supportId: string) => {
+    try {
+      // First delete all signs on this support
+      const signs = data?.signs?.filter(s => s.support_id === supportId) ?? [];
+      for (const sign of signs) {
+        await deleteSign.mutateAsync(sign.sign_id);
+      }
+      // Then delete the support (now has no signs attached)
+      await deleteSupport.mutateAsync(supportId);
+      setViewingSupport(null);
+      setClickedSignId(null);
+    } catch (err: unknown) {
+      console.error('Delete support + signs failed:', err);
     }
   };
 
@@ -348,6 +420,9 @@ export function SignsPage() {
           onInspect={handleInspect}
           onAddSignToSupport={handleAddSignToSupport}
           onRemoveSignFromSupport={handleRemoveSignFromSupport}
+          onArchiveSupport={handleArchiveSupport}
+          onArchiveSupportAndSigns={handleArchiveSupportAndSigns}
+          onDeleteSupportAndSigns={handleDeleteSupportAndSigns}
         />
       )}
 
@@ -358,7 +433,9 @@ export function SignsPage() {
           onClose={() => { setSelectedSign(null); setDrilledFromSupport(null); }}
           onEdit={handleStartEdit}
           onDelete={handleDelete}
+          onArchive={handleArchive}
           isDeleting={deleteSign.isPending}
+          isArchiving={updateSign.isPending}
           onBackToSupport={drilledFromSupport ? handleBackToSupport : undefined}
           onCreateWorkOrder={handleCreateWorkOrder}
           onInspect={handleInspect}
