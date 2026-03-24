@@ -1,0 +1,17 @@
+# Cloud Build ignore — separate from .gitignore
+# We need .env.production included for the frontend build
+.git
+.github
+.claude
+*.md
+data/
+scripts/
+uploads/
+backend/tests/
+backend/__pycache__/
+backend/.clerk.env
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+frontend/node_modules/
+frontend/dist/
