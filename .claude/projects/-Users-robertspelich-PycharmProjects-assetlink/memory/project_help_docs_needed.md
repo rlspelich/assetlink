@@ -11,3 +11,12 @@ The Help page currently has 7 placeholder topic cards. The following specific do
 **Why:** Supervisors and directors will ask "why is this sign ranked #1?" The scoring needs to be transparent and defensible — especially if it's ever referenced in a liability case.
 
 **How to apply:** When building out the Help page content, include a dedicated section on compliance scoring with examples.
+
+---
+
+**Deferred features — Replacement Planning & Forecast**
+
+Removed from Compliance page and Dashboard Inventory tab (2026-03-24). These panels require cost estimate and replacement date data on signs, which we are not collecting in Phase 1. Revisit when the Estimator module (BidParser port) is integrated or when cost tracking is prioritized.
+
+- Replacement Planning: estimated total cost, replacements by year timeline
+- Replacement Forecast: overdue count, due in 90 days, due in 1 year, estimated cost

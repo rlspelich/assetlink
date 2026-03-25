@@ -1357,30 +1357,6 @@ function InventoryTab() {
         <HorizontalBarChart items={sheetingItems} title="Sheeting Type Distribution" />
       </div>
 
-      {/* Replacement forecast */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h3 className="text-sm font-semibold text-gray-700 mb-4">Replacement Forecast</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-100">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Est. Total Cost</p>
-            <p className="text-2xl font-bold text-gray-900">{fmtDollars(d.estimated_replacement_cost)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Within 1 year</p>
-          </div>
-          <div className="bg-red-50 rounded-lg p-4 text-center border border-red-100">
-            <p className="text-xs text-red-600 uppercase tracking-wide mb-1">Overdue</p>
-            <p className="text-2xl font-bold text-red-700">{fmt(d.overdue_for_replacement)}</p>
-            <p className="text-xs text-red-400 mt-0.5">Past due date</p>
-          </div>
-          <div className="bg-orange-50 rounded-lg p-4 text-center border border-orange-100">
-            <p className="text-xs text-orange-600 uppercase tracking-wide mb-1">Due in 90 Days</p>
-            <p className="text-2xl font-bold text-orange-700">{fmt(d.due_within_90_days)}</p>
-          </div>
-          <div className="bg-yellow-50 rounded-lg p-4 text-center border border-yellow-100">
-            <p className="text-xs text-yellow-600 uppercase tracking-wide mb-1">Due in 1 Year</p>
-            <p className="text-2xl font-bold text-yellow-700">{fmt(d.due_within_1_year)}</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
