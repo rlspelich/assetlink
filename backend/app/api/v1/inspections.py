@@ -316,6 +316,8 @@ async def list_inspections(
         query = query.where(Inspection.status == status)
     if follow_up_required is not None:
         query = query.where(Inspection.follow_up_required == follow_up_required)
+    if inspector_id:
+        query = query.where(Inspection.inspector_id == inspector_id)
 
     query = (
         query.options(selectinload(Inspection.assets))

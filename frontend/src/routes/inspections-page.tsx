@@ -90,6 +90,16 @@ export function InspectionsPage() {
   }, [selectedInspection]);
 
   // Handle route state (navigate from sign/support detail) — once only
+  // IMPORTANT: preserve filterInspector/filterStatus when clearing consumed state
+  const clearConsumedState = () => {
+    const preserved: Record<string, string> = {};
+    if (routeState?.filterInspector) preserved.filterInspector = routeState.filterInspector;
+    if (routeState?.filterStatus) preserved.filterStatus = routeState.filterStatus;
+    window.history.replaceState(
+      Object.keys(preserved).length > 0 ? { usr: preserved } : {},
+      document.title,
+    );
+  };
   useEffect(() => {
     if (handledRouteState.current) return;
     if (routeState?.assetContext) {
@@ -97,7 +107,7 @@ export function InspectionsPage() {
       setAssetContext(routeState.assetContext);
       setFormMode('create');
       setShowForm(true);
-      window.history.replaceState({}, document.title);
+      clearConsumedState();
     }
     if (routeState?.selectedInspectionId && data?.inspections) {
       const insp = data.inspections.find(
@@ -106,7 +116,7 @@ export function InspectionsPage() {
       if (insp) {
         setSelectedInspection(insp);
         setSelectedInspectionId(insp.inspection_id);
-        window.history.replaceState({}, document.title);
+        clearConsumedState();
       }
     }
   }, [routeState, data?.inspections]);

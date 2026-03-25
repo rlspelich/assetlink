@@ -1410,12 +1410,29 @@ function CrewMemberDetail({
   const workOrders = woData?.work_orders ?? [];
   const inspections = inspData?.inspections ?? [];
 
+  const INITIAL_DISPLAY = 10;
+  const [showAllWOs, setShowAllWOs] = useState(false);
+  const [showAllInsp, setShowAllInsp] = useState(false);
+
+  // Sort WOs by priority (emergency first) then by date
+  const priorityOrder: Record<string, number> = { emergency: 0, urgent: 1, routine: 2, planned: 3 };
+  const sortedWOs = [...workOrders].sort((a, b) => {
+    const pa = priorityOrder[a.priority ?? 'planned'] ?? 4;
+    const pb = priorityOrder[b.priority ?? 'planned'] ?? 4;
+    if (pa !== pb) return pa - pb;
+    return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+  });
+
+  const displayedWOs = showAllWOs ? sortedWOs : sortedWOs.slice(0, INITIAL_DISPLAY);
+  const sortedInsp = [...inspections].sort((a, b) => (b.inspection_date ?? '').localeCompare(a.inspection_date ?? ''));
+  const displayedInsp = showAllInsp ? sortedInsp : sortedInsp.slice(0, INITIAL_DISPLAY);
+
   return (
     <div className="space-y-3">
       {/* Work Orders section */}
       <div>
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-          Work Orders ({workOrders.length})
+          Work Orders — <span className="normal-case font-normal">Displaying {displayedWOs.length} of {workOrders.length}</span>
         </h4>
         {workOrders.length === 0 ? (
           <p className="text-xs text-gray-400 italic">No work orders assigned</p>
@@ -1432,7 +1449,7 @@ function CrewMemberDetail({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {workOrders.slice(0, 20).map((wo) => (
+                {displayedWOs.map((wo) => (
                   <tr
                     key={wo.work_order_id}
                     onClick={() => navigate('/work-orders', { state: { selectedWorkOrderId: wo.work_order_id } })}
@@ -1465,14 +1482,20 @@ function CrewMemberDetail({
                 ))}
               </tbody>
             </table>
-            {workOrders.length > 20 && (
-              <div className="px-3 py-1.5 text-xs text-gray-400 border-t">
-                Showing 20 of {workOrders.length} —
+            {workOrders.length > INITIAL_DISPLAY && (
+              <div className="px-3 py-1.5 text-xs text-gray-400 border-t flex items-center gap-2">
+                <button
+                  onClick={() => setShowAllWOs(!showAllWOs)}
+                  className="text-blue-600 hover:underline"
+                >
+                  {showAllWOs ? 'Show less' : `Show all ${workOrders.length}`}
+                </button>
+                <span>·</span>
                 <button
                   onClick={() => navigate('/work-orders', { state: { filterAssignedTo: userId } })}
-                  className="text-blue-600 hover:underline ml-1"
+                  className="text-blue-600 hover:underline"
                 >
-                  View all
+                  Open in Work Orders
                 </button>
               </div>
             )}
@@ -1483,7 +1506,7 @@ function CrewMemberDetail({
       {/* Inspections section */}
       <div>
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-          Inspections ({inspections.length})
+          Inspections — <span className="normal-case font-normal">Displaying {displayedInsp.length} of {inspections.length}</span>
         </h4>
         {inspections.length === 0 ? (
           <p className="text-xs text-gray-400 italic">No inspections assigned</p>
@@ -1500,7 +1523,7 @@ function CrewMemberDetail({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {inspections.slice(0, 20).map((insp) => (
+                {displayedInsp.map((insp) => (
                   <tr
                     key={insp.inspection_id}
                     onClick={() => navigate('/inspections', { state: { selectedInspectionId: insp.inspection_id } })}
@@ -1529,14 +1552,20 @@ function CrewMemberDetail({
                 ))}
               </tbody>
             </table>
-            {inspections.length > 20 && (
-              <div className="px-3 py-1.5 text-xs text-gray-400 border-t">
-                Showing 20 of {inspections.length} —
+            {inspections.length > INITIAL_DISPLAY && (
+              <div className="px-3 py-1.5 text-xs text-gray-400 border-t flex items-center gap-2">
+                <button
+                  onClick={() => setShowAllInsp(!showAllInsp)}
+                  className="text-blue-600 hover:underline"
+                >
+                  {showAllInsp ? 'Show less' : `Show all ${inspections.length}`}
+                </button>
+                <span>·</span>
                 <button
                   onClick={() => navigate('/inspections', { state: { filterInspector: userId } })}
-                  className="text-blue-600 hover:underline ml-1"
+                  className="text-blue-600 hover:underline"
                 >
-                  View all
+                  Open in Inspections
                 </button>
               </div>
             )}
