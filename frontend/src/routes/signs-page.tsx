@@ -21,6 +21,7 @@ export function SignsPage() {
   const [selectedSign, setSelectedSign] = useState<Sign | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [conditionFilter, setConditionFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [mode, setMode] = useState<PageMode>('view');
   const [visibleSignCount, setVisibleSignCount] = useState<number | null>(null);
@@ -90,6 +91,15 @@ export function SignsPage() {
     if (selectedSign && !signs.find((s) => s.sign_id === selectedSign.sign_id)) {
       signs = [selectedSign, ...signs];
     }
+    // Condition filter (client-side)
+    if (conditionFilter) {
+      if (conditionFilter === 'unrated') {
+        signs = signs.filter((s) => !s.condition_rating);
+      } else {
+        const rating = parseInt(conditionFilter, 10);
+        signs = signs.filter((s) => s.condition_rating === rating);
+      }
+    }
     if (!searchQuery.trim()) return signs;
     const q = searchQuery.toLowerCase();
     return signs.filter((s) =>
@@ -100,7 +110,7 @@ export function SignsPage() {
       (s.intersection_with && s.intersection_with.toLowerCase().includes(q)) ||
       (s.legend_text && s.legend_text.toLowerCase().includes(q))
     );
-  }, [data?.signs, searchQuery, selectedSign]);
+  }, [data?.signs, searchQuery, conditionFilter, selectedSign]);
 
   const handleSignSelect = (sign: Sign) => {
     if (mode !== 'view') return; // Don't select signs while adding/editing
@@ -358,6 +368,8 @@ export function SignsPage() {
         onSearchChange={setSearchQuery}
         categoryFilter={categoryFilter}
         onCategoryFilterChange={(c) => { setCategoryFilter(c); setSelectedSign(null); setViewingSupport(null); }}
+        conditionFilter={conditionFilter}
+        onConditionFilterChange={(c) => { setConditionFilter(c); setSelectedSign(null); setViewingSupport(null); }}
         supportSignCounts={supportSignCounts}
       />
 

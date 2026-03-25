@@ -15,6 +15,8 @@ interface SignListPanelProps {
   onSearchChange: (query: string) => void;
   categoryFilter: string;
   onCategoryFilterChange: (category: string) => void;
+  conditionFilter: string;
+  onConditionFilterChange: (condition: string) => void;
   /** Map of support_id -> sign_ids sharing that support (for co-location badges) */
   supportSignCounts?: Map<string, string[]>;
 }
@@ -39,6 +41,8 @@ export function SignListPanel({
   onSearchChange,
   categoryFilter,
   onCategoryFilterChange,
+  conditionFilter,
+  onConditionFilterChange,
   supportSignCounts,
 }: SignListPanelProps) {
   const [showFilters, setShowFilters] = useState(false);
@@ -51,7 +55,7 @@ export function SignListPanel({
     }
   }, [selectedSignId]);
 
-  const hasActiveFilters = statusFilter || categoryFilter;
+  const hasActiveFilters = statusFilter || categoryFilter || conditionFilter;
 
   return (
     <div className="w-72 bg-white border-r border-gray-200 flex flex-col h-full shrink-0 overflow-hidden">
@@ -85,7 +89,7 @@ export function SignListPanel({
           Filters
           {hasActiveFilters && (
             <span className="bg-blue-100 text-blue-700 rounded-full px-1.5 text-[10px]">
-              {[statusFilter, categoryFilter].filter(Boolean).length}
+              {[statusFilter, categoryFilter, conditionFilter].filter(Boolean).length}
             </span>
           )}
           <ChevronDown size={12} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
@@ -114,9 +118,22 @@ export function SignListPanel({
                 <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
               ))}
             </select>
+            <select
+              value={conditionFilter}
+              onChange={(e) => onConditionFilterChange(e.target.value)}
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All conditions</option>
+              <option value="5">5 — Excellent</option>
+              <option value="4">4 — Good</option>
+              <option value="3">3 — Fair</option>
+              <option value="2">2 — Poor</option>
+              <option value="1">1 — Critical</option>
+              <option value="unrated">Unrated</option>
+            </select>
             {hasActiveFilters && (
               <button
-                onClick={() => { onStatusFilterChange(''); onCategoryFilterChange(''); }}
+                onClick={() => { onStatusFilterChange(''); onCategoryFilterChange(''); onConditionFilterChange(''); }}
                 className="text-[10px] text-red-500 hover:text-red-700"
               >
                 Clear filters
