@@ -7,8 +7,6 @@ import {
   Eye,
   BarChart3,
   RefreshCw,
-  DollarSign,
-  Calendar,
   Loader2,
   ArrowUpRight,
 } from 'lucide-react';
@@ -34,9 +32,7 @@ function fmtDollars(n: number): string {
   return `$${n.toFixed(0)}`;
 }
 
-function fmtDollarsFull(n: number): string {
-  return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
+
 
 function pct(n: number | null): string {
   if (n === null) return '--';
@@ -412,8 +408,6 @@ export function DashboardPage() {
     color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
   }));
 
-  const currentYear = new Date().getFullYear();
-
   return (
     <div className="h-full overflow-y-auto bg-gray-50">
       <div className="max-w-[1600px] mx-auto p-6 space-y-6">
@@ -530,24 +524,6 @@ export function DashboardPage() {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-function TimelineCard({
-  label,
-  sublabel,
-  count,
-}: {
-  label: string;
-  sublabel: string;
-  count: number;
-}) {
-  return (
-    <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-100">
-      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{sublabel}</p>
-      <p className="text-2xl font-bold text-gray-900">{fmt(count)}</p>
-      <p className="text-xs text-gray-400 mt-0.5">{label}</p>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Chart data builders

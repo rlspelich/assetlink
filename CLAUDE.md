@@ -417,6 +417,7 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - **Be proactive about better approaches.** If you see an opportunity to improve the design, UX, architecture, or code quality — do it. Don't wait for the user to suggest it. If you already know a better way, propose it or just build it. The user should not be the one catching missed opportunities that were already visible to you.
 - **Follow through on stated intentions.** If you say "I'll note that" or "I'll add that" or "let me do X" — do it immediately. Do not defer, forget, or assume it was rhetorical. If for some reason you cannot do it now, say so and ask if you should proceed later. The user should never have to ask "did you actually do that?"
 - **Never push to remote without explicit approval.** Commits are fine to make locally, but `git push` requires the user to say "push" or equivalent. The user may not be done with changes.
+- **Run tests and verify the build before pushing.** Every push triggers CI/CD. A failed build or test in GitHub Actions wastes time and blocks deploys. Before pushing: (1) run `npm run build` in `frontend/` to catch TypeScript errors, (2) run `docker compose exec api python -m pytest tests/ -x -q` to verify backend tests pass. Do not push code that hasn't been validated locally.
 
 ---
 
