@@ -594,6 +594,69 @@ def main():
     print(f"  Routine maintenance: ~{6 * 6}")
 
     # -----------------------------------------------------------------------
+    # Backdate created_at timestamps
+    # -----------------------------------------------------------------------
+    # The API auto-sets created_at to NOW(), which makes all records look
+    # like they were created at the same time. For realistic reports
+    # (avg days to complete, trends), we need created_at to reflect the
+    # actual creation dates.
+    #
+    # Strategy: Use the earliest date field on each record as created_at.
+    # - Work orders: use projected_start_date or due_date, minus a few days
+    # - Inspections: use inspection_date
+    print("\n--- Backdating created_at timestamps ---")
+
+    import subprocess
+
+    db_host = "localhost"
+    db_port = "5432"
+    db_name = "assetlink"
+    db_user = "assetlink"
+
+    # Check if we're targeting production (Cloud SQL proxy)
+    if "bucket6.com" in API_BASE or os.environ.get("CLOUD_SQL_PROXY"):
+        print("  Skipping backdate — production DB requires Cloud SQL proxy.")
+        print("  Run scripts/backdate_test_data.sql manually via proxy.")
+    else:
+        backdate_sql = f"""
+-- Backdate work orders: set created_at based on available date fields
+UPDATE work_order SET created_at = COALESCE(
+    actual_start_date - interval '1 day',
+    projected_start_date - interval '2 days',
+    due_date - interval '14 days',
+    completed_date - interval '7 days',
+    created_at
+) WHERE tenant_id = '{TENANT_ID}';
+
+-- Backdate inspections: set created_at = inspection_date
+UPDATE inspection SET created_at = inspection_date::timestamp AT TIME ZONE 'UTC'
+WHERE tenant_id = '{TENANT_ID}'
+AND inspection_date IS NOT NULL;
+
+-- Verify
+SELECT 'Work Orders' as type,
+    round(avg(EXTRACT(epoch FROM completed_date - created_at) / 86400.0)::numeric, 1) as avg_days_to_complete
+FROM work_order
+WHERE tenant_id = '{TENANT_ID}' AND status = 'completed' AND completed_date IS NOT NULL;
+"""
+        try:
+            result = subprocess.run(
+                ["docker", "compose", "exec", "-T", "db", "psql", "-U", db_user, "-d", db_name],
+                input=backdate_sql,
+                capture_output=True, text=True, timeout=15,
+            )
+            if result.returncode == 0:
+                print("  Backdated created_at timestamps via Docker.")
+                # Print the verification output
+                for line in result.stdout.strip().split("\n"):
+                    if line.strip():
+                        print(f"  {line.strip()}")
+            else:
+                print(f"  Warning: backdate failed — {result.stderr.strip()}")
+        except Exception as e:
+            print(f"  Warning: could not backdate — {e}")
+
+    # -----------------------------------------------------------------------
     # Summary
     # -----------------------------------------------------------------------
     print("\n" + "=" * 60)

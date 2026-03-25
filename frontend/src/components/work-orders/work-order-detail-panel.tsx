@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Pencil, Trash2, Loader2, Wrench, MapPin, Calendar, DollarSign, FileText, Signpost, Landmark, ChevronDown, ChevronUp, Printer, Mail } from 'lucide-react';
+import { X, Pencil, Trash2, Loader2, Wrench, MapPin, Calendar, DollarSign, FileText, Signpost, Landmark, ChevronDown, ChevronUp, Printer, Mail, User } from 'lucide-react';
 import type { WorkOrder, WorkOrderAsset, WorkOrderAssetUpdate } from '../../api/types';
 import { PhotoGallery } from '../photos/photo-gallery';
 import {
@@ -12,6 +12,7 @@ import {
   getWoAssetStatusOption,
 } from '../../lib/constants';
 import { useUpdateWorkOrderAsset } from '../../hooks/use-work-orders';
+import { useUsersList } from '../../hooks/use-users';
 import { previewWorkOrder } from './work-order-print';
 import { EmailDialog } from '../shared/email-dialog';
 import { sendWorkOrderEmail } from '../../api/email';
@@ -226,6 +227,10 @@ export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isD
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const statusOpt = getWoStatusOption(workOrder.status);
   const priorityOpt = getWoPriorityOption(workOrder.priority);
+  const { data: usersData } = useUsersList();
+  const userMap = new Map(
+    (usersData?.users ?? []).map((u: { user_id: string; first_name: string; last_name: string }) => [u.user_id, `${u.first_name} ${u.last_name}`])
+  );
 
   const canDelete = true;
   const isEditable = workOrder.status !== 'completed' && workOrder.status !== 'cancelled';
@@ -239,9 +244,12 @@ export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isD
           <div className="font-semibold text-gray-900 text-sm truncate">
             {workOrder.work_order_number || 'Work Order'}
           </div>
-          <div className="text-xs text-gray-500 truncate">
-            {workOrder.description || 'No description'}
-          </div>
+          {workOrder.assigned_to && userMap.get(workOrder.assigned_to) && (
+            <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+              <User size={10} className="text-gray-400" />
+              <span>{userMap.get(workOrder.assigned_to)}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-2">
             <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusOpt.color}`}>
               {statusOpt.label}

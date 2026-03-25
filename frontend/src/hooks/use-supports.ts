@@ -43,7 +43,10 @@ export function useUpdateSupport() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<SignSupportCreate> }) =>
       supportsApi.updateSupport(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: supportKeys.lists() }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: supportKeys.lists() });
+      qc.invalidateQueries({ queryKey: supportKeys.detail(variables.id) });
+    },
   });
 }
 

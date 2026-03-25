@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X, Landmark, MapPin, Calendar, Trash2, Loader2, ClipboardCheck, Plus, Unlink } from 'lucide-react';
-import { useSupport, useDeleteSupport } from '../../hooks/use-supports';
+import { X, Landmark, MapPin, Calendar, Trash2, Loader2, ClipboardCheck, Plus, Unlink, Pencil, Save, XCircle } from 'lucide-react';
+import { useSupport, useDeleteSupport, useUpdateSupport } from '../../hooks/use-supports';
 import type { Sign } from '../../api/types';
 import { CONDITION_COLORS, UNRATED_COLOR, INACTIVE_STATUSES, INACTIVE_COLOR, formatEnumLabel } from '../../lib/constants';
 
@@ -103,8 +103,58 @@ function getSignColor(sign: Sign) {
 export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSelect, onCreateWorkOrder, onInspect, onAddSignToSupport, onRemoveSignFromSupport, onArchiveSupport, onArchiveSupportAndSigns, onDeleteSupportAndSigns }: SupportDetailPanelProps) {
   const { data: support, isLoading } = useSupport(supportId);
   const deleteSupport = useDeleteSupport();
+  const updateSupport = useUpdateSupport();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [confirmRemoveSignId, setConfirmRemoveSignId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    asset_tag: '',
+    support_type: '',
+    support_material: '',
+    height_inches: '',
+    status: '',
+    condition_rating: '',
+    install_date: '',
+    notes: '',
+  });
+
+  const startEditing = () => {
+    if (!support) return;
+    setEditForm({
+      asset_tag: support.asset_tag || '',
+      support_type: support.support_type || '',
+      support_material: support.support_material || '',
+      height_inches: support.height_inches?.toString() || '',
+      status: support.status || 'active',
+      condition_rating: support.condition_rating?.toString() || '',
+      install_date: support.install_date?.split('T')[0] || '',
+      notes: support.notes || '',
+    });
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateSupport.mutateAsync({
+        id: supportId,
+        data: {
+          asset_tag: editForm.asset_tag || null,
+          support_type: editForm.support_type as 'u_channel' | 'square_tube' | 'round_pole' | 'mast_arm' | 'span_wire' | 'wood_post' | 'other' || 'u_channel',
+          support_material: editForm.support_material as 'galvanized_steel' | 'aluminum' | 'steel' | 'wood' | 'fiberglass' | 'other' || null,
+          height_inches: editForm.height_inches ? parseInt(editForm.height_inches) : null,
+          status: editForm.status || 'active',
+          condition_rating: editForm.condition_rating ? parseInt(editForm.condition_rating) : null,
+          install_date: editForm.install_date || null,
+          notes: editForm.notes || null,
+          latitude: support!.latitude,
+          longitude: support!.longitude,
+        },
+      });
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to update support:', err);
+    }
+  };
 
   if (isLoading || !support) {
     return (
@@ -154,10 +204,10 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
         <div className="min-w-0">
           <div className="flex items-center gap-2 font-semibold text-gray-900 text-sm">
             <Landmark size={14} className="text-gray-500 shrink-0" />
-            <span className="truncate">{formatEnumLabel(support.support_type)}</span>
+            <span className="truncate">{support.asset_tag || formatEnumLabel(support.support_type)}</span>
           </div>
           <div className="text-xs text-gray-500 mt-0.5">
-            {support.sign_count} {support.sign_count === 1 ? 'sign' : 'signs'} on this support
+            {formatEnumLabel(support.support_type)} &middot; {support.sign_count} {support.sign_count === 1 ? 'sign' : 'signs'}
           </div>
           <div className="flex items-center gap-2 mt-2">
             {conditionBadge(support.condition_rating, support.status)}
@@ -196,15 +246,26 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {!isEditing && (
+            <button
+              onClick={startEditing}
+              title="Edit support"
+              className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-blue-600"
+            >
+              <Pencil size={16} />
+            </button>
+          )}
+          {!isEditing && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              title="Delete support"
+              className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-600"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
           <button
-            onClick={() => setShowDeleteConfirm(true)}
-            title="Delete support"
-            className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-600"
-          >
-            <Trash2 size={16} />
-          </button>
-          <button
-            onClick={onClose}
+            onClick={() => { setIsEditing(false); onClose(); }}
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600"
           >
             <X size={16} />
@@ -306,37 +367,169 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-4">
-        {/* Support Info */}
-        <Section icon={Landmark} title="Support Details">
-          <Field label="Asset Tag" value={support.asset_tag || <span className="italic text-gray-400">Not assigned</span>} />
-          <Field label="Type" value={formatEnumLabel(support.support_type)} />
-          <Field label="Material" value={support.support_material ? formatEnumLabel(support.support_material) : null} />
-          <Field label="Height" value={support.height_inches ? `${support.height_inches}"` : null} />
-          <Field label="Status" value={<span className="capitalize">{support.status}</span>} />
-          <Field label="Condition" value={
-            support.condition_rating
-              ? `${support.condition_rating}/5 — ${CONDITION_COLORS[support.condition_rating]?.label || 'Unknown'}`
-              : null
-          } />
-          <Field label="Install Date" value={support.install_date ? formatDate(support.install_date) : <span className="italic text-gray-400">Not recorded</span>} />
-        </Section>
+        {isEditing ? (
+          /* ====== EDIT MODE ====== */
+          <div className="py-4 border-b border-gray-100">
+            <h4 className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              <Pencil size={14} />
+              Edit Support
+            </h4>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Asset Tag</label>
+                <input
+                  type="text"
+                  value={editForm.asset_tag}
+                  onChange={(e) => setEditForm({ ...editForm, asset_tag: e.target.value })}
+                  placeholder="e.g. SUP-001"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Type</label>
+                <select
+                  value={editForm.support_type}
+                  onChange={(e) => setEditForm({ ...editForm, support_type: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  <option value="u_channel">U Channel</option>
+                  <option value="square_tube">Square Tube</option>
+                  <option value="round_pole">Round Pole</option>
+                  <option value="mast_arm">Mast Arm</option>
+                  <option value="span_wire">Span Wire</option>
+                  <option value="wood_post">Wood Post</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Material</label>
+                <select
+                  value={editForm.support_material}
+                  onChange={(e) => setEditForm({ ...editForm, support_material: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  <option value="">Not specified</option>
+                  <option value="galvanized_steel">Galvanized Steel</option>
+                  <option value="aluminum">Aluminum</option>
+                  <option value="steel">Steel</option>
+                  <option value="wood">Wood</option>
+                  <option value="fiberglass">Fiberglass</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] text-gray-500 mb-1">Height (inches)</label>
+                  <input
+                    type="number"
+                    value={editForm.height_inches}
+                    onChange={(e) => setEditForm({ ...editForm, height_inches: e.target.value })}
+                    placeholder="84"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-500 mb-1">Condition</label>
+                  <select
+                    value={editForm.condition_rating}
+                    onChange={(e) => setEditForm({ ...editForm, condition_rating: e.target.value })}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  >
+                    <option value="">Not rated</option>
+                    <option value="5">5 — Excellent</option>
+                    <option value="4">4 — Good</option>
+                    <option value="3">3 — Fair</option>
+                    <option value="2">2 — Poor</option>
+                    <option value="1">1 — Critical</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  <option value="active">Active</option>
+                  <option value="damaged">Damaged</option>
+                  <option value="leaning">Leaning</option>
+                  <option value="missing">Missing</option>
+                  <option value="removed">Removed</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Install Date</label>
+                <input
+                  type="date"
+                  value={editForm.install_date}
+                  onChange={(e) => setEditForm({ ...editForm, install_date: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">Notes</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  rows={2}
+                  placeholder="Additional notes..."
+                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleSave}
+                  disabled={updateSupport.isPending}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {updateSupport.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                  Save
+                </button>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium border border-gray-200 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                >
+                  <XCircle size={12} />
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* ====== VIEW MODE ====== */
+          <>
+            <Section icon={Landmark} title="Support Details">
+              <Field label="Asset Tag" value={support.asset_tag || <span className="italic text-gray-400">Not assigned</span>} />
+              <Field label="Type" value={formatEnumLabel(support.support_type)} />
+              <Field label="Material" value={support.support_material ? formatEnumLabel(support.support_material) : null} />
+              <Field label="Height" value={support.height_inches ? `${support.height_inches}"` : null} />
+              <Field label="Status" value={<span className="capitalize">{support.status}</span>} />
+              <Field label="Condition" value={
+                support.condition_rating
+                  ? `${support.condition_rating}/5 — ${CONDITION_COLORS[support.condition_rating]?.label || 'Unknown'}`
+                  : null
+              } />
+              <Field label="Install Date" value={support.install_date ? formatDate(support.install_date) : <span className="italic text-gray-400">Not recorded</span>} />
+            </Section>
 
-        {/* Location */}
-        <Section icon={MapPin} title="Location">
-          <Field label="Coordinates" value={
-            <span className="font-mono text-xs">
-              {support.latitude.toFixed(6)}, {support.longitude.toFixed(6)}
-            </span>
-          } />
-          {support.notes && (
-            <p className="text-xs text-gray-600 bg-gray-50 rounded p-2 mt-1">{support.notes}</p>
-          )}
-        </Section>
+            <Section icon={MapPin} title="Location">
+              <Field label="Coordinates" value={
+                <span className="font-mono text-xs">
+                  {support.latitude.toFixed(6)}, {support.longitude.toFixed(6)}
+                </span>
+              } />
+              {support.notes && (
+                <p className="text-xs text-gray-600 bg-gray-50 rounded p-2 mt-1">{support.notes}</p>
+              )}
+            </Section>
 
-        {/* Lifecycle */}
-        <Section icon={Calendar} title="Lifecycle">
-          <Field label="Installed" value={formatDate(support.install_date)} />
-        </Section>
+            <Section icon={Calendar} title="Lifecycle">
+              <Field label="Installed" value={formatDate(support.install_date)} />
+            </Section>
+          </>
+        )}
 
         {/* Signs on this support */}
         <div className="py-4 border-b border-gray-100 last:border-b-0">
@@ -437,7 +630,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
       <div className="px-4 py-2 border-t bg-gray-50 text-[10px] text-gray-400">
         <div>Created: {formatDate(support.created_at)}</div>
         <div>Updated: {formatDate(support.updated_at)}</div>
-        <div className="font-mono truncate mt-0.5">{support.support_id}</div>
+        <div className="font-mono truncate mt-0.5">ID: {support.asset_tag || support.support_id}</div>
       </div>
     </div>
   );

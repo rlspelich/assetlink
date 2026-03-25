@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Filter, ChevronDown, AlertCircle } from 'lucide-react';
+import { Search, Filter, ChevronDown, AlertCircle, User } from 'lucide-react';
 import type { Inspection } from '../../api/types';
+import { useUsersList } from '../../hooks/use-users';
 import {
   INSPECTION_TYPE_OPTIONS,
   INSPECTION_STATUS_OPTIONS,
@@ -55,6 +56,10 @@ export function InspectionListPanel({
 }: InspectionListPanelProps) {
   const [showFilters, setShowFilters] = useState(false);
   const selectedRef = useRef<HTMLDivElement>(null);
+  const { data: usersData } = useUsersList();
+  const userMap = new Map(
+    (usersData?.users ?? []).map((u) => [u.user_id, `${u.first_name} ${u.last_name}`])
+  );
 
   // Auto-scroll to selected inspection
   useEffect(() => {
@@ -218,6 +223,12 @@ export function InspectionListPanel({
                         </span>
                       )}
                     </div>
+                    {insp.inspector_id && userMap.get(insp.inspector_id) && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <User size={9} className="text-gray-400" />
+                        <span className="text-[10px] text-gray-500">{userMap.get(insp.inspector_id)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

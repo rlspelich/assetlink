@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X, ClipboardCheck, Calendar, Eye, Signpost, Landmark, Wrench,
-  Pencil, Trash2, Loader2, ExternalLink, AlertCircle, Printer, Mail,
+  Pencil, Trash2, Loader2, ExternalLink, AlertCircle, Printer, Mail, User,
 } from 'lucide-react';
 import type { Inspection } from '../../api/types';
 import { PhotoGallery } from '../photos/photo-gallery';
 import { useCreateWorkOrderFromInspection } from '../../hooks/use-inspections';
+import { useUsersList } from '../../hooks/use-users';
 import {
   CONDITION_COLORS,
   UNRATED_COLOR,
@@ -95,6 +96,10 @@ export function InspectionDetailPanel({
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const typeOpt = getInspectionTypeOption(inspection.inspection_type);
   const statusOpt = getInspectionStatusOption(inspection.status);
+  const { data: usersData } = useUsersList();
+  const userMap = new Map(
+    (usersData?.users ?? []).map((u: { user_id: string; first_name: string; last_name: string }) => [u.user_id, `${u.first_name} ${u.last_name}`])
+  );
 
   const handleCreateWorkOrder = async () => {
     setWoError(null);
@@ -127,9 +132,12 @@ export function InspectionDetailPanel({
           <div className="text-sm font-medium text-gray-900">
             {inspection.inspection_number || 'Inspection'}
           </div>
-          <div className="text-xs text-gray-500">
-            {formatDate(inspection.inspection_date)}
-          </div>
+          {inspection.inspector_id && userMap.get(inspection.inspector_id) && (
+            <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+              <User size={10} className="text-gray-400" />
+              <span>{userMap.get(inspection.inspector_id)}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-1.5">
             {conditionBadge(inspection.condition_rating)}
             {inspection.follow_up_required && (

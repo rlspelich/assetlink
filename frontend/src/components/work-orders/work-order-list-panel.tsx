@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Filter, ChevronDown } from 'lucide-react';
+import { Search, Filter, ChevronDown, User } from 'lucide-react';
 import type { WorkOrder } from '../../api/types';
+import { useUsersList } from '../../hooks/use-users';
 import {
   WO_STATUS_OPTIONS,
   WO_PRIORITY_OPTIONS,
@@ -55,6 +56,10 @@ export function WorkOrderListPanel({
 }: WorkOrderListPanelProps) {
   const [showFilters, setShowFilters] = useState(false);
   const selectedRef = useRef<HTMLDivElement>(null);
+  const { data: usersData } = useUsersList();
+  const userMap = new Map(
+    (usersData?.users ?? []).map((u) => [u.user_id, `${u.first_name} ${u.last_name}`])
+  );
 
   // Auto-scroll to selected WO
   useEffect(() => {
@@ -195,6 +200,12 @@ export function WorkOrderListPanel({
                         <span className="text-[10px] text-gray-400">Due {formatDate(wo.due_date)}</span>
                       )}
                     </div>
+                    {wo.assigned_to && userMap.get(wo.assigned_to) && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <User size={9} className="text-gray-400" />
+                        <span className="text-[10px] text-gray-500">{userMap.get(wo.assigned_to)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
