@@ -1932,9 +1932,9 @@ export function ReportsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <FileBarChart size={24} className="text-blue-600" />
-              Reports
+              Dashboard
             </h1>
-            <p className="text-sm text-gray-500 mt-0.5">KPI reports for budget justification and council presentations</p>
+            <p className="text-sm text-gray-500 mt-0.5">Operational KPIs, crew performance, and status reports</p>
           </div>
           <div className="flex items-center gap-2">
             <button

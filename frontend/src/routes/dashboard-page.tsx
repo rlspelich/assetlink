@@ -420,7 +420,7 @@ export function DashboardPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">MUTCD Compliance Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900">MUTCD Compliance</h1>
             <p className="text-sm text-gray-500 mt-0.5">Springfield DPW</p>
           </div>
           <div className="flex items-center gap-3">

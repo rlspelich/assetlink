@@ -34,16 +34,17 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<AppShell />}>
-            <Route index element={<Navigate to="/signs" replace />} />
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<ReportsPage />} />
             <Route path="signs" element={<SignsPage />} />
             <Route path="work-orders" element={<WorkOrdersPageWrapper />} />
             <Route path="inspections" element={<InspectionsPageWrapper />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="reports" element={<ReportsPage />} />
+            <Route path="compliance" element={<DashboardPage />} />
             <Route path="help" element={<HelpPage />} />
             <Route path="settings" element={<SettingsPage />} />
-            {/* Legacy route — redirect to settings */}
+            {/* Legacy routes — redirect */}
             <Route path="import" element={<Navigate to="/settings" replace />} />
+            <Route path="reports" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>
