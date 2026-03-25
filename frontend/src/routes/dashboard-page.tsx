@@ -513,54 +513,6 @@ export function DashboardPage() {
           <HorizontalBarChart items={categoryItems} title="Category Breakdown" />
         </div>
 
-        {/* Replacement Planning */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <DollarSign size={18} className="text-gray-500" />
-            <h3 className="text-sm font-semibold text-gray-700">Replacement Planning</h3>
-          </div>
-
-          {d.estimated_replacement_cost > 0 ||
-          d.replacements_this_year > 0 ||
-          d.replacements_next_year > 0 ||
-          d.replacements_year_after > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-100">
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Estimated Total Cost
-                </p>
-                <p className="text-2xl font-bold text-gray-900" title={fmtDollarsFull(d.estimated_replacement_cost)}>
-                  {fmtDollars(d.estimated_replacement_cost)}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Critical/poor + overdue signs
-                </p>
-              </div>
-              <TimelineCard
-                label={`${currentYear}`}
-                sublabel="This Year"
-                count={d.replacements_this_year}
-              />
-              <TimelineCard
-                label={`${currentYear + 1}`}
-                sublabel="Next Year"
-                count={d.replacements_next_year}
-              />
-              <TimelineCard
-                label={`${currentYear + 2}`}
-                sublabel="Year After"
-                count={d.replacements_year_after}
-              />
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <Calendar size={32} className="mx-auto text-gray-300 mb-2" />
-              <p className="text-sm text-gray-400">
-                No replacement cost data. Add cost estimates and replacement dates to signs.
-              </p>
-            </div>
-          )}
-        </div>
 
         {/* Priority Table */}
         <div>

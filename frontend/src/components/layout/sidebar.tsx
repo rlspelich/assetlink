@@ -4,8 +4,8 @@ import { Map, Wrench, ClipboardCheck, BarChart3, ShieldCheck, HelpCircle, Settin
 const NAV_ITEMS = [
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
   { to: '/signs', icon: Map, label: 'Signs' },
-  { to: '/work-orders', icon: Wrench, label: 'Work Orders' },
   { to: '/inspections', icon: ClipboardCheck, label: 'Inspections' },
+  { to: '/work-orders', icon: Wrench, label: 'Work Orders' },
   { to: '/compliance', icon: ShieldCheck, label: 'Compliance' },
 ];
 

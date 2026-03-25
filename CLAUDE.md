@@ -415,6 +415,8 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - **Document all decisions.** Update this file when architecture decisions are made, milestones are reached, or direction changes. Every future session should be able to read this file and know exactly where things stand.
 - **Ask before accessing files outside this project.** Do not silently read, search, or explore directories outside `/Users/robertspelich/PycharmProjects/assetlink/` without explicitly telling the user first and getting confirmation. This includes other projects in PycharmProjects, home directory files, or any path outside the working directory. State what you intend to access and why before doing it.
 - **Be proactive about better approaches.** If you see an opportunity to improve the design, UX, architecture, or code quality — do it. Don't wait for the user to suggest it. If you already know a better way, propose it or just build it. The user should not be the one catching missed opportunities that were already visible to you.
+- **Follow through on stated intentions.** If you say "I'll note that" or "I'll add that" or "let me do X" — do it immediately. Do not defer, forget, or assume it was rhetorical. If for some reason you cannot do it now, say so and ask if you should proceed later. The user should never have to ask "did you actually do that?"
+- **Never push to remote without explicit approval.** Commits are fine to make locally, but `git push` requires the user to say "push" or equivalent. The user may not be done with changes.
 
 ---
 
