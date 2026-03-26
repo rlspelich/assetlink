@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronUp, ChevronDown, AlertCircle } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import type { Inspection } from '../../api/types';
 import {
   CONDITION_COLORS,
@@ -7,6 +7,8 @@ import {
   getInspectionTypeOption,
   getInspectionStatusOption,
 } from '../../lib/constants';
+
+const PAGE_SIZE = 25;
 
 interface InspectionTableProps {
   inspections: Inspection[];
@@ -52,6 +54,7 @@ function formatShortDate(dateStr: string | null): string {
 export function InspectionTable({ inspections, selectedInspId, onInspSelect }: InspectionTableProps) {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [page, setPage] = useState(0);
   const selectedRef = useRef<HTMLTableRowElement>(null);
 
   useEffect(() => {
@@ -86,6 +89,12 @@ export function InspectionTable({ inspections, selectedInspId, onInspSelect }: I
     return items;
   }, [inspections, sortField, sortDir]);
 
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paged = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Reset page when data changes
+  useEffect(() => { setPage(0); }, [inspections]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -116,7 +125,8 @@ export function InspectionTable({ inspections, selectedInspId, onInspSelect }: I
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-auto">
       <table className="w-full text-sm">
         <thead className="bg-gray-50 sticky top-0 z-10">
           <tr>
@@ -147,7 +157,7 @@ export function InspectionTable({ inspections, selectedInspId, onInspSelect }: I
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
-          {sorted.map((insp) => {
+          {paged.map((insp) => {
             const isSelected = insp.inspection_id === selectedInspId;
             const typeOpt = getInspectionTypeOption(insp.inspection_type);
             const statusOpt = getInspectionStatusOption(insp.status);
@@ -227,6 +237,29 @@ export function InspectionTable({ inspections, selectedInspId, onInspSelect }: I
           })}
         </tbody>
       </table>
+      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-3 py-2 border-t bg-gray-50 text-xs text-gray-600 shrink-0">
+          <span>{sorted.length} inspections</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span>Page {page + 1} of {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

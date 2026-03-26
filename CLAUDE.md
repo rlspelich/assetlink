@@ -483,5 +483,5 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - **Test data generation:** Scripts for both signs (2,000 CSV) and WOs/inspections (60 inspections + 27 WOs via API). Run anytime after database wipe.
 - **2,000-sign test dataset:** Realistic Springfield IL inventory. All MUTCD codes, age/condition/sheeting correlations, real street names.
 - **162+ integration tests passing.** All backend and frontend TypeScript compile clean.
-- **Known issues:** work_order_number unique constraint is global not per-tenant.
+- **Fixed:** work_order_number and inspection_number unique constraints are now per-tenant (composite unique on number + tenant_id).
 - **Remaining for pilot:** Photo upload, GCP deployment.

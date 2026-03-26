@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { WorkOrder } from '../../api/types';
 import {
   getWoStatusOption,
@@ -7,6 +7,8 @@ import {
   formatEnumLabel,
 } from '../../lib/constants';
 import { useUsersList } from '../../hooks/use-users';
+
+const PAGE_SIZE = 25;
 
 interface WorkOrderTableProps {
   workOrders: WorkOrder[];
@@ -61,6 +63,7 @@ function formatShortDate(dateStr: string | null): string {
 export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrderTableProps) {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [page, setPage] = useState(0);
   const selectedRef = useRef<HTMLTableRowElement>(null);
 
   // User lookup for assigned_to display
@@ -105,6 +108,12 @@ export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrd
     return items;
   }, [workOrders, sortField, sortDir]);
 
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paged = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Reset page when data changes
+  useEffect(() => { setPage(0); }, [workOrders]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -135,7 +144,8 @@ export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrd
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-auto">
       <table className="w-full text-sm">
         <thead className="bg-gray-50 sticky top-0 z-10">
           <tr>
@@ -169,7 +179,7 @@ export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrd
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
-          {sorted.map((wo) => {
+          {paged.map((wo) => {
             const isSelected = wo.work_order_id === selectedWOId;
             const priorityOpt = getWoPriorityOption(wo.priority);
             const statusOpt = getWoStatusOption(wo.status);
@@ -232,6 +242,29 @@ export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrd
           })}
         </tbody>
       </table>
+      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-3 py-2 border-t bg-gray-50 text-xs text-gray-600 shrink-0">
+          <span>{sorted.length} work orders</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span>Page {page + 1} of {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

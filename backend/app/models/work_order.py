@@ -10,6 +10,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -27,13 +28,20 @@ class WorkOrder(Base, TenantMixin, TimestampMixin):
     """
 
     __tablename__ = "work_order"
+    __table_args__ = (
+        UniqueConstraint(
+            "work_order_number",
+            "tenant_id",
+            name="uq_work_order_number_tenant",
+        ),
+    )
 
     work_order_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     # Human-readable sequential number (per tenant)
     work_order_number: Mapped[str | None] = mapped_column(
-        String(30), unique=True, index=True
+        String(30), index=True
     )
 
     # --- Asset Link (polymorphic) --- DEPRECATED: use work_order_asset junction table ---

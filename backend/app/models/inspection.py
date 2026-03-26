@@ -10,6 +10,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -27,6 +28,13 @@ class Inspection(Base, TenantMixin, TimestampMixin):
     """
 
     __tablename__ = "inspection"
+    __table_args__ = (
+        UniqueConstraint(
+            "inspection_number",
+            "tenant_id",
+            name="uq_inspection_number_tenant",
+        ),
+    )
 
     inspection_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

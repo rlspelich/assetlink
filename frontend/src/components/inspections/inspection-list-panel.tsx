@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Filter, ChevronDown, AlertCircle, User } from 'lucide-react';
+import { Search, Filter, ChevronDown, ChevronLeft, ChevronRight, AlertCircle, User } from 'lucide-react';
 import type { Inspection } from '../../api/types';
 import { useUsersList } from '../../hooks/use-users';
 import {
@@ -54,7 +54,9 @@ export function InspectionListPanel({
   searchQuery,
   onSearchChange,
 }: InspectionListPanelProps) {
+  const PAGE_SIZE = 25;
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(0);
   const selectedRef = useRef<HTMLDivElement>(null);
   const { data: usersData } = useUsersList();
   const userMap = new Map(
@@ -69,6 +71,11 @@ export function InspectionListPanel({
   }, [selectedInspId]);
 
   const hasActiveFilters = statusFilter || typeFilter || followUpFilter;
+  const totalPages = Math.ceil(inspections.length / PAGE_SIZE);
+  const paged = inspections.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  // Reset page when data changes
+  useEffect(() => { setPage(0); }, [inspections]);
 
   return (
     <div className="w-72 bg-white border-r border-gray-200 flex flex-col h-full shrink-0 overflow-hidden">
@@ -161,7 +168,7 @@ export function InspectionListPanel({
             {hasActiveFilters || searchQuery ? 'No inspections match filters' : 'No inspections yet'}
           </div>
         ) : (
-          inspections.map((insp) => {
+          paged.map((insp) => {
             const isSelected = insp.inspection_id === selectedInspId;
             const condColor = insp.condition_rating
               ? CONDITION_COLORS[insp.condition_rating]
@@ -236,6 +243,28 @@ export function InspectionListPanel({
           })
         )}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-3 py-2 border-t bg-gray-50 text-xs text-gray-600 shrink-0">
+          <span>{inspections.length}</span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={12} />
+            </button>
+            <span>{page + 1}/{totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={12} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

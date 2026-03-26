@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileBarChart,
@@ -17,6 +17,8 @@ import {
   Award,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   AlertCircle,
 } from 'lucide-react';
 import {
@@ -519,12 +521,14 @@ function isOverdue(wo: WorkOrder): boolean {
 }
 
 function WorkOrderStatusList({ startDate, endDate }: { startDate: string; endDate: string }) {
+  const WO_LIST_PAGE_SIZE = 25;
   const navigate = useNavigate();
   const [filter, setFilter] = useState<WoListFilter>('all');
   const [sortField, setSortField] = useState<WoListSortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [page, setPage] = useState(0);
 
-  const { data: woData, isLoading } = useWorkOrdersList({ page_size: 100 });
+  const { data: woData, isLoading } = useWorkOrdersList({ page_size: 500 });
   const { data: usersData } = useUsersList();
 
   const userMap = useMemo(() => {
@@ -595,6 +599,12 @@ function WorkOrderStatusList({ startDate, endDate }: { startDate: string; endDat
     return items;
   }, [filtered, sortField, sortDir]);
 
+  const woTotalPages = Math.ceil(sorted.length / WO_LIST_PAGE_SIZE);
+  const woPaged = sorted.slice(page * WO_LIST_PAGE_SIZE, (page + 1) * WO_LIST_PAGE_SIZE);
+
+  // Reset page when filter/data changes
+  useEffect(() => { setPage(0); }, [filter, startDate, endDate]);
+
   const handleSort = (field: WoListSortField) => {
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -602,6 +612,7 @@ function WorkOrderStatusList({ startDate, endDate }: { startDate: string; endDat
       setSortField(field);
       setSortDir('asc');
     }
+    setPage(0);
   };
 
   const SortIcon = ({ field }: { field: WoListSortField }) => {
@@ -684,7 +695,7 @@ function WorkOrderStatusList({ startDate, endDate }: { startDate: string; endDat
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {sorted.slice(0, 100).map((wo) => {
+                {woPaged.map((wo) => {
                   const priorityOpt = getWoPriorityOption(wo.priority);
                   const statusOpt = getWoStatusOption(wo.status);
                   const assetCount = wo.assets?.length ?? 0;
@@ -741,9 +752,26 @@ function WorkOrderStatusList({ startDate, endDate }: { startDate: string; endDat
               </tbody>
             </table>
           </div>
-          {sorted.length > 100 && (
-            <div className="px-5 py-2 text-xs text-gray-400 border-t border-gray-100">
-              Showing 100 of {sorted.length} work orders. Use filters to narrow results.
+          {woTotalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-2 border-t border-gray-100 text-xs text-gray-600">
+              <span>{sorted.length} work orders</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span>Page {page + 1} of {woTotalPages}</span>
+                <button
+                  onClick={() => setPage((p) => Math.min(woTotalPages - 1, p + 1))}
+                  disabled={page >= woTotalPages - 1}
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
           )}
         </>
@@ -905,12 +933,14 @@ const INSP_LIST_STATUS_ORDER: Record<string, number> = {
 };
 
 function InspectionStatusList({ startDate, endDate }: { startDate: string; endDate: string }) {
+  const INSP_LIST_PAGE_SIZE = 25;
   const navigate = useNavigate();
   const [filter, setFilter] = useState<InspListFilter>('all');
   const [sortField, setSortField] = useState<InspListSortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [page, setPage] = useState(0);
 
-  const { data: inspData, isLoading } = useInspectionsList({ page_size: 100 });
+  const { data: inspData, isLoading } = useInspectionsList({ page_size: 500 });
   const { data: usersData } = useUsersList();
 
   const userMap = useMemo(() => {
@@ -974,6 +1004,12 @@ function InspectionStatusList({ startDate, endDate }: { startDate: string; endDa
     return items;
   }, [filtered, sortField, sortDir]);
 
+  const inspTotalPages = Math.ceil(sorted.length / INSP_LIST_PAGE_SIZE);
+  const inspPaged = sorted.slice(page * INSP_LIST_PAGE_SIZE, (page + 1) * INSP_LIST_PAGE_SIZE);
+
+  // Reset page when filter/data changes
+  useEffect(() => { setPage(0); }, [filter, startDate, endDate]);
+
   const handleSort = (field: InspListSortField) => {
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -981,6 +1017,7 @@ function InspectionStatusList({ startDate, endDate }: { startDate: string; endDa
       setSortField(field);
       setSortDir('asc');
     }
+    setPage(0);
   };
 
   const SortIcon = ({ field }: { field: InspListSortField }) => {
@@ -1059,7 +1096,7 @@ function InspectionStatusList({ startDate, endDate }: { startDate: string; endDa
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {sorted.slice(0, 100).map((insp) => {
+                {inspPaged.map((insp) => {
                   const typeOpt = getInspectionTypeOption(insp.inspection_type);
                   const statusOpt = getInspectionStatusOption(insp.status);
                   const condColor = insp.condition_rating
@@ -1139,9 +1176,26 @@ function InspectionStatusList({ startDate, endDate }: { startDate: string; endDa
               </tbody>
             </table>
           </div>
-          {sorted.length > 100 && (
-            <div className="px-5 py-2 text-xs text-gray-400 border-t border-gray-100">
-              Showing 100 of {sorted.length} inspections. Use filters to narrow results.
+          {inspTotalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-2 border-t border-gray-100 text-xs text-gray-600">
+              <span>{sorted.length} inspections</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span>Page {page + 1} of {inspTotalPages}</span>
+                <button
+                  onClick={() => setPage((p) => Math.min(inspTotalPages - 1, p + 1))}
+                  disabled={page >= inspTotalPages - 1}
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
           )}
         </>
