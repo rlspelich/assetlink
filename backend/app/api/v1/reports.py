@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
 from app.models.inspection import Inspection
+from app.models.inspection_asset import InspectionAsset
 from app.models.sign import Sign, SignSupport
 from app.models.user import AppUser
 from app.models.work_order import WorkOrder
@@ -341,13 +342,25 @@ async def get_inspection_report(
         func.avg(Inspection.condition_rating).filter(
             Inspection.condition_rating.isnot(None),
         ).label("avg_condition_rating"),
-        # Retro
-        func.count().filter(Inspection.retroreflectivity_value.isnot(None)).label("retro_readings_taken"),
-        func.count().filter(Inspection.passes_minimum_retro.is_(True)).label("retro_pass_count"),
-        func.count().filter(Inspection.passes_minimum_retro.is_(False)).label("retro_fail_count"),
     ).where(*base_filters)
 
     stats = (await db.execute(stats_q)).one()
+
+    # Retro stats from inspection_asset (where multi-asset retro data lives)
+    insp_ids_subq = (
+        select(Inspection.inspection_id)
+        .where(*base_filters)
+        .subquery()
+    )
+    retro_q = select(
+        func.count().filter(InspectionAsset.retroreflectivity_value.isnot(None)).label("retro_readings_taken"),
+        func.count().filter(InspectionAsset.passes_minimum_retro.is_(True)).label("retro_pass_count"),
+        func.count().filter(InspectionAsset.passes_minimum_retro.is_(False)).label("retro_fail_count"),
+    ).where(
+        InspectionAsset.inspection_id.in_(select(insp_ids_subq)),
+        InspectionAsset.tenant_id == tenant_id,
+    )
+    retro_stats = (await db.execute(retro_q)).one()
 
     # Total signs in tenant (for coverage rate)
     total_signs_q = select(func.count()).where(Sign.tenant_id == tenant_id)
@@ -356,8 +369,8 @@ async def get_inspection_report(
     total_completed = stats.total_completed
     signs_inspected = stats.signs_inspected
     follow_ups_required = stats.follow_ups_required
-    retro_pass = stats.retro_pass_count
-    retro_fail = stats.retro_fail_count
+    retro_pass = retro_stats.retro_pass_count
+    retro_fail = retro_stats.retro_fail_count
     retro_total = retro_pass + retro_fail
 
     coverage_rate = round((signs_inspected / total_signs) * 100, 1) if total_signs > 0 else None
@@ -462,7 +475,7 @@ async def get_inspection_report(
             else None
         ),
         condition_distribution=condition_distribution,
-        retro_readings_taken=stats.retro_readings_taken,
+        retro_readings_taken=retro_stats.retro_readings_taken,
         retro_pass_count=retro_pass,
         retro_fail_count=retro_fail,
         retro_pass_rate=retro_pass_rate,
