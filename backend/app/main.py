@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.v1 import attachments, dashboard, email, imports, reports, signs, supports, work_orders, inspections, users
+from app.api.v1 import attachments, dashboard, email, estimator, imports, reports, signs, supports, work_orders, inspections, users
 from app.config import settings
 
 
@@ -50,6 +50,8 @@ app.include_router(inspections.router, prefix="/api/v1/inspections", tags=["Insp
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["Reports"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(attachments.router, prefix="/api/v1")
+# Estimator module
+app.include_router(estimator.router, prefix="/api/v1/estimator", tags=["Estimator"])
 
 # Serve uploaded files in dev (local storage)
 uploads_dir = Path(settings.upload_dir)

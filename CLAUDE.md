@@ -323,9 +323,9 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - [x] Asset selection + location placement for WO/inspection creation from map pages
 - [x] Email dialog with user picker from Users & Roles, proper from/reply-to headers
 - [x] WO/inspection test data generation script (60 inspections, 27 WOs via API)
-- [ ] Photo upload
-- [ ] Deploy to Google Cloud (Cloud Run + Cloud SQL)
-- [ ] Pilot municipality onboarded
+- [x] Photo upload
+- [x] Deploy to Google Cloud (Cloud Run + Cloud SQL)
+- [x] Pilot municipality onboarded (Springfield, IL)
 
 ### Phase 1b — Estimator Module (Port from BidParser)
 **Goal:** Port the BidParser Django project into AssetLink as a FastAPI module.
@@ -342,14 +342,18 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - 23 MB SQLite database with schema
 
 **What needs to happen:**
-- [ ] Port Django models → SQLAlchemy (add tenant_id)
-- [ ] Port parsers → FastAPI services
-- [ ] Port pay item categorization
-- [ ] Port cost index adjustment logic
-- [ ] Create Pydantic schemas for bid data
-- [ ] Create API endpoints: search pay items, price history, bid analysis
+- [x] Port Django models → SQLAlchemy (add tenant_id, UUIDs, audit fields)
+- [x] Port parsers → FastAPI services (IDOT bidtabs, IDOT awards, ISTHA)
+- [x] Port pay item categorization (45 divisions, 302 subcategories)
+- [x] Create Pydantic schemas for bid data
+- [x] Create API endpoints: contracts, contractors, bids, pay items, price history, file import
+- [x] Create Alembic migration for all estimator tables
+- [x] Create import service (parser → database with upsert/re-import support)
+- [ ] Port cost index adjustment logic (FHWA NHCCI + BLS PPI)
 - [ ] Estimate builder (new feature — not yet built in BidParser)
 - [ ] Migrate SQLite data → PostgreSQL
+- [ ] Integration tests for estimator module
+- [ ] React frontend for estimator
 
 **Key data models to port:**
 | BidParser (Django) | AssetLink (SQLAlchemy) |
@@ -484,4 +488,38 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - **2,000-sign test dataset:** Realistic Springfield IL inventory. All MUTCD codes, age/condition/sheeting correlations, real street names.
 - **162+ integration tests passing.** All backend and frontend TypeScript compile clean.
 - **Fixed:** work_order_number and inspection_number unique constraints are now per-tenant (composite unique on number + tenant_id).
-- **Remaining for pilot:** Photo upload, GCP deployment.
+- **Phase 1 complete.** Photo upload, GCP deployment done. Springfield IL pilot live.
+
+### 2026-03-27 — Phase 1b Kickoff: Estimator Module Port
+- **Ported 8 SQLAlchemy models from BidParser:** Contract, Contractor, Bid, BidItem, AwardItem, PayItem, CostIndex, CostIndexMapping. All tenant-scoped data tables have tenant_id, UUIDs, audit fields. PayItem/CostIndex/CostIndexMapping are reference tables (no tenant_id).
+- **Ported 3 parsers from BidParser:**
+  - IDOT bid tabs parser (fixed-width mainframe format, 489 lines of parsing logic — handles multi-line contractor names, bad bids, omitted bids, leading-space anomaly, scientific notation)
+  - IDOT awards parser (CSV with date-in-filename, scientific notation fix for contract numbers)
+  - ISTHA bid tabs parser (CSV with dual dates in filename, flattened record → grouped by contractor)
+- **Ported pay item categorization system:** 45 IDOT divisions with code ranges, 302 subcategories, landscaping letter prefix mapping. `categorize_pay_item("40600105")` → `("BITUMINOUS SURFACES AND HOT-MIX ASPHALT PAVEMENTS", "HOT-MIX ASPHALT BINDER AND SURFACE COURSE")`.
+- **Created Pydantic schemas:** Contract, Contractor, Bid, BidItem, AwardItem, PayItem (Create/Update/Out/List), PriceHistory, BidTabImportOut.
+- **Created import service:** Parser → database layer with upsert support. Contracts upsert (re-import deletes existing bids). Contractors get-or-create. Handles all three file formats.
+- **Created 12 API endpoints** under `/api/v1/estimator/`:
+  - `GET /contracts` — list/filter/search with bid counts and low bid totals
+  - `GET /contracts/{id}` — detail with nested bids
+  - `GET /bids/{id}` — detail with all line items and extensions
+  - `GET /contractors` — list/search with bid count and win count
+  - `GET /pay-items` — catalog search by code, description, division
+  - `GET /pay-items/{code}/price-history` — full price history with stats (avg, median, min, max)
+  - `POST /import/idot-bidtabs` — multi-file upload for IDOT bid tab text files
+  - `POST /import/idot-awards` — multi-file upload for IDOT award CSVs
+  - `POST /import/istha-bidtabs` — multi-file upload for ISTHA bid tab CSVs
+- **Created Alembic migration** for all 8 new tables (pay_item, cost_index, cost_index_mapping, contract, contractor, bid, bid_item, award_item).
+- **Refactored award_item to reference table** (no tenant_id) — shared public IDOT data, access gated by modules_enabled.
+- **Built IDOT web scraper** (`idot_scraper.py`): Scrapes IDOT Transportation Bulletin for "Pay Item Report with Awarded Prices" Excel files. Discovers 62 lettings (Jan 2018–Apr 2026) from home page archive dropdown. Downloads .xlsx files with polite concurrency. 60 of 62 downloaded (2 future lettings have no report yet).
+- **Built Excel→CSV converter** (`file_utils.py`): Handles 3 different IDOT Excel format variants (9-col 2018 era, 11-col 2021 era, 10-col 2023+ era with swapped county/district and Awarded column). Auto-detects format. Standardizes to `AWD_IL_IDOT_YYYY_MM_DD.csv` with headers: code, description, unit, quantity, county, district, contract, item, price.
+- **Built bulk loader** (`bulk_loader.py`): Batch INSERT at 6,500 rows/sec with per-file transactions. Loaded 1,385,747 award rows (164 files, 2003–2026) into PostgreSQL in ~3.5 minutes.
+- **GCS buckets created** for bid data: `gs://il-idot-awards` (164 CSVs, 2003–2026), `gs://il-idot-awards-new` (60 scraped .xlsx files), `gs://il-idot-bidtabs` (850 bid tab text files).
+- **Built pricing engine** (`pricing_engine.py`): Queries 1.4M-row award_item table with recency-weighted pricing (exponential decay: 0-2yr=1.0, 2-5yr=0.5, 5-10yr=0.25, 10+yr=0.1). Computes weighted avg, percentiles (p10/p25/p50/p75/p90), min/max. Integrates inflation adjustment and regional factors.
+- **Built inflation service** (`inflation_service.py`): FHWA NHCCI quarterly index data (2003–2025). Maps pay item divisions to index sources via cost_index_mapping. Computes adjustment factor: `adjusted = nominal × (target_index / source_index)`. Seed data bundled.
+- **Built regional service** (`regional_service.py`): State-level cost multipliers (51 states/DC). Illinois = 1.0 baseline. RSMeans-style factors. Seed CSV bundled.
+- **Built estimate service** (`estimate_service.py`): Full CRUD for estimates and items. Auto-prices items from historical data. Recalculate all items on settings change. Duplicate estimates. Confidence scoring per item (percentile rank vs historical distribution).
+- **Created 3 new models:** Estimate (tenant-scoped), EstimateItem (tenant-scoped), RegionalFactor (reference table).
+- **Created Alembic migration** for estimate, estimate_item, regional_factor tables + composite index on award_item(pay_item_code, letting_date).
+- **Data in PostgreSQL:** 1,385,747 award rows, 36,102 unique pay items, 21,029 contracts, 24 years (2003–2026).
+- **Remaining for Phase 1b:** Add new API endpoints (estimate CRUD, price stats, confidence, seed endpoints), integration tests, React frontend for estimator.

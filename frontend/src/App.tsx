@@ -8,6 +8,7 @@ import { DashboardPage } from './routes/dashboard-page';
 import { SettingsPage } from './routes/settings-page';
 import { HelpPage } from './routes/help-page';
 import { ReportsPage } from './routes/reports-page';
+import { EstimatorPage } from './routes/estimator-page';
 
 // Wrappers force full remount when navigating with route state (e.g. from Reports with filter)
 function WorkOrdersPageWrapper() {
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="work-orders" element={<WorkOrdersPageWrapper />} />
             <Route path="inspections" element={<InspectionsPageWrapper />} />
             <Route path="compliance" element={<DashboardPage />} />
+            <Route path="estimator" element={<EstimatorPage />} />
             <Route path="help" element={<HelpPage />} />
             <Route path="settings" element={<SettingsPage />} />
             {/* Legacy routes — redirect */}

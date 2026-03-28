@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Map, Wrench, ClipboardCheck, BarChart3, ShieldCheck, HelpCircle, Settings } from 'lucide-react';
+import { Map, Wrench, ClipboardCheck, BarChart3, ShieldCheck, Calculator, HelpCircle, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/inspections', icon: ClipboardCheck, label: 'Inspections' },
   { to: '/work-orders', icon: Wrench, label: 'Work Orders' },
   { to: '/compliance', icon: ShieldCheck, label: 'Compliance' },
+  { to: '/estimator', icon: Calculator, label: 'Estimator' },
 ];
 
 export function Sidebar() {
