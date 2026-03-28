@@ -49,8 +49,8 @@ tenant_type: "contractor"     modules_enabled: ["estimator", "signs"]  ← does 
 ### Modules (Planned)
 | Module | Status | Target User | Description |
 |--------|--------|-------------|-------------|
-| **Signs** | **Phase 1 — Building Now** | Municipalities | Sign inventory, MUTCD compliance, condition tracking |
-| **Estimator** | **Phase 1b — Port from BidParser** | Contractors | Bid history analysis, cost estimation, price adjustment |
+| **Signs** | **Phase 1 — Complete** | Municipalities | Sign inventory, MUTCD compliance, condition tracking |
+| **Estimator** | **Phase 1b — Complete** | Contractors | 1.4M awarded prices, inflation-adjusted estimates, confidence scoring, 50-state regional factors |
 | Water | Phase 2 | Municipalities | Pipes, valves, hydrants, service connections |
 | Sewer | Phase 2 | Municipalities | Gravity mains, manholes, lift stations, NASSCO PACP/MACP |
 | Roads | Future | Municipalities | Pavement management |
@@ -349,25 +349,32 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - [x] Create API endpoints: contracts, contractors, bids, pay items, price history, file import
 - [x] Create Alembic migration for all estimator tables
 - [x] Create import service (parser → database with upsert/re-import support)
-- [ ] Port cost index adjustment logic (FHWA NHCCI + BLS PPI)
-- [ ] Estimate builder (new feature — not yet built in BidParser)
-- [ ] Migrate SQLite data → PostgreSQL
+- [x] Port cost index adjustment logic (FHWA NHCCI — quarterly data 2003–2025, division-to-index mappings)
+- [x] Estimate builder (create, rename, duplicate, delete, add items, recalculate, CSV export)
+- [x] Migrate award data → PostgreSQL (1,385,747 rows from 164 CSV files, 2003–2026)
+- [x] React frontend for estimator (pay item search, price history charts, estimate builder, confidence badges)
+- [x] IDOT web scraper (downloads Pay Item Award Reports from IDOT Transportation Bulletin)
+- [x] Excel→CSV converter (handles 3 IDOT format variants across 2018–2026)
+- [x] Bulk loader (batch INSERT at 6,500 rows/sec)
+- [x] Pricing engine (recency-weighted averages, inflation adjustment, regional factors)
+- [x] Confidence scoring (percentile rank vs historical distribution)
+- [x] Regional cost factors (all 50 states + DC, RSMeans-style multipliers)
 - [ ] Integration tests for estimator module
-- [ ] React frontend for estimator
 
-**Key data models to port:**
-| BidParser (Django) | AssetLink (SQLAlchemy) |
-|---|---|
-| Contract | contract (+ tenant_id) |
-| Contractor | contractor (+ tenant_id) |
-| Bid | bid (+ tenant_id) |
-| BidItem | bid_item (+ tenant_id) |
-| AwardItem | award_item (+ tenant_id) |
-| PayItem | pay_item (reference table, like sign_type) |
-| CostIndex | cost_index (reference table) |
-| CostIndexMapping | cost_index_mapping (reference table) |
-| Estimate (planned) | estimate (+ tenant_id) |
-| EstimateItem (planned) | estimate_item |
+**Data models:**
+| Table | Type | Description |
+|---|---|---|
+| contract | tenant-scoped | Letting/contract metadata |
+| contractor | tenant-scoped | Bidding contractors |
+| bid | tenant-scoped | One contractor's bid on one contract |
+| bid_item | tenant-scoped | Line items within a bid |
+| award_item | **reference** (shared) | 1.4M rows of IDOT awarded prices (2003–2026) |
+| pay_item | **reference** (shared) | 36K pay item catalog with descriptions/units |
+| cost_index | **reference** (shared) | FHWA NHCCI quarterly inflation indices |
+| cost_index_mapping | **reference** (shared) | Maps pay item divisions to index sources |
+| estimate | tenant-scoped | Contractor's saved estimate/project |
+| estimate_item | tenant-scoped | Line items with auto-priced unit costs |
+| regional_factor | **reference** (shared) | State-level cost multipliers (51 entries) |
 
 ### Phase 2 — Water & Sewer
 - Water pipe, valve, hydrant models and API
