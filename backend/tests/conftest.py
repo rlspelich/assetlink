@@ -116,6 +116,70 @@ async def seeded_client():
     await engine.dispose()
 
 
+@pytest_asyncio.fixture
+async def estimator_seeded_client():
+    """HTTP client with tenants + estimator reference data (pay items, award items, regional factors)."""
+    _sync_sql(
+        f"INSERT INTO tenant (tenant_id, name, subdomain, tenant_type, isolation_model, "
+        f"modules_enabled, subscription_tier, is_active) VALUES "
+        f"('{TENANT_A_ID}', 'Village of Alpha', 'alpha', 'contractor', 'shared', '[\"estimator\"]', 'basic', true), "
+        f"('{TENANT_B_ID}', 'City of Beta', 'beta', 'contractor', 'shared', '[\"estimator\"]', 'basic', true)"
+    )
+
+    # Seed pay items (ON CONFLICT for idempotency — reference tables survive TRUNCATE)
+    _sync_sql("""
+        INSERT INTO pay_item (agency, code, description, unit, division, category, subcategory) VALUES
+        ('IDOT', '20200100', 'EARTH EXCAVATION', 'CU YD', 'EARTHWORK', 'EXCAVATION', 'EARTH EXCAVATION'),
+        ('IDOT', '20201100', 'TRENCH EXCAVATION', 'CU YD', 'EARTHWORK', 'EXCAVATION', 'TRENCH EXCAVATION'),
+        ('IDOT', '20300100', 'SUBGRADE EXCAVATION', 'CU YD', 'EARTHWORK', 'EXCAVATION', 'SUBGRADE'),
+        ('IDOT', '40600100', 'HOT-MIX ASPHALT SURFACE COURSE', 'TON', 'BITUMINOUS SURFACES', 'HMA', 'SURFACE'),
+        ('IDOT', '40601100', 'HOT-MIX ASPHALT BINDER COURSE', 'TON', 'BITUMINOUS SURFACES', 'HMA', 'BINDER'),
+        ('IDOT', '01100100', 'MOBILIZATION', 'L SUM', 'GENERAL CONDITIONS', 'MOBILIZATION', 'MOBILIZATION'),
+        ('IDOT', '01100200', 'MOBILIZATION (SPECIAL)', 'L SUM', 'GENERAL CONDITIONS', 'MOBILIZATION', 'MOBILIZATION SPECIAL'),
+        ('IDOT', '67000100', 'TOPSOIL FURNISH AND PLACE', 'CU YD', 'LANDSCAPING', 'TOPSOIL', 'FURNISH AND PLACE')
+        ON CONFLICT (agency, code) DO NOTHING
+    """)
+
+    # Seed award items (historical price data for pricing engine)
+    _sync_sql("""
+        INSERT INTO award_item (award_item_id, letting_date, pay_item_code, abbreviation, unit, quantity, unit_price, contract_number, county, district) VALUES
+        (gen_random_uuid(), '2024-01-15', '20200100', 'EARTH EXCAV', 'CU YD', 5000, 18.50, '12345', 'COOK', '1'),
+        (gen_random_uuid(), '2024-03-20', '20200100', 'EARTH EXCAV', 'CU YD', 8000, 21.00, '12346', 'DUPAGE', '1'),
+        (gen_random_uuid(), '2024-06-10', '20200100', 'EARTH EXCAV', 'CU YD', 3000, 19.75, '12347', 'WILL', '1'),
+        (gen_random_uuid(), '2023-09-05', '20200100', 'EARTH EXCAV', 'CU YD', 12000, 16.25, '12348', 'KANE', '2'),
+        (gen_random_uuid(), '2023-04-15', '20200100', 'EARTH EXCAV', 'CU YD', 6500, 17.80, '12349', 'LAKE', '1'),
+        (gen_random_uuid(), '2025-01-10', '20200100', 'EARTH EXCAV', 'CU YD', 4200, 22.50, '12350', 'COOK', '1'),
+        (gen_random_uuid(), '2024-08-15', '01100100', 'MOBILIZATION', 'L SUM', 1, 125000.00, '12351', 'COOK', '1'),
+        (gen_random_uuid(), '2024-02-20', '01100100', 'MOBILIZATION', 'L SUM', 1, 95000.00, '12352', 'WILL', '1'),
+        (gen_random_uuid(), '2023-11-10', '01100100', 'MOBILIZATION', 'L SUM', 1, 110000.00, '12353', 'DUPAGE', '1'),
+        (gen_random_uuid(), '2024-05-05', '40600100', 'HMA SURFACE', 'TON', 2500, 98.50, '12354', 'COOK', '1'),
+        (gen_random_uuid(), '2024-07-20', '40600100', 'HMA SURFACE', 'TON', 1800, 105.25, '12355', 'KANE', '2')
+    """)
+
+    engine, factory = _make_engine_and_factory()
+
+    async def _get_db():
+        async with factory() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+
+    app.dependency_overrides[get_db] = _get_db
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as ac:
+        # Seed regional factors and cost indices via API
+        await ac.post("/api/v1/estimator/regional-factors/seed")
+        await ac.post("/api/v1/estimator/cost-indices/seed")
+        yield ac
+    app.dependency_overrides.clear()
+    await engine.dispose()
+
+
 def tenant_a_headers() -> dict[str, str]:
     return {"X-Tenant-ID": str(TENANT_A_ID)}
 

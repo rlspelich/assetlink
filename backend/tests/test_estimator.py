@@ -25,9 +25,9 @@ from tests.conftest import TENANT_A_ID, TENANT_B_ID, tenant_a_headers, tenant_b_
 
 
 @pytest.mark.asyncio
-async def test_pay_item_search_returns_results(seeded_client: AsyncClient):
+async def test_pay_item_search_returns_results(estimator_seeded_client: AsyncClient):
     """Search the pay item catalog by description."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items",
         params={"search": "mobilization", "page_size": 5},
     )
@@ -39,9 +39,9 @@ async def test_pay_item_search_returns_results(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_pay_item_search_no_results(seeded_client: AsyncClient):
+async def test_pay_item_search_no_results(estimator_seeded_client: AsyncClient):
     """Search with a term that has no matches."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items",
         params={"search": "xyznonexistent99999"},
     )
@@ -52,9 +52,9 @@ async def test_pay_item_search_no_results(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_pay_item_search_pagination(seeded_client: AsyncClient):
+async def test_pay_item_search_pagination(estimator_seeded_client: AsyncClient):
     """Pay item search respects pagination."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items",
         params={"search": "excavation", "page_size": 3, "page": 1},
     )
@@ -71,10 +71,10 @@ async def test_pay_item_search_pagination(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_award_price_history(seeded_client: AsyncClient):
+async def test_award_price_history(estimator_seeded_client: AsyncClient):
     """Get price history from the shared award_item table."""
     # Use a common pay item code — check what exists
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/award-items/20200100/price-history",
         params={"limit": 10},
     )
@@ -87,9 +87,9 @@ async def test_award_price_history(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_award_price_history_no_tenant_required(seeded_client: AsyncClient):
+async def test_award_price_history_no_tenant_required(estimator_seeded_client: AsyncClient):
     """Award price history is reference data — no tenant header needed."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/award-items/20200100/price-history",
         params={"limit": 5},
         # Note: no X-Tenant-ID header
@@ -98,9 +98,9 @@ async def test_award_price_history_no_tenant_required(seeded_client: AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_award_price_history_with_filters(seeded_client: AsyncClient):
+async def test_award_price_history_with_filters(estimator_seeded_client: AsyncClient):
     """Award price history supports district and date filters."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/award-items/20200100/price-history",
         params={"district": "1", "min_date": "2020-01-01", "limit": 10},
     )
@@ -113,9 +113,9 @@ async def test_award_price_history_with_filters(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_price_stats(seeded_client: AsyncClient):
+async def test_price_stats(estimator_seeded_client: AsyncClient):
     """Get weighted price statistics for a pay item."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items/20200100/price-stats",
         params={"years_back": 10},
     )
@@ -130,9 +130,9 @@ async def test_price_stats(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_price_stats_with_state(seeded_client: AsyncClient):
+async def test_price_stats_with_state(estimator_seeded_client: AsyncClient):
     """Price stats accept a target state for regional adjustment."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items/20200100/price-stats",
         params={"target_state": "CA", "years_back": 5},
     )
@@ -142,9 +142,9 @@ async def test_price_stats_with_state(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_price_stats_no_data(seeded_client: AsyncClient):
+async def test_price_stats_no_data(estimator_seeded_client: AsyncClient):
     """Price stats for a nonexistent code returns zeros."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items/ZZZZZZZZ/price-stats",
     )
     assert resp.status_code == 200
@@ -159,9 +159,9 @@ async def test_price_stats_no_data(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_confidence_scoring(seeded_client: AsyncClient):
+async def test_confidence_scoring(estimator_seeded_client: AsyncClient):
     """Score a proposed unit price against historical data."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items/20200100/confidence",
         params={"unit_price": 50.0},
     )
@@ -174,9 +174,9 @@ async def test_confidence_scoring(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_confidence_no_data(seeded_client: AsyncClient):
+async def test_confidence_no_data(estimator_seeded_client: AsyncClient):
     """Confidence for a nonexistent code returns no_data."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items/ZZZZZZZZ/confidence",
         params={"unit_price": 100.0},
     )
@@ -187,9 +187,9 @@ async def test_confidence_no_data(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_confidence_percentile_capped(seeded_client: AsyncClient):
+async def test_confidence_percentile_capped(estimator_seeded_client: AsyncClient):
     """Confidence percentile should never exceed 100."""
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items/20200100/confidence",
         params={"unit_price": 999999.0},
     )
@@ -205,9 +205,9 @@ async def test_confidence_percentile_capped(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_create_estimate(seeded_client: AsyncClient):
+async def test_create_estimate(estimator_seeded_client: AsyncClient):
     """Create a new estimate."""
-    resp = await seeded_client.post(
+    resp = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "I-55 Resurfacing", "target_state": "IL"},
         headers=tenant_a_headers(),
@@ -222,19 +222,19 @@ async def test_create_estimate(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_list_estimates(seeded_client: AsyncClient):
+async def test_list_estimates(estimator_seeded_client: AsyncClient):
     """List estimates for a tenant."""
     # Create two estimates
-    await seeded_client.post(
+    await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Estimate A"}, headers=tenant_a_headers(),
     )
-    await seeded_client.post(
+    await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Estimate B"}, headers=tenant_a_headers(),
     )
 
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/estimates", headers=tenant_a_headers(),
     )
     assert resp.status_code == 200
@@ -244,15 +244,15 @@ async def test_list_estimates(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_estimate_detail(seeded_client: AsyncClient):
+async def test_get_estimate_detail(estimator_seeded_client: AsyncClient):
     """Get estimate with items."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Test Detail"}, headers=tenant_a_headers(),
     )
     est_id = create.json()["estimate_id"]
 
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         f"/api/v1/estimator/estimates/{est_id}", headers=tenant_a_headers(),
     )
     assert resp.status_code == 200
@@ -263,15 +263,15 @@ async def test_get_estimate_detail(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_update_estimate_name(seeded_client: AsyncClient):
+async def test_update_estimate_name(estimator_seeded_client: AsyncClient):
     """Rename an estimate."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Old Name"}, headers=tenant_a_headers(),
     )
     est_id = create.json()["estimate_id"]
 
-    resp = await seeded_client.put(
+    resp = await estimator_seeded_client.put(
         f"/api/v1/estimator/estimates/{est_id}",
         json={"name": "New Name"},
         headers=tenant_a_headers(),
@@ -281,36 +281,36 @@ async def test_update_estimate_name(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_delete_estimate(seeded_client: AsyncClient):
+async def test_delete_estimate(estimator_seeded_client: AsyncClient):
     """Delete an estimate."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "To Delete"}, headers=tenant_a_headers(),
     )
     est_id = create.json()["estimate_id"]
 
-    resp = await seeded_client.delete(
+    resp = await estimator_seeded_client.delete(
         f"/api/v1/estimator/estimates/{est_id}", headers=tenant_a_headers(),
     )
     assert resp.status_code == 204
 
     # Verify it's gone
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         f"/api/v1/estimator/estimates/{est_id}", headers=tenant_a_headers(),
     )
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_duplicate_estimate(seeded_client: AsyncClient):
+async def test_duplicate_estimate(estimator_seeded_client: AsyncClient):
     """Duplicate an estimate."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Original"}, headers=tenant_a_headers(),
     )
     est_id = create.json()["estimate_id"]
 
-    resp = await seeded_client.post(
+    resp = await estimator_seeded_client.post(
         f"/api/v1/estimator/estimates/{est_id}/duplicate",
         headers=tenant_a_headers(),
     )
@@ -321,10 +321,10 @@ async def test_duplicate_estimate(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_estimate_not_found(seeded_client: AsyncClient):
+async def test_estimate_not_found(estimator_seeded_client: AsyncClient):
     """Accessing a nonexistent estimate returns 404."""
     fake_id = "00000000-0000-0000-0000-000000000099"
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         f"/api/v1/estimator/estimates/{fake_id}", headers=tenant_a_headers(),
     )
     assert resp.status_code == 404
@@ -336,15 +336,15 @@ async def test_estimate_not_found(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_add_items_to_estimate(seeded_client: AsyncClient):
+async def test_add_items_to_estimate(estimator_seeded_client: AsyncClient):
     """Add pay items to an estimate — should auto-price from historical data."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "With Items"}, headers=tenant_a_headers(),
     )
     est_id = create.json()["estimate_id"]
 
-    resp = await seeded_client.post(
+    resp = await estimator_seeded_client.post(
         f"/api/v1/estimator/estimates/{est_id}/items",
         json=[
             {"pay_item_code": "20200100", "quantity": 1000, "description": "EARTH EXCAVATION", "unit": "CU YD"},
@@ -359,7 +359,7 @@ async def test_add_items_to_estimate(seeded_client: AsyncClient):
     assert float(items[0]["quantity"]) == 1000
 
     # Verify estimate totals updated
-    detail = await seeded_client.get(
+    detail = await estimator_seeded_client.get(
         f"/api/v1/estimator/estimates/{est_id}", headers=tenant_a_headers(),
     )
     assert detail.status_code == 200
@@ -368,15 +368,15 @@ async def test_add_items_to_estimate(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_add_custom_item(seeded_client: AsyncClient):
+async def test_add_custom_item(estimator_seeded_client: AsyncClient):
     """Add a custom item (not in the pay item catalog)."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Custom Items"}, headers=tenant_a_headers(),
     )
     est_id = create.json()["estimate_id"]
 
-    resp = await seeded_client.post(
+    resp = await estimator_seeded_client.post(
         f"/api/v1/estimator/estimates/{est_id}/items",
         json=[
             {"pay_item_code": "CUSTOM_001", "quantity": 1, "description": "Traffic Control Sub", "unit": "L SUM"},
@@ -390,22 +390,22 @@ async def test_add_custom_item(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_update_item_price(seeded_client: AsyncClient):
+async def test_update_item_price(estimator_seeded_client: AsyncClient):
     """Override an item's unit price manually."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Price Override"}, headers=tenant_a_headers(),
     )
     est_id = create.json()["estimate_id"]
 
-    add = await seeded_client.post(
+    add = await estimator_seeded_client.post(
         f"/api/v1/estimator/estimates/{est_id}/items",
         json=[{"pay_item_code": "20200100", "quantity": 100}],
         headers=tenant_a_headers(),
     )
     item_id = add.json()[0]["estimate_item_id"]
 
-    resp = await seeded_client.put(
+    resp = await estimator_seeded_client.put(
         f"/api/v1/estimator/estimates/{est_id}/items/{item_id}",
         json={"unit_price": 55.00, "unit_price_source": "manual"},
         headers=tenant_a_headers(),
@@ -418,29 +418,29 @@ async def test_update_item_price(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_delete_item(seeded_client: AsyncClient):
+async def test_delete_item(estimator_seeded_client: AsyncClient):
     """Remove an item from an estimate."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Delete Item"}, headers=tenant_a_headers(),
     )
     est_id = create.json()["estimate_id"]
 
-    add = await seeded_client.post(
+    add = await estimator_seeded_client.post(
         f"/api/v1/estimator/estimates/{est_id}/items",
         json=[{"pay_item_code": "20200100", "quantity": 100}],
         headers=tenant_a_headers(),
     )
     item_id = add.json()[0]["estimate_item_id"]
 
-    resp = await seeded_client.delete(
+    resp = await estimator_seeded_client.delete(
         f"/api/v1/estimator/estimates/{est_id}/items/{item_id}",
         headers=tenant_a_headers(),
     )
     assert resp.status_code == 204
 
     # Verify item count is 0
-    detail = await seeded_client.get(
+    detail = await estimator_seeded_client.get(
         f"/api/v1/estimator/estimates/{est_id}", headers=tenant_a_headers(),
     )
     assert detail.json()["item_count"] == 0
@@ -452,21 +452,21 @@ async def test_delete_item(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_recalculate_estimate(seeded_client: AsyncClient):
+async def test_recalculate_estimate(estimator_seeded_client: AsyncClient):
     """Recalculate re-runs pricing on all items."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Recalc Test"}, headers=tenant_a_headers(),
     )
     est_id = create.json()["estimate_id"]
 
-    await seeded_client.post(
+    await estimator_seeded_client.post(
         f"/api/v1/estimator/estimates/{est_id}/items",
         json=[{"pay_item_code": "20200100", "quantity": 500}],
         headers=tenant_a_headers(),
     )
 
-    resp = await seeded_client.post(
+    resp = await estimator_seeded_client.post(
         f"/api/v1/estimator/estimates/{est_id}/recalculate",
         headers=tenant_a_headers(),
     )
@@ -483,9 +483,9 @@ async def test_recalculate_estimate(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_list_regional_factors(seeded_client: AsyncClient):
+async def test_list_regional_factors(estimator_seeded_client: AsyncClient):
     """Get all state-level cost factors."""
-    resp = await seeded_client.get("/api/v1/estimator/regional-factors")
+    resp = await estimator_seeded_client.get("/api/v1/estimator/regional-factors")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) > 0
@@ -496,9 +496,9 @@ async def test_list_regional_factors(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_regional_factors_all_states(seeded_client: AsyncClient):
+async def test_regional_factors_all_states(estimator_seeded_client: AsyncClient):
     """All 50 states + DC should have factors."""
-    resp = await seeded_client.get("/api/v1/estimator/regional-factors")
+    resp = await estimator_seeded_client.get("/api/v1/estimator/regional-factors")
     data = resp.json()
     assert len(data) >= 51
 
@@ -509,9 +509,9 @@ async def test_regional_factors_all_states(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_seed_cost_indices(seeded_client: AsyncClient):
+async def test_seed_cost_indices(estimator_seeded_client: AsyncClient):
     """Seed endpoint loads index data and mappings."""
-    resp = await seeded_client.post("/api/v1/estimator/cost-indices/seed")
+    resp = await estimator_seeded_client.post("/api/v1/estimator/cost-indices/seed")
     assert resp.status_code == 200
     data = resp.json()
     assert data["created"] >= 0  # May already be seeded
@@ -519,9 +519,9 @@ async def test_seed_cost_indices(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_seed_regional_factors(seeded_client: AsyncClient):
+async def test_seed_regional_factors(estimator_seeded_client: AsyncClient):
     """Seed endpoint loads regional factors."""
-    resp = await seeded_client.post("/api/v1/estimator/regional-factors/seed")
+    resp = await estimator_seeded_client.post("/api/v1/estimator/regional-factors/seed")
     assert resp.status_code == 200
     data = resp.json()
     assert "created" in data
@@ -533,10 +533,10 @@ async def test_seed_regional_factors(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_estimates_tenant_isolated(seeded_client: AsyncClient):
+async def test_estimates_tenant_isolated(estimator_seeded_client: AsyncClient):
     """Tenant A cannot see Tenant B's estimates."""
     # Create estimate as Tenant A
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Tenant A Secret Bid"},
         headers=tenant_a_headers(),
@@ -544,14 +544,14 @@ async def test_estimates_tenant_isolated(seeded_client: AsyncClient):
     est_id = create.json()["estimate_id"]
 
     # Tenant B cannot see it
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         f"/api/v1/estimator/estimates/{est_id}",
         headers=tenant_b_headers(),
     )
     assert resp.status_code == 404
 
     # Tenant B's list doesn't include it
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/estimates",
         headers=tenant_b_headers(),
     )
@@ -559,16 +559,16 @@ async def test_estimates_tenant_isolated(seeded_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_estimates_require_tenant(seeded_client: AsyncClient):
+async def test_estimates_require_tenant(estimator_seeded_client: AsyncClient):
     """Estimate endpoints require X-Tenant-ID header."""
-    resp = await seeded_client.get("/api/v1/estimator/estimates")
+    resp = await estimator_seeded_client.get("/api/v1/estimator/estimates")
     assert resp.status_code == 400
 
 
 @pytest.mark.asyncio
-async def test_tenant_b_cannot_modify_tenant_a_estimate(seeded_client: AsyncClient):
+async def test_tenant_b_cannot_modify_tenant_a_estimate(estimator_seeded_client: AsyncClient):
     """Tenant B cannot update or delete Tenant A's estimate."""
-    create = await seeded_client.post(
+    create = await estimator_seeded_client.post(
         "/api/v1/estimator/estimates",
         json={"name": "Protected"},
         headers=tenant_a_headers(),
@@ -576,7 +576,7 @@ async def test_tenant_b_cannot_modify_tenant_a_estimate(seeded_client: AsyncClie
     est_id = create.json()["estimate_id"]
 
     # Cannot update
-    resp = await seeded_client.put(
+    resp = await estimator_seeded_client.put(
         f"/api/v1/estimator/estimates/{est_id}",
         json={"name": "Hijacked"},
         headers=tenant_b_headers(),
@@ -584,14 +584,14 @@ async def test_tenant_b_cannot_modify_tenant_a_estimate(seeded_client: AsyncClie
     assert resp.status_code == 404
 
     # Cannot delete
-    resp = await seeded_client.delete(
+    resp = await estimator_seeded_client.delete(
         f"/api/v1/estimator/estimates/{est_id}",
         headers=tenant_b_headers(),
     )
     assert resp.status_code == 404
 
     # Cannot duplicate
-    resp = await seeded_client.post(
+    resp = await estimator_seeded_client.post(
         f"/api/v1/estimator/estimates/{est_id}/duplicate",
         headers=tenant_b_headers(),
     )
@@ -599,14 +599,14 @@ async def test_tenant_b_cannot_modify_tenant_a_estimate(seeded_client: AsyncClie
 
 
 @pytest.mark.asyncio
-async def test_reference_data_no_tenant_needed(seeded_client: AsyncClient):
+async def test_reference_data_no_tenant_needed(estimator_seeded_client: AsyncClient):
     """Pay items, award history, price stats, and regional factors don't need tenant."""
     # Pay items
-    resp = await seeded_client.get(
+    resp = await estimator_seeded_client.get(
         "/api/v1/estimator/pay-items", params={"search": "mob"},
     )
     assert resp.status_code == 200
 
     # Regional factors
-    resp = await seeded_client.get("/api/v1/estimator/regional-factors")
+    resp = await estimator_seeded_client.get("/api/v1/estimator/regional-factors")
     assert resp.status_code == 200
