@@ -21,8 +21,13 @@ from app.main import app
 TENANT_A_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 TENANT_B_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
-# Tables with test data (NOT sign_type — that's seed data)
-_DATA_TABLES = "inspection_asset, work_order_asset, inspection, work_order, sign, sign_support, comment, attachment, app_user, tenant"
+# Tables with test data (NOT sign_type, pay_item, cost_index, regional_factor — those are seed/reference data)
+_DATA_TABLES = (
+    "estimate_item, estimate, "
+    "bid_item, bid, contractor, contract, "
+    "inspection_asset, work_order_asset, inspection, work_order, "
+    "sign, sign_support, comment, attachment, app_user, tenant"
+)
 
 
 def _sync_sql(sql: str):

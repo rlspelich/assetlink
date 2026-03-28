@@ -745,7 +745,13 @@ async def update_estimate_item(
     item = result.scalar_one_or_none()
     if not item: raise HTTPException(status_code=404, detail="Estimate item not found")
     for k, v in data.model_dump(exclude_unset=True).items(): setattr(item, k, v)
-    price = item.regional_unit_price or item.adjusted_unit_price or item.unit_price
+    # Manual overrides use unit_price directly; computed uses regional/adjusted
+    if item.unit_price_source == "manual":
+        price = item.unit_price
+        item.adjusted_unit_price = item.unit_price
+        item.regional_unit_price = item.unit_price
+    else:
+        price = item.regional_unit_price or item.adjusted_unit_price or item.unit_price
     item.extension = round(item.quantity * price, 2)
     await db.flush()
     from app.services.estimator.estimate_service import get_estimate as _get, _update_estimate_totals
