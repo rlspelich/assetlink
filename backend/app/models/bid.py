@@ -12,15 +12,18 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TenantMixin, TimestampMixin
+from app.models.base import Base, TimestampMixin
 
 
-class Bid(Base, TenantMixin, TimestampMixin):
-    """One contractor's bid on one contract."""
+class Bid(Base, TimestampMixin):
+    """One contractor's bid on one contract.
+
+    Reference table — public DOT data, shared across all tenants.
+    """
 
     __tablename__ = "bid"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "contract_id", "contractor_pk", name="uq_bid_contract_contractor"),
+        UniqueConstraint("contract_id", "contractor_pk", name="uq_bid_contract_contractor"),
     )
 
     bid_id: Mapped[uuid.UUID] = mapped_column(
@@ -52,8 +55,11 @@ class Bid(Base, TenantMixin, TimestampMixin):
     items: Mapped[list["BidItem"]] = relationship("BidItem", back_populates="bid", cascade="all, delete-orphan")
 
 
-class BidItem(Base, TenantMixin):
-    """One line item within a bid."""
+class BidItem(Base):
+    """One line item within a bid.
+
+    Reference table — public DOT data, shared across all tenants.
+    """
 
     __tablename__ = "bid_item"
 

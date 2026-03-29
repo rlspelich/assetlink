@@ -4,15 +4,18 @@ from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TenantMixin, TimestampMixin
+from app.models.base import Base, TimestampMixin
 
 
-class Contractor(Base, TenantMixin, TimestampMixin):
-    """Unique contractor who bids on contracts."""
+class Contractor(Base, TimestampMixin):
+    """Unique contractor who bids on contracts.
+
+    Reference table — public DOT data, shared across all tenants.
+    """
 
     __tablename__ = "contractor"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "contractor_id_code", "name", name="uq_contractor_id_name"),
+        UniqueConstraint("contractor_id_code", "name", name="uq_contractor_id_name"),
     )
 
     contractor_pk: Mapped[uuid.UUID] = mapped_column(

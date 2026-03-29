@@ -3,24 +3,26 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     Date,
-    DateTime,
     Integer,
     String,
     UniqueConstraint,
-    func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TenantMixin, TimestampMixin
+from app.models.base import Base, TimestampMixin
 
 
-class Contract(Base, TenantMixin, TimestampMixin):
-    """One letting/contract from a transportation agency bid letting."""
+class Contract(Base, TimestampMixin):
+    """One letting/contract from a transportation agency bid letting.
+
+    Reference table — public DOT data, shared across all tenants.
+    Access gated by modules_enabled on the tenant, not row-level ownership.
+    """
 
     __tablename__ = "contract"
     __table_args__ = (
-        UniqueConstraint("tenant_id", "number", "agency", name="uq_contract_number_agency"),
+        UniqueConstraint("number", "agency", name="uq_contract_number_agency"),
     )
 
     contract_id: Mapped[uuid.UUID] = mapped_column(

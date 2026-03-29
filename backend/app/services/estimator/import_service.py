@@ -2,7 +2,8 @@
 Bid data import service — saves parsed bid tab data to the database.
 
 Handles IDOT bid tabs, IDOT awards, and ISTHA bid tabs.
-All imports are tenant-scoped and use atomic transactions per file.
+Contract, Contractor, Bid, and BidItem are reference tables (no tenant_id) —
+public DOT data shared across all tenants. AwardItem is also a reference table.
 """
 from __future__ import annotations
 
@@ -30,7 +31,6 @@ from app.services.estimator.parsers.istha_bidtabs import ParsedISTHA
 
 async def import_idot_bidtab(
     db: AsyncSession,
-    tenant_id: uuid.UUID,
     parsed: ParsedBidTab,
     source_file: str = "",
 ) -> dict:
@@ -53,7 +53,6 @@ async def import_idot_bidtab(
     # Upsert contract
     result = await db.execute(
         select(Contract).where(
-            Contract.tenant_id == tenant_id,
             Contract.number == header.contract_number,
             Contract.agency == "IDOT",
         )
@@ -63,7 +62,6 @@ async def import_idot_bidtab(
 
     if contract is None:
         contract = Contract(
-            tenant_id=tenant_id,
             number=header.contract_number,
             agency="IDOT",
         )
@@ -87,7 +85,6 @@ async def import_idot_bidtab(
     # Delete existing bids for this contract (allows re-import)
     await db.execute(
         delete(Bid).where(
-            Bid.tenant_id == tenant_id,
             Bid.contract_id == contract.contract_id,
         )
     )
@@ -110,7 +107,6 @@ async def import_idot_bidtab(
         # Get or create contractor
         result = await db.execute(
             select(Contractor).where(
-                Contractor.tenant_id == tenant_id,
                 Contractor.contractor_id_code == cid,
                 Contractor.name == contractor_name,
             )
@@ -118,7 +114,6 @@ async def import_idot_bidtab(
         contractor = result.scalar_one_or_none()
         if contractor is None:
             contractor = Contractor(
-                tenant_id=tenant_id,
                 contractor_id_code=cid,
                 name=contractor_name,
             )
@@ -132,7 +127,6 @@ async def import_idot_bidtab(
 
         # Create bid
         bid = Bid(
-            tenant_id=tenant_id,
             contract_id=contract.contract_id,
             contractor_pk=contractor.contractor_pk,
             rank=rankings.get(contractor_name, 0),
@@ -152,7 +146,6 @@ async def import_idot_bidtab(
             for line_bid in line_item.bids:
                 if line_bid.contractor_name == contractor_name:
                     bid_item = BidItem(
-                        tenant_id=tenant_id,
                         bid_id=bid.bid_id,
                         pay_item_code=line_item.item_code,
                         abbreviation=line_item.abbreviation,
@@ -227,7 +220,6 @@ async def import_idot_awards(
 
 async def import_istha_bidtabs(
     db: AsyncSession,
-    tenant_id: uuid.UUID,
     parsed: ParsedISTHA,
 ) -> dict:
     """
@@ -251,7 +243,6 @@ async def import_istha_bidtabs(
     contract_number = parsed.project_id
     result = await db.execute(
         select(Contract).where(
-            Contract.tenant_id == tenant_id,
             Contract.number == contract_number,
             Contract.agency == "ISTHA",
         )
@@ -261,7 +252,6 @@ async def import_istha_bidtabs(
 
     if contract is None:
         contract = Contract(
-            tenant_id=tenant_id,
             number=contract_number,
             letting_date=parsed.letting_date,
             agency="ISTHA",
@@ -279,7 +269,6 @@ async def import_istha_bidtabs(
     # Delete existing bids for re-import
     await db.execute(
         delete(Bid).where(
-            Bid.tenant_id == tenant_id,
             Bid.contract_id == contract.contract_id,
         )
     )
@@ -292,7 +281,6 @@ async def import_istha_bidtabs(
         # Get or create contractor
         result = await db.execute(
             select(Contractor).where(
-                Contractor.tenant_id == tenant_id,
                 Contractor.name == contractor_name,
                 Contractor.contractor_id_code == "",
             )
@@ -300,7 +288,6 @@ async def import_istha_bidtabs(
         contractor = result.scalar_one_or_none()
         if contractor is None:
             contractor = Contractor(
-                tenant_id=tenant_id,
                 contractor_id_code="",
                 name=contractor_name,
             )
@@ -311,7 +298,6 @@ async def import_istha_bidtabs(
         # Use first record for bid-level data
         first = records[0]
         bid = Bid(
-            tenant_id=tenant_id,
             contract_id=contract.contract_id,
             contractor_pk=contractor.contractor_pk,
             rank=first.rank,
@@ -329,7 +315,6 @@ async def import_istha_bidtabs(
         # Create bid items
         for record in records:
             bid_item = BidItem(
-                tenant_id=tenant_id,
                 bid_id=bid.bid_id,
                 pay_item_code=record.pay_item_code,
                 abbreviation=record.abbreviation,

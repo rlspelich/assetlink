@@ -42,7 +42,6 @@ class ContractUpdate(BaseModel):
 
 class ContractOut(BaseModel):
     contract_id: uuid.UUID
-    tenant_id: uuid.UUID
     number: str
     letting_date: date
     letting_type: str
@@ -91,7 +90,6 @@ class ContractorUpdate(BaseModel):
 
 class ContractorOut(BaseModel):
     contractor_pk: uuid.UUID
-    tenant_id: uuid.UUID
     contractor_id_code: str
     name: str
     bid_count: int = 0
@@ -126,7 +124,6 @@ class BidCreate(BaseModel):
 
 class BidOut(BaseModel):
     bid_id: uuid.UUID
-    tenant_id: uuid.UUID
     contract_id: uuid.UUID
     contractor_pk: uuid.UUID
     contractor_name: str = ""

@@ -21,10 +21,10 @@ from app.main import app
 TENANT_A_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 TENANT_B_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
-# Tables with test data (NOT reference/seed tables like sign_type, water_material_type, etc.)
+# Tables with test data (NOT reference/seed tables like sign_type, water_material_type,
+# contract, contractor, bid, bid_item, etc.)
 _DATA_TABLES = (
     "estimate_item, estimate, "
-    "bid_item, bid, contractor, contract, "
     "inspection_asset, work_order_asset, inspection, work_order, "
     "sign, sign_support, comment, attachment, "
     "water_valve_main, water_service, water_fitting, fire_hydrant, water_valve, water_main, pressure_zone, "

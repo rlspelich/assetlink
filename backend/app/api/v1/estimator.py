@@ -52,7 +52,6 @@ router = APIRouter()
 
 @router.get("/contracts", response_model=ContractListOut)
 async def list_contracts(
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
@@ -61,8 +60,8 @@ async def list_contracts(
     district: str | None = None,
     search: str | None = None,
 ):
-    """List contracts with optional filters."""
-    query = select(Contract).where(Contract.tenant_id == tenant_id)
+    """List contracts with optional filters. Reference data — no tenant filter."""
+    query = select(Contract)
 
     if agency:
         query = query.where(Contract.agency == agency)
@@ -126,13 +125,12 @@ async def list_contracts(
 @router.get("/contracts/{contract_id}", response_model=ContractDetailOut)
 async def get_contract(
     contract_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get contract detail with all bids."""
+    """Get contract detail with all bids. Reference data — no tenant filter."""
     result = await db.execute(
         select(Contract)
-        .where(Contract.tenant_id == tenant_id, Contract.contract_id == contract_id)
+        .where(Contract.contract_id == contract_id)
     )
     contract = result.scalar_one_or_none()
     if not contract:
@@ -142,7 +140,7 @@ async def get_contract(
     bid_result = await db.execute(
         select(Bid)
         .options(selectinload(Bid.contractor), selectinload(Bid.items))
-        .where(Bid.contract_id == contract_id, Bid.tenant_id == tenant_id)
+        .where(Bid.contract_id == contract_id)
         .order_by(Bid.rank)
     )
     bids = bid_result.scalars().all()
@@ -151,7 +149,6 @@ async def get_contract(
     for bid in bids:
         bid_outs.append(BidOut(
             bid_id=bid.bid_id,
-            tenant_id=bid.tenant_id,
             contract_id=bid.contract_id,
             contractor_pk=bid.contractor_pk,
             contractor_name=bid.contractor.name if bid.contractor else "",
@@ -170,7 +167,6 @@ async def get_contract(
 
     return ContractDetailOut(
         contract_id=contract.contract_id,
-        tenant_id=contract.tenant_id,
         number=contract.number,
         letting_date=contract.letting_date,
         letting_type=contract.letting_type,
@@ -200,14 +196,13 @@ async def get_contract(
 @router.get("/bids/{bid_id}", response_model=BidDetailOut)
 async def get_bid(
     bid_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get bid detail with all line items."""
+    """Get bid detail with all line items. Reference data — no tenant filter."""
     result = await db.execute(
         select(Bid)
         .options(selectinload(Bid.contractor), selectinload(Bid.items))
-        .where(Bid.tenant_id == tenant_id, Bid.bid_id == bid_id)
+        .where(Bid.bid_id == bid_id)
     )
     bid = result.scalar_one_or_none()
     if not bid:
@@ -230,7 +225,6 @@ async def get_bid(
 
     return BidDetailOut(
         bid_id=bid.bid_id,
-        tenant_id=bid.tenant_id,
         contract_id=bid.contract_id,
         contractor_pk=bid.contractor_pk,
         contractor_name=bid.contractor.name if bid.contractor else "",
@@ -256,14 +250,13 @@ async def get_bid(
 
 @router.get("/contractors", response_model=ContractorListOut)
 async def list_contractors(
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     search: str | None = None,
 ):
-    """List contractors with search."""
-    query = select(Contractor).where(Contractor.tenant_id == tenant_id)
+    """List contractors with search. Reference data — no tenant filter."""
+    query = select(Contractor)
 
     if search:
         query = query.where(
@@ -302,7 +295,6 @@ async def list_contractors(
         contractors=[
             ContractorOut(
                 contractor_pk=c.contractor_pk,
-                tenant_id=c.tenant_id,
                 contractor_id_code=c.contractor_id_code,
                 name=c.name,
                 bid_count=bid_counts.get(c.contractor_pk, 0),
@@ -362,11 +354,10 @@ async def list_pay_items(
 @router.get("/pay-items/{code}/price-history", response_model=PriceHistoryOut)
 async def get_price_history(
     code: str,
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
     agency: str = "IDOT",
 ):
-    """Get price history for a pay item across all contracts."""
+    """Get price history for a pay item across all contracts. Reference data."""
     # Get pay item info
     pay_item = await db.execute(
         select(PayItem).where(PayItem.agency == agency, PayItem.code == code)
@@ -380,7 +371,6 @@ async def get_price_history(
         .join(Contract, Bid.contract_id == Contract.contract_id)
         .join(Contractor, Bid.contractor_pk == Contractor.contractor_pk)
         .where(
-            BidItem.tenant_id == tenant_id,
             BidItem.pay_item_code == code,
             BidItem.was_omitted == False,
             BidItem.unit_price > 0,
@@ -432,10 +422,9 @@ async def get_price_history(
 @router.post("/import/idot-bidtabs", response_model=BidTabImportOut)
 async def import_idot_bidtabs(
     files: list[UploadFile] = File(...),
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload and import one or more IDOT bid tab text files."""
+    """Upload and import one or more IDOT bid tab text files (reference data)."""
     from app.services.estimator.parsers.idot_bidtabs import parse_idot_file
     from app.services.estimator.import_service import import_idot_bidtab
 
@@ -449,7 +438,7 @@ async def import_idot_bidtabs(
             lines = text.splitlines()
 
             parsed = parse_idot_file(lines, source_file=upload.filename or "")
-            result = await import_idot_bidtab(db, tenant_id, parsed, upload.filename or "")
+            result = await import_idot_bidtab(db, parsed, upload.filename or "")
 
             if "error" in result:
                 totals.errors.append(f"{upload.filename}: {result['error']}")
@@ -512,10 +501,9 @@ async def import_idot_awards_endpoint(
 @router.post("/import/istha-bidtabs", response_model=BidTabImportOut)
 async def import_istha_bidtabs_endpoint(
     files: list[UploadFile] = File(...),
-    tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload and import one or more ISTHA bid tab CSV files."""
+    """Upload and import one or more ISTHA bid tab CSV files (reference data)."""
     from app.services.estimator.parsers.istha_bidtabs import parse_istha_file
     from app.services.estimator.import_service import import_istha_bidtabs
 
@@ -528,7 +516,7 @@ async def import_istha_bidtabs_endpoint(
             text = content.decode("utf-8", errors="replace")
 
             parsed = parse_istha_file(text, source_file=upload.filename or "")
-            result = await import_istha_bidtabs(db, tenant_id, parsed)
+            result = await import_istha_bidtabs(db, parsed)
 
             if "error" in result:
                 totals.errors.append(f"{upload.filename}: {result['error']}")
