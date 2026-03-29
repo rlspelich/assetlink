@@ -16,6 +16,31 @@ from app.models.pay_item import PayItem
 from app.models.cost_index import CostIndex, CostIndexMapping
 from app.models.estimate import Estimate, EstimateItem
 from app.models.regional_factor import RegionalFactor
+# Water module models
+from app.models.water import (
+    WaterMaterialType,
+    WaterValveType,
+    PressureZone,
+    WaterMain,
+    WaterValve,
+    WaterValveMain,
+    FireHydrant,
+    WaterService,
+    WaterFitting,
+)
+# Sewer module models
+from app.models.sewer import (
+    SewerMaterialType,
+    SewerPipeShape,
+    ManholeType,
+    Manhole,
+    SewerMain,
+    ForceMain,
+    LiftStation,
+    SewerLateral,
+    SewerFitting,
+    ManholePipe,
+)
 
 __all__ = [
     "Base",
@@ -42,4 +67,25 @@ __all__ = [
     "Estimate",
     "EstimateItem",
     "RegionalFactor",
+    # Water module
+    "WaterMaterialType",
+    "WaterValveType",
+    "PressureZone",
+    "WaterMain",
+    "WaterValve",
+    "WaterValveMain",
+    "FireHydrant",
+    "WaterService",
+    "WaterFitting",
+    # Sewer module
+    "SewerMaterialType",
+    "SewerPipeShape",
+    "ManholeType",
+    "Manhole",
+    "SewerMain",
+    "ForceMain",
+    "LiftStation",
+    "SewerLateral",
+    "SewerFitting",
+    "ManholePipe",
 ]

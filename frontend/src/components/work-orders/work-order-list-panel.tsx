@@ -1,11 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Filter, ChevronDown, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User } from 'lucide-react';
 import type { WorkOrder } from '../../api/types';
 import { useUsersList } from '../../hooks/use-users';
 import {
-  WO_STATUS_OPTIONS,
-  WO_PRIORITY_OPTIONS,
-  WO_WORK_TYPE_OPTIONS,
   getWoStatusOption,
   getWoPriorityMarkerColor,
   formatEnumLabel,
@@ -41,21 +38,12 @@ function formatDate(dateStr: string | null): string {
 
 export function WorkOrderListPanel({
   workOrders,
-  total,
   isLoading,
   selectedWOId,
   onWOSelect,
-  statusFilter,
-  onStatusFilterChange,
-  priorityFilter,
-  onPriorityFilterChange,
-  workTypeFilter,
-  onWorkTypeFilterChange,
   searchQuery,
-  onSearchChange,
 }: WorkOrderListPanelProps) {
   const PAGE_SIZE = 25;
-  const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
   const selectedRef = useRef<HTMLDivElement>(null);
   const { data: usersData } = useUsersList();
@@ -70,7 +58,6 @@ export function WorkOrderListPanel({
     }
   }, [selectedWOId]);
 
-  const hasActiveFilters = statusFilter || priorityFilter || workTypeFilter;
   const totalPages = Math.ceil(workOrders.length / PAGE_SIZE);
   const paged = workOrders.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
@@ -79,94 +66,13 @@ export function WorkOrderListPanel({
 
   return (
     <div className="w-72 bg-white border-r border-gray-200 flex flex-col h-full shrink-0 overflow-hidden">
-      {/* Header */}
-      <div className="px-3 py-3 border-b bg-gray-50">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-gray-900">Work Orders</h3>
-          <span className="text-xs text-gray-500">{total} total</span>
-        </div>
-
-        {/* Search */}
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search WO #, description, address..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-
-        {/* Filter toggle */}
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-1 mt-2 text-xs transition-colors ${
-            hasActiveFilters ? 'text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <Filter size={12} />
-          Filters
-          {hasActiveFilters && (
-            <span className="bg-blue-100 text-blue-700 rounded-full px-1.5 text-[10px]">
-              {[statusFilter, priorityFilter, workTypeFilter].filter(Boolean).length}
-            </span>
-          )}
-          <ChevronDown size={12} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-        </button>
-
-        {/* Filters panel */}
-        {showFilters && (
-          <div className="mt-2 space-y-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => onStatusFilterChange(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">All statuses</option>
-              {WO_STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-            <select
-              value={priorityFilter}
-              onChange={(e) => onPriorityFilterChange(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">All priorities</option>
-              {WO_PRIORITY_OPTIONS.map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-            </select>
-            <select
-              value={workTypeFilter}
-              onChange={(e) => onWorkTypeFilterChange(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">All types</option>
-              {WO_WORK_TYPE_OPTIONS.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-            {hasActiveFilters && (
-              <button
-                onClick={() => { onStatusFilterChange(''); onPriorityFilterChange(''); onWorkTypeFilterChange(''); }}
-                className="text-[10px] text-red-500 hover:text-red-700"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* WO list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="py-8 text-center text-xs text-gray-400">Loading work orders...</div>
         ) : workOrders.length === 0 ? (
           <div className="py-8 text-center text-xs text-gray-400">
-            {hasActiveFilters || searchQuery ? 'No work orders match filters' : 'No work orders yet'}
+            {searchQuery ? 'No work orders match filters' : 'No work orders yet'}
           </div>
         ) : (
           paged.map((wo) => {

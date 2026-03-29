@@ -183,3 +183,45 @@ export function getInspectionMarkerColor(
   if (status === 'completed') return '#22c55e';
   return '#eab308';
 }
+
+// --- Sewer constants ---
+
+export const SEWER_SYSTEM_TYPE_OPTIONS = [
+  { value: 'sanitary', label: 'Sanitary', color: 'bg-blue-100 text-blue-800', hex: '#3b82f6' },
+  { value: 'storm', label: 'Storm', color: 'bg-cyan-100 text-cyan-800', hex: '#06b6d4' },
+  { value: 'combined', label: 'Combined', color: 'bg-purple-100 text-purple-800', hex: '#8b5cf6' },
+] as const;
+
+export const SEWER_STATUS_OPTIONS = [
+  'active', 'inactive', 'abandoned', 'removed', 'proposed',
+] as const;
+
+export function getSewerSystemColor(systemType: string): string {
+  const opt = SEWER_SYSTEM_TYPE_OPTIONS.find(o => o.value === systemType);
+  return opt?.hex ?? '#6b7280';
+}
+
+export function getSewerAssetColor(condition: number | null, status: string): string {
+  if (INACTIVE_STATUSES.has(status) || status === 'inactive' || status === 'abandoned') return INACTIVE_COLOR.hex;
+  if (condition && CONDITION_COLORS[condition]) return CONDITION_COLORS[condition].hex;
+  return UNRATED_COLOR.hex;
+}
+
+// --- Water constants ---
+
+export const WATER_STATUS_OPTIONS = [
+  'active', 'inactive', 'abandoned', 'removed', 'proposed',
+] as const;
+
+export function getWaterAssetColor(condition: number | null, status: string): string {
+  if (INACTIVE_STATUSES.has(status) || status === 'inactive' || status === 'abandoned') return INACTIVE_COLOR.hex;
+  if (condition && CONDITION_COLORS[condition]) return CONDITION_COLORS[condition].hex;
+  return UNRATED_COLOR.hex;
+}
+
+export const HYDRANT_FLOW_COLORS: Record<string, { label: string; hex: string }> = {
+  blue: { label: 'Class AA (1500+ GPM)', hex: '#3b82f6' },
+  green: { label: 'Class A (1000-1499 GPM)', hex: '#22c55e' },
+  orange: { label: 'Class B (500-999 GPM)', hex: '#f97316' },
+  red: { label: 'Class C (<500 GPM)', hex: '#ef4444' },
+};

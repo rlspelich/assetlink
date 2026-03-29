@@ -20,9 +20,9 @@ interface WorkOrderMapProps {
 }
 
 const INITIAL_VIEW = {
-  longitude: -89.65,
-  latitude: 39.78,
-  zoom: 13,
+  longitude: -89.644,
+  latitude: 39.799,
+  zoom: 14,
 };
 
 const COMPLETED_STATUSES = new Set(['completed', 'cancelled']);
@@ -103,12 +103,12 @@ export function WorkOrderMap({
       mapRef.current.flyTo({
         center: [geoWOs[0].longitude!, geoWOs[0].latitude!],
         zoom: 15,
-        duration: 0,
+        duration: 800,
       });
     } else {
       const bounds = calcBounds(geoWOs);
       if (bounds) {
-        mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 0 });
+        mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 800 });
       }
     }
   }, [workOrders]);

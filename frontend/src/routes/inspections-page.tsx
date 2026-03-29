@@ -244,10 +244,7 @@ export function InspectionsPage() {
     setSelectedInspectionId(null);
   }, []);
 
-  const geoInspCount = useMemo(
-    () => filteredInspections.filter((i) => i.longitude != null && i.latitude != null).length,
-    [filteredInspections],
-  );
+
 
   const hasActiveFilters = statusFilter || typeFilter || followUpFilter || inspectorFilter;
 
@@ -361,6 +358,9 @@ export function InspectionsPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      {/* Full-width header bar — always visible */}
+      {headerBar}
+
       {/* Map View: original layout with list panel */}
       {viewMode === 'map' && (
         <div className="flex-1 flex overflow-hidden">
@@ -427,33 +427,6 @@ export function InspectionsPage() {
               </div>
             )}
 
-            {/* Status bar with Create button (hidden during selection) */}
-            {creationMode === 'idle' && (
-              <div className="absolute top-4 left-4 flex items-center gap-2">
-                <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
-                  {filteredInspections.length === (data?.total ?? 0) ? (
-                    <span>{data?.total ?? 0} inspections{geoInspCount < filteredInspections.length ? ` (${geoInspCount} mapped)` : ''}</span>
-                  ) : (
-                    <span>{filteredInspections.length} of {data?.total ?? 0} inspections</span>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleCreate}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
-                >
-                  <Plus size={14} />
-                  New Inspection
-                </button>
-              </div>
-            )}
-
-            {/* View mode toggle — top center */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2">
-              <div className="bg-white/90 backdrop-blur rounded-full shadow">
-                <ViewModeToggle mode={viewMode} onChange={setViewMode} />
-              </div>
-            </div>
           </div>
 
           {/* Right: Detail panel */}
@@ -474,10 +447,9 @@ export function InspectionsPage() {
         </div>
       )}
 
-      {/* Table View: header bar + full table + detail panel */}
+      {/* Table View: full table + detail panel */}
       {viewMode === 'table' && (
         <>
-          {headerBar}
           <div className="flex-1 flex overflow-hidden">
             <InspectionTable
               inspections={filteredInspections}
@@ -504,10 +476,9 @@ export function InspectionsPage() {
         </>
       )}
 
-      {/* Split View: header bar + map (60%) + table (40%) + detail panel */}
+      {/* Split View: map (60%) + table (40%) + detail panel */}
       {viewMode === 'split' && (
         <>
-          {headerBar}
           <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Map — 60% */}

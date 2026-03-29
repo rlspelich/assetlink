@@ -19,9 +19,9 @@ interface InspectionMapProps {
 }
 
 const INITIAL_VIEW = {
-  longitude: -89.65,
-  latitude: 39.78,
-  zoom: 13,
+  longitude: -89.644,
+  latitude: 39.799,
+  zoom: 14,
 };
 
 function calcBounds(items: Array<{ longitude: number | null; latitude: number | null }>): [[number, number], [number, number]] | null {
@@ -102,12 +102,12 @@ export function InspectionMap({
       mapRef.current.flyTo({
         center: [geoInsps[0].longitude!, geoInsps[0].latitude!],
         zoom: 15,
-        duration: 0,
+        duration: 800,
       });
     } else {
       const bounds = calcBounds(geoInsps);
       if (bounds) {
-        mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 0 });
+        mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 800 });
       }
     }
   }, [inspections]);

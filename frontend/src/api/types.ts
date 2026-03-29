@@ -687,3 +687,751 @@ export interface Attachment {
   uploaded_by: string | null;
   uploaded_at: string;
 }
+
+// ---------------------------------------------------------------------------
+// Sewer Module
+// ---------------------------------------------------------------------------
+
+// --- Reference / Lookup Types ---
+
+export interface SewerMaterialType {
+  code: string;
+  description: string;
+  expected_life_years: number | null;
+  is_active: boolean;
+}
+
+export interface SewerPipeShape {
+  code: string;
+  description: string;
+  is_active: boolean;
+}
+
+export interface ManholeType {
+  code: string;
+  description: string;
+  is_active: boolean;
+}
+
+// --- Manhole (Point) ---
+
+export interface Manhole {
+  manhole_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  description: string | null;
+  manhole_type_code: string | null;
+  material: string | null;
+  diameter_inches: number | null;
+  rim_elevation_ft: number | null;
+  invert_elevation_ft: number | null;
+  depth_ft: number | null;
+  cover_type: string | null;
+  cover_diameter_inches: number | null;
+  frame_type: string | null;
+  has_steps: boolean | null;
+  step_material: string | null;
+  cone_type: string | null;
+  chimney_height_inches: number | null;
+  channel_type: string | null;
+  bench_type: string | null;
+  system_type: string;
+  macp_grade: number | null;
+  macp_score: number | null;
+  last_macp_date: string | null;
+  status: string;
+  install_date: string | null;
+  condition_rating: number | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  longitude: number;
+  latitude: number;
+  pipe_connection_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ManholeCreate {
+  asset_tag?: string;
+  description?: string;
+  manhole_type_code?: string;
+  material?: string;
+  diameter_inches?: number;
+  rim_elevation_ft?: number;
+  invert_elevation_ft?: number;
+  depth_ft?: number;
+  cover_type?: string;
+  cover_diameter_inches?: number;
+  frame_type?: string;
+  has_steps?: boolean;
+  step_material?: string;
+  cone_type?: string;
+  chimney_height_inches?: number;
+  channel_type?: string;
+  bench_type?: string;
+  system_type?: string;
+  macp_grade?: number;
+  macp_score?: number;
+  last_macp_date?: string;
+  status?: string;
+  install_date?: string;
+  condition_rating?: number;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  longitude: number;
+  latitude: number;
+}
+
+export interface ManholeListResponse {
+  manholes: Manhole[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// --- Sewer Main — Gravity (LineString) ---
+
+export interface SewerMain {
+  sewer_main_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  description: string | null;
+  material_code: string | null;
+  shape_code: string | null;
+  diameter_inches: number | null;
+  height_inches: number | null;
+  width_inches: number | null;
+  length_feet: number | null;
+  lining_type: string | null;
+  lining_date: string | null;
+  lining_thickness_mm: number | null;
+  depth_ft_upstream: number | null;
+  depth_ft_downstream: number | null;
+  slope_pct: number | null;
+  upstream_invert_ft: number | null;
+  downstream_invert_ft: number | null;
+  upstream_manhole_id: string | null;
+  downstream_manhole_id: string | null;
+  system_type: string;
+  owner: string;
+  maintained_by: string | null;
+  pacp_grade: number | null;
+  pacp_structural_score: number | null;
+  pacp_om_score: number | null;
+  last_pacp_date: string | null;
+  status: string;
+  install_date: string | null;
+  condition_rating: number | null;
+  expected_life_years: number | null;
+  replacement_cost: number | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  coordinates: number[][] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SewerMainCreate {
+  asset_tag?: string;
+  description?: string;
+  material_code?: string;
+  shape_code?: string;
+  diameter_inches?: number;
+  height_inches?: number;
+  width_inches?: number;
+  length_feet?: number;
+  lining_type?: string;
+  lining_date?: string;
+  lining_thickness_mm?: number;
+  depth_ft_upstream?: number;
+  depth_ft_downstream?: number;
+  slope_pct?: number;
+  upstream_invert_ft?: number;
+  downstream_invert_ft?: number;
+  upstream_manhole_id?: string;
+  downstream_manhole_id?: string;
+  system_type?: string;
+  owner?: string;
+  maintained_by?: string;
+  pacp_grade?: number;
+  pacp_structural_score?: number;
+  pacp_om_score?: number;
+  last_pacp_date?: string;
+  status?: string;
+  install_date?: string;
+  condition_rating?: number;
+  expected_life_years?: number;
+  replacement_cost?: number;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  coordinates: number[][];
+}
+
+export interface SewerMainListResponse {
+  sewer_mains: SewerMain[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// --- Force Main — Pressurized (LineString) ---
+
+export interface ForceMain {
+  force_main_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  description: string | null;
+  material_code: string | null;
+  diameter_inches: number | null;
+  length_feet: number | null;
+  pressure_class: string | null;
+  depth_feet: number | null;
+  lift_station_id: string | null;
+  discharge_manhole_id: string | null;
+  has_cathodic_protection: boolean | null;
+  cp_test_date: string | null;
+  arv_count: number | null;
+  owner: string;
+  maintained_by: string | null;
+  status: string;
+  install_date: string | null;
+  condition_rating: number | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  coordinates: number[][] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ForceMainCreate {
+  asset_tag?: string;
+  description?: string;
+  material_code?: string;
+  diameter_inches?: number;
+  length_feet?: number;
+  pressure_class?: string;
+  depth_feet?: number;
+  lift_station_id?: string;
+  discharge_manhole_id?: string;
+  has_cathodic_protection?: boolean;
+  cp_test_date?: string;
+  arv_count?: number;
+  owner?: string;
+  maintained_by?: string;
+  status?: string;
+  install_date?: string;
+  condition_rating?: number;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  coordinates: number[][];
+}
+
+export interface ForceMainListResponse {
+  force_mains: ForceMain[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// --- Lift Station / Pump Station (Point) ---
+
+export interface LiftStation {
+  lift_station_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  station_name: string | null;
+  description: string | null;
+  wet_well_depth_ft: number | null;
+  wet_well_diameter_ft: number | null;
+  wet_well_material: string | null;
+  pump_count: number | null;
+  pump_type: string | null;
+  pump_hp: number | null;
+  firm_capacity_gpm: number | null;
+  design_capacity_gpm: number | null;
+  control_type: string | null;
+  has_scada: boolean | null;
+  has_backup_power: boolean | null;
+  backup_power_type: string | null;
+  has_alarm: boolean | null;
+  alarm_type: string | null;
+  electrical_service: string | null;
+  voltage: number | null;
+  owner: string;
+  maintained_by: string | null;
+  status: string;
+  install_date: string | null;
+  condition_rating: number | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  longitude: number;
+  latitude: number;
+  force_main_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LiftStationCreate {
+  asset_tag?: string;
+  station_name?: string;
+  description?: string;
+  wet_well_depth_ft?: number;
+  wet_well_diameter_ft?: number;
+  wet_well_material?: string;
+  pump_count?: number;
+  pump_type?: string;
+  pump_hp?: number;
+  firm_capacity_gpm?: number;
+  design_capacity_gpm?: number;
+  control_type?: string;
+  has_scada?: boolean;
+  has_backup_power?: boolean;
+  backup_power_type?: string;
+  has_alarm?: boolean;
+  alarm_type?: string;
+  electrical_service?: string;
+  voltage?: number;
+  owner?: string;
+  maintained_by?: string;
+  status?: string;
+  install_date?: string;
+  condition_rating?: number;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  longitude: number;
+  latitude: number;
+}
+
+export interface LiftStationListResponse {
+  lift_stations: LiftStation[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// --- Sewer Lateral / Service Connection (Point or LineString) ---
+
+export interface SewerLateral {
+  sewer_lateral_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  service_type: string | null;
+  material_code: string | null;
+  diameter_inches: number | null;
+  length_feet: number | null;
+  depth_at_main_ft: number | null;
+  connected_main_id: string | null;
+  tap_location: string | null;
+  has_cleanout: boolean | null;
+  cleanout_location: string | null;
+  address: string | null;
+  account_number: string | null;
+  status: string;
+  install_date: string | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  coordinates: number[][] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SewerLateralCreate {
+  asset_tag?: string;
+  service_type?: string;
+  material_code?: string;
+  diameter_inches?: number;
+  length_feet?: number;
+  depth_at_main_ft?: number;
+  connected_main_id?: string;
+  tap_location?: string;
+  has_cleanout?: boolean;
+  cleanout_location?: string;
+  address?: string;
+  account_number?: string;
+  status?: string;
+  install_date?: string;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  longitude?: number;
+  latitude?: number;
+  coordinates?: number[][];
+}
+
+export interface SewerLateralListResponse {
+  sewer_laterals: SewerLateral[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// ---------------------------------------------------------------------------
+// Water Module
+// ---------------------------------------------------------------------------
+
+// --- Reference / Lookup Types ---
+
+export interface WaterMaterialType {
+  code: string;
+  description: string;
+  expected_life_years: number | null;
+  is_active: boolean;
+}
+
+export interface WaterValveType {
+  code: string;
+  description: string;
+  exercise_interval_days: number | null;
+  is_active: boolean;
+}
+
+// --- Water Main (LineString) ---
+
+export interface WaterMain {
+  water_main_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  description: string | null;
+  material_code: string | null;
+  diameter_inches: number | null;
+  length_feet: number | null;
+  pressure_class: string | null;
+  shape: string | null;
+  lining_type: string | null;
+  lining_date: string | null;
+  depth_feet: number | null;
+  soil_type: string | null;
+  owner: string;
+  maintained_by: string | null;
+  status: string;
+  install_date: string | null;
+  expected_life_years: number | null;
+  replacement_cost: number | null;
+  flow_direction: string | null;
+  pressure_zone_id: string | null;
+  upstream_node_type: string | null;
+  upstream_node_id: string | null;
+  downstream_node_type: string | null;
+  downstream_node_id: string | null;
+  break_count: number;
+  condition_rating: number | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  coordinates: number[][] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WaterMainCreate {
+  asset_tag?: string;
+  description?: string;
+  material_code?: string;
+  diameter_inches?: number;
+  length_feet?: number;
+  pressure_class?: string;
+  shape?: string;
+  lining_type?: string;
+  lining_date?: string;
+  depth_feet?: number;
+  soil_type?: string;
+  owner?: string;
+  maintained_by?: string;
+  status?: string;
+  install_date?: string;
+  expected_life_years?: number;
+  replacement_cost?: number;
+  flow_direction?: string;
+  pressure_zone_id?: string;
+  upstream_node_type?: string;
+  upstream_node_id?: string;
+  downstream_node_type?: string;
+  downstream_node_id?: string;
+  break_count?: number;
+  condition_rating?: number;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  coordinates: number[][];
+}
+
+export interface WaterMainListResponse {
+  water_mains: WaterMain[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// --- Water Valve (Point) ---
+
+export interface WaterValve {
+  water_valve_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  description: string | null;
+  valve_type_code: string | null;
+  size_inches: number | null;
+  manufacturer: string | null;
+  model: string | null;
+  material: string | null;
+  turns_to_close: number | null;
+  turn_direction: string | null;
+  normal_position: string;
+  current_position: string | null;
+  is_operable: string | null;
+  is_critical: boolean;
+  installation_type: string | null;
+  depth_feet: number | null;
+  status: string;
+  install_date: string | null;
+  condition_rating: number | null;
+  last_exercised_date: string | null;
+  exercise_interval_days: number | null;
+  pressure_zone_id: string | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WaterValveCreate {
+  asset_tag?: string;
+  description?: string;
+  valve_type_code?: string;
+  size_inches?: number;
+  manufacturer?: string;
+  model?: string;
+  material?: string;
+  turns_to_close?: number;
+  turn_direction?: string;
+  normal_position?: string;
+  current_position?: string;
+  is_operable?: string;
+  is_critical?: boolean;
+  installation_type?: string;
+  depth_feet?: number;
+  status?: string;
+  install_date?: string;
+  condition_rating?: number;
+  last_exercised_date?: string;
+  exercise_interval_days?: number;
+  pressure_zone_id?: string;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  longitude: number;
+  latitude: number;
+}
+
+export interface WaterValveListResponse {
+  water_valves: WaterValve[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// --- Fire Hydrant (Point) ---
+
+export interface FireHydrant {
+  hydrant_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  description: string | null;
+  make: string | null;
+  model: string | null;
+  year_manufactured: number | null;
+  barrel_type: string | null;
+  nozzle_count: number | null;
+  nozzle_sizes: string | null;
+  flow_test_date: string | null;
+  static_pressure_psi: number | null;
+  residual_pressure_psi: number | null;
+  pitot_pressure_psi: number | null;
+  flow_gpm: number | null;
+  flow_class_color: string | null;
+  last_flush_date: string | null;
+  flush_interval_days: number | null;
+  status: string;
+  out_of_service_reason: string | null;
+  install_date: string | null;
+  condition_rating: number | null;
+  ownership: string;
+  auxiliary_valve_id: string | null;
+  lateral_size_inches: number | null;
+  main_size_inches: number | null;
+  connected_main_id: string | null;
+  pressure_zone_id: string | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FireHydrantCreate {
+  asset_tag?: string;
+  description?: string;
+  make?: string;
+  model?: string;
+  year_manufactured?: number;
+  barrel_type?: string;
+  nozzle_count?: number;
+  nozzle_sizes?: string;
+  flow_test_date?: string;
+  static_pressure_psi?: number;
+  residual_pressure_psi?: number;
+  pitot_pressure_psi?: number;
+  flow_gpm?: number;
+  flow_class_color?: string;
+  last_flush_date?: string;
+  flush_interval_days?: number;
+  status?: string;
+  out_of_service_reason?: string;
+  install_date?: string;
+  condition_rating?: number;
+  ownership?: string;
+  auxiliary_valve_id?: string;
+  lateral_size_inches?: number;
+  main_size_inches?: number;
+  connected_main_id?: string;
+  pressure_zone_id?: string;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  longitude: number;
+  latitude: number;
+}
+
+export interface FireHydrantListResponse {
+  hydrants: FireHydrant[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// --- Water Service Connection (Point or LineString) ---
+
+export interface WaterService {
+  water_service_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  service_type: string;
+  meter_number: string | null;
+  meter_size_inches: number | null;
+  meter_type: string | null;
+  service_line_material: string | null;
+  service_line_size_inches: number | null;
+  tap_main_id: string | null;
+  address: string | null;
+  account_number: string | null;
+  curb_stop_location: string | null;
+  status: string;
+  install_date: string | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  coordinates: number[][] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WaterServiceCreate {
+  asset_tag?: string;
+  service_type: string;
+  meter_number?: string;
+  meter_size_inches?: number;
+  meter_type?: string;
+  service_line_material?: string;
+  service_line_size_inches?: number;
+  tap_main_id?: string;
+  address?: string;
+  account_number?: string;
+  curb_stop_location?: string;
+  status?: string;
+  install_date?: string;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  longitude?: number;
+  latitude?: number;
+  coordinates?: number[][];
+}
+
+export interface WaterServiceListResponse {
+  water_services: WaterService[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// --- Water Fitting (Point) ---
+
+export interface WaterFitting {
+  water_fitting_id: string;
+  tenant_id: string;
+  asset_tag: string | null;
+  fitting_type: string;
+  material_code: string | null;
+  primary_size_inches: number | null;
+  secondary_size_inches: number | null;
+  status: string;
+  install_date: string | null;
+  custom_fields: Record<string, unknown> | null;
+  notes: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WaterFittingCreate {
+  asset_tag?: string;
+  fitting_type: string;
+  material_code?: string;
+  primary_size_inches?: number;
+  secondary_size_inches?: number;
+  status?: string;
+  install_date?: string;
+  custom_fields?: Record<string, unknown>;
+  notes?: string;
+  longitude: number;
+  latitude: number;
+}
+
+export interface WaterFittingListResponse {
+  water_fittings: WaterFitting[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// --- Pressure Zone (Polygon) ---
+
+export interface PressureZone {
+  pressure_zone_id: string;
+  tenant_id: string;
+  zone_name: string;
+  zone_number: string | null;
+  target_pressure_min_psi: number | null;
+  target_pressure_max_psi: number | null;
+  description: string | null;
+  coordinates: number[][][] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PressureZoneCreate {
+  zone_name: string;
+  zone_number?: string;
+  target_pressure_min_psi?: number;
+  target_pressure_max_psi?: number;
+  description?: string;
+  coordinates?: number[][][];
+}
+
+export interface PressureZoneListResponse {
+  pressure_zones: PressureZone[];
+  total: number;
+  page: number;
+  page_size: number;
+}

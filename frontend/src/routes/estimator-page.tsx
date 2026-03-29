@@ -417,8 +417,9 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
             <button
               onClick={() => {
                 if (!estimate) return;
-                const headers = ['Description', 'Quantity', 'Unit', 'Unit Price', 'Extension', 'Confidence'];
+                const headers = ['Code', 'Description', 'Quantity', 'Unit', 'Unit Price', 'Extension', 'Confidence'];
                 const rows = estimate.items.map((i) => [
+                  i.pay_item_code,
                   `"${i.description}"`,
                   Number(i.quantity),
                   i.unit,
@@ -426,7 +427,7 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
                   Number(i.extension).toFixed(2),
                   i.confidence_label || 'no data',
                 ]);
-                const totalsRow = ['', '', '', 'TOTAL', Number(estimate.total_with_regional || estimate.total_adjusted).toFixed(2), ''];
+                const totalsRow = ['', '', '', '', 'TOTAL', Number(estimate.total_with_regional || estimate.total_adjusted).toFixed(2), ''];
                 const csv = [headers, ...rows, [], totalsRow].map((r) => r.join(',')).join('\n');
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const url = URL.createObjectURL(blob);
@@ -517,6 +518,7 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
             <table className="w-full text-xs border rounded-lg overflow-hidden">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600 w-24">Code</th>
                   <th className="text-left px-3 py-2 font-medium text-gray-600">Description</th>
                   <th className="text-right px-3 py-2 font-medium text-gray-600">Quantity</th>
                   <th className="text-left px-3 py-2 font-medium text-gray-600">Unit</th>
@@ -578,6 +580,7 @@ function EditableItemRow({ item, estimateId, onDelete }: {
 
   return (
     <tr className={`border-b hover:bg-gray-50 ${noData ? 'bg-yellow-50' : ''}`}>
+      <td className="px-3 py-2 font-mono text-gray-400 text-[11px]">{item.pay_item_code}</td>
       <td className="px-3 py-2 truncate max-w-[250px]">{item.description}</td>
       <td className="px-3 py-2 text-right font-mono">{Number(item.quantity).toLocaleString()}</td>
       <td className="px-3 py-2 text-gray-500">{item.unit}</td>
@@ -741,6 +744,7 @@ function AddItemForm({ onAdd, onCancel, isLoading }: {
                       onClick={() => { setSelectedItem(item); setSearch(''); setDebouncedSearch(''); }}
                       className="px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 border-b last:border-b-0"
                     >
+                      <span className="font-mono text-gray-400 mr-2">{item.code}</span>
                       <span className="font-medium">{item.description}</span>
                       <span className="text-gray-400 ml-2">{item.unit}</span>
                     </div>

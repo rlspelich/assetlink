@@ -31,7 +31,7 @@ function getColor(sign: Sign) {
 
 export function SignListPanel({
   signs,
-  total,
+  total: _,
   isLoading,
   selectedSignId,
   onSignSelect,
@@ -59,12 +59,8 @@ export function SignListPanel({
 
   return (
     <div className="w-72 bg-white border-r border-gray-200 flex flex-col h-full shrink-0 overflow-hidden">
-      {/* Header */}
+      {/* Search & Filters */}
       <div className="px-3 py-3 border-b bg-gray-50">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-gray-900">Signs</h3>
-          <span className="text-xs text-gray-500">{total} total</span>
-        </div>
 
         {/* Search */}
         <div className="relative">

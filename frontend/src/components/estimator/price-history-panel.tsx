@@ -59,6 +59,7 @@ export function PriceHistoryPanel({ payItem, options }: Props) {
       <div className="p-4 border-b bg-gray-50">
         <div className="text-lg font-bold text-gray-900">{payItem.description}</div>
         <div className="flex gap-4 mt-1 text-xs text-gray-500">
+          <span className="font-mono text-gray-400">{payItem.code}</span>
           <span>Unit: <strong>{payItem.unit}</strong></span>
         </div>
         <div className="flex gap-2 mt-2">

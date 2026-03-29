@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileBarChart,
   AlertTriangle,
   Printer,
   ClipboardList,
@@ -1955,39 +1954,19 @@ export function ReportsPage() {
   const { print, isReady: printReady } = usePrintReport(activeTab, startDate, endDate);
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
-      <div className="max-w-[1600px] mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <FileBarChart size={24} className="text-blue-600" />
-              Dashboard
-            </h1>
-            <p className="text-sm text-gray-500 mt-0.5">Operational KPIs, crew performance, and status reports</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={print}
-              disabled={!printReady}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Printer size={14} />
-              Print Report
-            </button>
-          </div>
-        </div>
-
-        {/* Tab bar */}
-        <div className="flex flex-wrap gap-1.5">
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Full-width header bar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 shrink-0">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold text-gray-900">Dashboard</h2>
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  ? 'text-blue-700 bg-blue-50'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }`}
             >
               {tab.icon}
@@ -1995,6 +1974,19 @@ export function ReportsPage() {
             </button>
           ))}
         </div>
+        <button
+          onClick={print}
+          disabled={!printReady}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Printer size={14} />
+          Print Report
+        </button>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="max-w-[1600px] mx-auto p-6 space-y-6">
 
         {/* Date range controls (hidden for inventory tab which uses as_of_date) */}
         {activeTab !== 'inventory' && (
@@ -2043,6 +2035,7 @@ export function ReportsPage() {
         {activeTab === 'inspections' && <InspectionsTab startDate={startDate} endDate={endDate} />}
         {activeTab === 'inventory' && <InventoryTab />}
         {activeTab === 'crew' && <CrewProductivityTab startDate={startDate} endDate={endDate} />}
+      </div>
       </div>
     </div>
   );

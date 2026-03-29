@@ -232,10 +232,7 @@ export function WorkOrdersPage() {
     setSelectedWO(null);
   }, []);
 
-  const geoWOCount = useMemo(
-    () => filteredWOs.filter((wo) => wo.longitude != null && wo.latitude != null).length,
-    [filteredWOs],
-  );
+
 
   const hasActiveFilters = statusFilter || priorityFilter || workTypeFilter || assignedToFilter;
 
@@ -350,7 +347,10 @@ export function WorkOrdersPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Map View: original layout with list panel, but add toggle overlay on map */}
+      {/* Full-width header bar — always visible */}
+      {headerBar}
+
+      {/* Map View: original layout with list panel */}
       {viewMode === 'map' && (
         <div className="flex-1 flex overflow-hidden">
           {/* Left: Work order list */}
@@ -450,33 +450,6 @@ export function WorkOrdersPage() {
               </div>
             )}
 
-            {/* Status bar with Create button and view toggle (hidden during selection) */}
-            {creationMode === 'idle' && (
-              <div className="absolute top-4 left-4 flex items-center gap-2">
-                <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
-                  {filteredWOs.length === (data?.total ?? 0) ? (
-                    <span>{data?.total ?? 0} work orders{geoWOCount < filteredWOs.length ? ` (${geoWOCount} mapped)` : ''}</span>
-                  ) : (
-                    <span>{filteredWOs.length} of {data?.total ?? 0} work orders</span>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleCreate}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
-                >
-                  <Plus size={14} />
-                  Create Work Order
-                </button>
-              </div>
-            )}
-
-            {/* View mode toggle — top center */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2">
-              <div className="bg-white/90 backdrop-blur rounded-full shadow">
-                <ViewModeToggle mode={viewMode} onChange={setViewMode} />
-              </div>
-            </div>
           </div>
 
           {/* Right: Detail panel */}
@@ -492,10 +465,9 @@ export function WorkOrdersPage() {
         </div>
       )}
 
-      {/* Table View: header bar + full table + detail panel */}
+      {/* Table View: full table + detail panel */}
       {viewMode === 'table' && (
         <>
-          {headerBar}
           <div className="flex-1 flex overflow-hidden">
             <WorkOrderTable
               workOrders={filteredWOs}
@@ -517,10 +489,9 @@ export function WorkOrdersPage() {
         </>
       )}
 
-      {/* Split View: header bar + map (60%) + table (40%) + detail panel */}
+      {/* Split View: map (60%) + table (40%) + detail panel */}
       {viewMode === 'split' && (
         <>
-          {headerBar}
           <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Map — 60% */}

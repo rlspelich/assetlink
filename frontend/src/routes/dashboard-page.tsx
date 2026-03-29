@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import {
   Shield,
+  ShieldCheck,
   AlertTriangle,
   CheckCircle,
   Clock,
@@ -9,6 +10,7 @@ import {
   RefreshCw,
   Loader2,
   ArrowUpRight,
+  Map as MapIcon,
 } from 'lucide-react';
 import { useComplianceDashboard } from '../hooks/use-dashboard';
 import { CONDITION_COLORS, UNRATED_COLOR } from '../lib/constants';
@@ -409,34 +411,46 @@ export function DashboardPage() {
   }));
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
-      <div className="max-w-[1600px] mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">MUTCD Compliance</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Springfield DPW</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {dataUpdatedAt > 0 && (
-              <span className="text-xs text-gray-400">
-                Updated {relativeDate(new Date(dataUpdatedAt).toISOString())}
-              </span>
-            )}
-            <button
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
-            >
-              {isFetching ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <RefreshCw size={14} />
-              )}
-              Refresh
-            </button>
-          </div>
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Full-width header bar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/signs')}
+            className="px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-1.5"
+          >
+            <MapIcon size={15} />
+            Signs
+          </button>
+          <h2 className="text-sm font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md flex items-center gap-1.5">
+            <ShieldCheck size={15} />
+            Compliance
+          </h2>
         </div>
+        <div className="flex items-center gap-3">
+          {dataUpdatedAt > 0 && (
+            <span className="text-xs text-gray-400">
+              Updated {relativeDate(new Date(dataUpdatedAt).toISOString())}
+            </span>
+          )}
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+          >
+            {isFetching ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <RefreshCw size={14} />
+            )}
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="max-w-[1600px] mx-auto p-6 space-y-6">
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -516,6 +530,7 @@ export function DashboardPage() {
           </h3>
           <PriorityTable signs={d.priority_signs} onSignClick={handleSignClick} />
         </div>
+      </div>
       </div>
     </div>
   );

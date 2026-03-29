@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Map as MapIcon, ShieldCheck } from 'lucide-react';
 import { useSignsList, useSign, useCreateSign, useUpdateSign, useDeleteSign } from '../hooks/use-signs';
 import { useUpdateSupport, useDeleteSupport } from '../hooks/use-supports';
 import { AssetMap } from '../components/map/asset-map';
@@ -354,7 +354,41 @@ export function SignsPage() {
   const showSupportDetail = mode === 'view' && viewingSupport && !selectedSign;
 
   return (
-    <div className="h-full flex overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Full-width header bar */}
+      <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 shrink-0">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+            <MapIcon size={16} className="text-blue-600" />
+            Signs
+          </h2>
+          <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">{data?.total ?? 0} total</span>
+          <button
+            onClick={() => navigate('/compliance')}
+            className="px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-1.5"
+          >
+            <ShieldCheck size={15} />
+            Compliance
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          {visibleSignCount != null && visibleSignCount < filteredSigns.length && (
+            <span className="text-xs text-gray-500">{visibleSignCount.toLocaleString()} in view</span>
+          )}
+          {mode === 'view' && (
+            <button
+              onClick={handleStartAdd}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
+            >
+              <Plus size={14} />
+              Add Sign
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main content area */}
+      <div className="flex-1 flex overflow-hidden">
       {/* Left: Sign list */}
       <SignListPanel
         signs={filteredSigns}
@@ -385,26 +419,6 @@ export function SignsPage() {
           onPlacementClick={handlePlacementClick}
         />
 
-        {/* Status bar with Add button */}
-        <div className="absolute top-4 left-4 flex items-center gap-2">
-          <div className="bg-white/90 backdrop-blur rounded-lg shadow px-3 py-1.5 text-xs text-gray-600">
-            {visibleSignCount != null && visibleSignCount < filteredSigns.length ? (
-              <span>{visibleSignCount.toLocaleString()} in view · {(data?.total ?? 0).toLocaleString()} total</span>
-            ) : (
-              <span>{(data?.total ?? 0).toLocaleString()} signs</span>
-            )}
-          </div>
-
-          {mode === 'view' && (
-            <button
-              onClick={handleStartAdd}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors"
-            >
-              <Plus size={14} />
-              Add Sign
-            </button>
-          )}
-        </div>
 
         {/* Placement mode banner */}
         {mode === 'add-placing' && (
@@ -465,6 +479,7 @@ export function SignsPage() {
           error={submitError}
         />
       )}
+    </div>
     </div>
   );
 }

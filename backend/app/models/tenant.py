@@ -62,3 +62,13 @@ class Tenant(Base):
     sign_supports = relationship("SignSupport", back_populates="tenant")
     work_orders = relationship("WorkOrder", back_populates="tenant")
     inspections = relationship("Inspection", back_populates="tenant")
+    # Water module
+    water_mains = relationship("WaterMain", back_populates="tenant")
+    water_valves = relationship("WaterValve", back_populates="tenant")
+    hydrants = relationship("FireHydrant", back_populates="tenant")
+    # Sewer module
+    manholes = relationship("Manhole", back_populates="tenant")
+    sewer_mains = relationship("SewerMain", back_populates="tenant")
+    force_mains = relationship("ForceMain", back_populates="tenant")
+    lift_stations = relationship("LiftStation", back_populates="tenant")
+    sewer_laterals = relationship("SewerLateral", back_populates="tenant")

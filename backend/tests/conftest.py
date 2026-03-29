@@ -21,12 +21,15 @@ from app.main import app
 TENANT_A_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 TENANT_B_ID = uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
-# Tables with test data (NOT sign_type, pay_item, cost_index, regional_factor — those are seed/reference data)
+# Tables with test data (NOT reference/seed tables like sign_type, water_material_type, etc.)
 _DATA_TABLES = (
     "estimate_item, estimate, "
     "bid_item, bid, contractor, contract, "
     "inspection_asset, work_order_asset, inspection, work_order, "
-    "sign, sign_support, comment, attachment, app_user, tenant"
+    "sign, sign_support, comment, attachment, "
+    "water_valve_main, water_service, water_fitting, fire_hydrant, water_valve, water_main, pressure_zone, "
+    "manhole_pipe, sewer_lateral, sewer_fitting, force_main, sewer_main, manhole, lift_station, "
+    "app_user, tenant"
 )
 
 
@@ -91,8 +94,10 @@ async def seeded_client():
     _sync_sql(
         f"INSERT INTO tenant (tenant_id, name, subdomain, tenant_type, isolation_model, "
         f"modules_enabled, subscription_tier, is_active) VALUES "
-        f"('{TENANT_A_ID}', 'Village of Alpha', 'alpha', 'municipality', 'shared', '[\"signs\"]', 'basic', true), "
-        f"('{TENANT_B_ID}', 'City of Beta', 'beta', 'municipality', 'shared', '[\"signs\"]', 'basic', true)"
+        f"('{TENANT_A_ID}', 'Village of Alpha', 'alpha', 'municipality', 'shared', "
+        f"'[\"signs\", \"water\", \"sewer\"]', 'basic', true), "
+        f"('{TENANT_B_ID}', 'City of Beta', 'beta', 'municipality', 'shared', "
+        f"'[\"signs\", \"water\", \"sewer\"]', 'basic', true)"
     )
 
     engine, factory = _make_engine_and_factory()

@@ -16,9 +16,9 @@ interface AssetMapProps {
 }
 
 const INITIAL_VIEW = {
-  longitude: -89.65,
-  latitude: 39.78,
-  zoom: 13,
+  longitude: -89.644,
+  latitude: 39.799,
+  zoom: 14,
 };
 
 /**
@@ -104,12 +104,12 @@ export function AssetMap({
       mapRef.current.flyTo({
         center: [signs[0].longitude, signs[0].latitude],
         zoom: 15,
-        duration: 0,
+        duration: 800,
       });
     } else {
       const bounds = calcBounds(signs);
       if (bounds) {
-        mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 0 });
+        mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 800 });
       }
     }
   }, [signs]);

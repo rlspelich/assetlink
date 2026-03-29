@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Filter, ChevronDown, ChevronLeft, ChevronRight, AlertCircle, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertCircle, User } from 'lucide-react';
 import type { Inspection } from '../../api/types';
 import { useUsersList } from '../../hooks/use-users';
 import {
-  INSPECTION_TYPE_OPTIONS,
-  INSPECTION_STATUS_OPTIONS,
   CONDITION_COLORS,
   UNRATED_COLOR,
   getInspectionTypeOption,
@@ -41,21 +39,12 @@ function formatDate(dateStr: string | null): string {
 
 export function InspectionListPanel({
   inspections,
-  total,
   isLoading,
   selectedInspId,
   onInspSelect,
-  statusFilter,
-  onStatusFilterChange,
-  typeFilter,
-  onTypeFilterChange,
-  followUpFilter,
-  onFollowUpFilterChange,
   searchQuery,
-  onSearchChange,
 }: InspectionListPanelProps) {
   const PAGE_SIZE = 25;
-  const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
   const selectedRef = useRef<HTMLDivElement>(null);
   const { data: usersData } = useUsersList();
@@ -70,7 +59,6 @@ export function InspectionListPanel({
     }
   }, [selectedInspId]);
 
-  const hasActiveFilters = statusFilter || typeFilter || followUpFilter;
   const totalPages = Math.ceil(inspections.length / PAGE_SIZE);
   const paged = inspections.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
@@ -79,93 +67,13 @@ export function InspectionListPanel({
 
   return (
     <div className="w-72 bg-white border-r border-gray-200 flex flex-col h-full shrink-0 overflow-hidden">
-      {/* Header */}
-      <div className="px-3 py-3 border-b bg-gray-50">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-gray-900">Inspections</h3>
-          <span className="text-xs text-gray-500">{total} total</span>
-        </div>
-
-        {/* Search */}
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search INS #, findings..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-
-        {/* Filter toggle */}
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-1 mt-2 text-xs transition-colors ${
-            hasActiveFilters ? 'text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          <Filter size={12} />
-          Filters
-          {hasActiveFilters && (
-            <span className="bg-blue-100 text-blue-700 rounded-full px-1.5 text-[10px]">
-              {[statusFilter, typeFilter, followUpFilter].filter(Boolean).length}
-            </span>
-          )}
-          <ChevronDown size={12} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-        </button>
-
-        {/* Filters panel */}
-        {showFilters && (
-          <div className="mt-2 space-y-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => onStatusFilterChange(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">All statuses</option>
-              {INSPECTION_STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-            <select
-              value={typeFilter}
-              onChange={(e) => onTypeFilterChange(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">All types</option>
-              {INSPECTION_TYPE_OPTIONS.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-            <select
-              value={followUpFilter}
-              onChange={(e) => onFollowUpFilterChange(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">All follow-up</option>
-              <option value="true">Follow-up Required</option>
-              <option value="false">No Follow-up</option>
-            </select>
-            {hasActiveFilters && (
-              <button
-                onClick={() => { onStatusFilterChange(''); onTypeFilterChange(''); onFollowUpFilterChange(''); }}
-                className="text-[10px] text-red-500 hover:text-red-700"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Inspection list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="py-8 text-center text-xs text-gray-400">Loading inspections...</div>
         ) : inspections.length === 0 ? (
           <div className="py-8 text-center text-xs text-gray-400">
-            {hasActiveFilters || searchQuery ? 'No inspections match filters' : 'No inspections yet'}
+            {searchQuery ? 'No inspections match filters' : 'No inspections yet'}
           </div>
         ) : (
           paged.map((insp) => {
