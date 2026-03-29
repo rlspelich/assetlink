@@ -97,14 +97,15 @@ async def add_items_to_estimate(
         code = item_data["pay_item_code"]
         quantity = Decimal(str(item_data["quantity"]))
 
-        # Get price stats from historical data
+        # Get price stats from historical data (inflation-adjusted, no regional —
+        # regional is applied separately below so unit_price shows the base rate)
         stats = await compute_price_stats(
             db,
             pay_item_code=code,
             district=estimate.target_district or None,
             adjust_inflation=estimate.use_inflation_adjustment,
             target_year=estimate.target_year,
-            target_state=estimate.target_state,
+            target_state="IL",  # base rate — regional applied separately below
         )
 
         # Use weighted average as the auto-fill price
@@ -169,7 +170,7 @@ async def recalculate_estimate(
             district=estimate.target_district or None,
             adjust_inflation=estimate.use_inflation_adjustment,
             target_year=estimate.target_year,
-            target_state=estimate.target_state,
+            target_state="IL",  # base rate — regional applied separately below
         )
 
         # Only update auto-priced items (not manual overrides)
