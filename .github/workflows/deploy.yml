@@ -76,6 +76,10 @@ jobs:
         working-directory: backend
         run: python scripts/seed_sign_types.py
 
+      - name: Seed water and sewer reference data
+        working-directory: backend
+        run: python scripts/seed_water_sewer.py
+
       - name: Run tests
         working-directory: backend
         run: pytest tests/ -x -q --tb=short
