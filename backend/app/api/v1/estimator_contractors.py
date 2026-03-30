@@ -780,9 +780,10 @@ async def get_category_breakdown(
         raise HTTPException(status_code=404, detail="Bid not found")
 
     # Aggregate bid items by division
+    div_col = func.coalesce(PayItem.division, "UNCATEGORIZED")
     result = await db.execute(
         select(
-            func.coalesce(PayItem.division, "UNCATEGORIZED").label("division"),
+            div_col.label("division"),
             func.sum(BidItem.quantity * BidItem.unit_price).label("total"),
             func.count(BidItem.bid_item_id).label("item_count"),
         )
@@ -791,7 +792,7 @@ async def get_category_breakdown(
             BidItem.bid_id == bid.bid_id,
             BidItem.was_omitted == False,
         )
-        .group_by(func.coalesce(PayItem.division, "UNCATEGORIZED"))
+        .group_by(div_col)
         .order_by(func.sum(BidItem.quantity * BidItem.unit_price).desc())
     )
     rows = result.all()
