@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Trophy, TrendingUp, MapPin, DollarSign, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Trophy, TrendingUp, MapPin, DollarSign, BarChart3, ChevronLeft, ChevronRight, GitCompareArrows, Download } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  ComposedChart, Line, Cell,
+} from 'recharts';
 import {
   listContractors,
   getContractorProfile,
@@ -8,13 +12,15 @@ import {
   getGeoFootprint,
   getActivityTrend,
   getPriceTendencies,
+  getContractorVsMarket,
   type ContractorProfile,
 } from '../../api/estimator';
+import { downloadTXT, exportCurrency, exportPct } from '../../utils/export';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-type ProfileTab = 'overview' | 'history' | 'geo' | 'activity' | 'prices';
+type ProfileTab = 'overview' | 'history' | 'geo' | 'activity' | 'prices' | 'vs-market';
 
 export function ContractorSearch() {
   const [search, setSearch] = useState('');
@@ -159,6 +165,7 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange }: {
     { key: 'geo', label: 'Geographic Footprint', icon: <MapPin size={14} /> },
     { key: 'activity', label: 'Activity Trend', icon: <BarChart3 size={14} /> },
     { key: 'prices', label: 'Price Tendencies', icon: <DollarSign size={14} /> },
+    { key: 'vs-market', label: 'vs Market', icon: <GitCompareArrows size={14} /> },
   ];
 
   return (
@@ -193,6 +200,7 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange }: {
       {activeTab === 'geo' && <GeoTab pk={pk} />}
       {activeTab === 'activity' && <ActivityTab pk={pk} />}
       {activeTab === 'prices' && <PricesTab pk={pk} />}
+      {activeTab === 'vs-market' && <VsMarketTab pk={pk} />}
     </div>
   );
 }
@@ -202,17 +210,63 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange }: {
 // ============================================================
 
 function OverviewTab({ profile }: { profile: ContractorProfile }) {
+  const captureColor = profile.dollar_capture_pct > 50
+    ? 'text-green-600'
+    : profile.dollar_capture_pct >= 25
+      ? 'text-yellow-600'
+      : 'text-red-600';
+
   const stats = [
     { label: 'Total Bids', value: profile.total_bids.toLocaleString(), icon: <BarChart3 size={16} className="text-blue-500" /> },
     { label: 'Wins', value: profile.total_wins.toLocaleString(), icon: <Trophy size={16} className="text-yellow-500" /> },
     { label: 'Win Rate', value: profile.win_rate.toFixed(1) + '%', icon: <TrendingUp size={16} className="text-green-500" /> },
-    { label: 'Avg Bid Total', value: profile.avg_bid_total ? fmtCompact.format(profile.avg_bid_total) : 'N/A', icon: <DollarSign size={16} className="text-emerald-500" /> },
+    { label: '$ Won', value: fmtCompact.format(profile.total_won), icon: <DollarSign size={16} className="text-emerald-500" /> },
+    { label: '$ On Table', value: fmtCompact.format(profile.on_table), icon: <DollarSign size={16} className="text-orange-500" /> },
+    { label: 'Capture %', value: profile.dollar_capture_pct.toFixed(1) + '%', icon: <DollarSign size={16} className="text-indigo-500" />, customColor: captureColor },
+    { label: 'Avg Bid Total', value: profile.avg_bid_total ? fmtCompact.format(profile.avg_bid_total) : 'N/A', icon: <DollarSign size={16} className="text-teal-500" /> },
     { label: 'Total Volume', value: fmtCompact.format(profile.total_bid_volume), icon: <DollarSign size={16} className="text-indigo-500" /> },
     { label: 'Active Years', value: String(profile.active_years), icon: <BarChart3 size={16} className="text-purple-500" /> },
   ];
 
+  const handleExportSummary = () => {
+    const lines = [
+      'CONTRACTOR PROFILE SUMMARY',
+      `Date: ${new Date().toISOString().slice(0, 10)}`,
+      '',
+      `Contractor: ${profile.name}`,
+      `ID: ${profile.contractor_id_code}`,
+      '',
+      'KEY METRICS',
+      '-'.repeat(40),
+      `Total Bids:      ${profile.total_bids.toLocaleString()}`,
+      `Total Wins:      ${profile.total_wins.toLocaleString()}`,
+      `Win Rate:        ${profile.win_rate.toFixed(1)}%`,
+      `$ Won:           $${exportCurrency(profile.total_won)}`,
+      `$ On Table:      $${exportCurrency(profile.on_table)}`,
+      `Capture %:       ${exportPct(profile.dollar_capture_pct)}`,
+      `Avg Bid Total:   ${profile.avg_bid_total ? '$' + exportCurrency(profile.avg_bid_total) : 'N/A'}`,
+      `Total Volume:    $${exportCurrency(profile.total_bid_volume)}`,
+      `Active Years:    ${profile.active_years}`,
+      '',
+      `First Bid: ${profile.first_bid_date || 'N/A'}`,
+      `Last Bid:  ${profile.last_bid_date || 'N/A'}`,
+      '',
+      `Counties (${profile.counties.length}): ${profile.counties.join(', ')}`,
+      `Districts (${profile.districts.length}): ${profile.districts.join(', ')}`,
+    ];
+    downloadTXT(lines.join('\n'), `contractor_profile_${profile.contractor_id_code}.txt`);
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <button
+          onClick={handleExportSummary}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+        >
+          <Download size={12} /> Export Summary
+        </button>
+      </div>
       <div className="grid grid-cols-3 gap-3">
         {stats.map((s) => (
           <div key={s.label} className="bg-white rounded-lg shadow p-4">
@@ -220,7 +274,7 @@ function OverviewTab({ profile }: { profile: ContractorProfile }) {
               {s.icon}
               <span className="text-xs text-gray-500">{s.label}</span>
             </div>
-            <div className="text-lg font-semibold text-gray-900">{s.value}</div>
+            <div className={`text-lg font-semibold ${'customColor' in s && s.customColor ? s.customColor : 'text-gray-900'}`}>{s.value}</div>
           </div>
         ))}
       </div>
@@ -344,10 +398,36 @@ function GeoTab({ pk }: { pk: string }) {
   if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
   if (!data) return null;
 
+  const top10Counties = data.by_county.slice(0, 10).map((e) => ({
+    name: e.name.length > 18 ? e.name.slice(0, 18) + '...' : e.name,
+    wins: e.win_count,
+    losses: e.bid_count - e.win_count,
+  }));
+
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <GeoTable title="By County" entries={data.by_county} />
-      <GeoTable title="By District" entries={data.by_district} />
+    <div className="space-y-4">
+      {/* County chart */}
+      {top10Counties.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Top 10 Counties by Bid Count</h3>
+          <div style={{ height: 250 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart layout="vertical" data={top10Counties} margin={{ top: 0, right: 20, bottom: 0, left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="wins" stackId="a" fill="#22c55e" name="Wins" />
+                <Bar dataKey="losses" stackId="a" fill="#d1d5db" name="Losses" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-4">
+        <GeoTable title="By County" entries={data.by_county} />
+        <GeoTable title="By District" entries={data.by_district} />
+      </div>
     </div>
   );
 }
@@ -403,14 +483,37 @@ function ActivityTab({ pk }: { pk: string }) {
   if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
   if (!data || data.trend.length === 0) return <div className="p-4 text-sm text-gray-400">No activity data.</div>;
 
-  const maxBids = Math.max(...data.trend.map((t) => t.bid_count), 1);
+  const chartData = data.trend.map((t) => ({
+    year: String(t.year),
+    bid_count: t.bid_count,
+    win_count: t.win_count,
+    win_rate: t.bid_count > 0 ? Number(((t.win_count / t.bid_count) * 100).toFixed(1)) : 0,
+    total_bid_volume: t.total_bid_volume,
+  }));
 
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="px-4 py-3 border-b">
         <h3 className="text-sm font-medium text-gray-700">Year-over-Year Activity</h3>
       </div>
-      <div className="overflow-auto">
+      <div className="p-4" style={{ height: 250 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+            <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} domain={[0, 100]} unit="%" />
+            { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
+            <Tooltip formatter={(value: any, name: any) =>
+              name === 'Win Rate %' ? `${value}%` : value
+            } />
+            <Bar yAxisId="left" dataKey="bid_count" fill="#3b82f6" name="Bids" radius={[4, 4, 0, 0]} />
+            <Line yAxisId="right" type="monotone" dataKey="win_rate" stroke="#22c55e" strokeWidth={2} name="Win Rate %" dot={{ r: 3 }} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      {/* Data table */}
+      <div className="overflow-auto border-t">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
             <tr>
@@ -418,30 +521,18 @@ function ActivityTab({ pk }: { pk: string }) {
               <th className="px-3 py-2 text-right">Bids</th>
               <th className="px-3 py-2 text-right">Wins</th>
               <th className="px-3 py-2 text-right">Win %</th>
-              <th className="px-3 py-2">Bid Volume</th>
               <th className="px-3 py-2 text-right">Total Volume</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {data.trend.map((t) => {
               const winRate = t.bid_count > 0 ? (t.win_count / t.bid_count) * 100 : 0;
-              const bidBarWidth = (t.bid_count / maxBids) * 100;
               return (
                 <tr key={t.year} className="hover:bg-gray-50">
                   <td className="px-3 py-2 font-medium text-gray-900">{t.year}</td>
                   <td className="px-3 py-2 text-right text-gray-600">{t.bid_count}</td>
                   <td className="px-3 py-2 text-right text-gray-600">{t.win_count}</td>
                   <td className="px-3 py-2 text-right text-gray-600">{winRate.toFixed(1)}%</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-gray-100 rounded-full h-2">
-                        <div
-                          className="bg-blue-500 h-2 rounded-full"
-                          style={{ width: `${bidBarWidth}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
                   <td className="px-3 py-2 text-right font-mono text-gray-600">{fmtCompact.format(t.total_bid_volume)}</td>
                 </tr>
               );
@@ -466,45 +557,150 @@ function PricesTab({ pk }: { pk: string }) {
   if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
   if (!data || data.tendencies.length === 0) return <div className="p-4 text-sm text-gray-400">No price tendency data.</div>;
 
+  const chartData = data.tendencies.slice(0, 15).map((t) => ({
+    name: t.division.length > 30 ? t.division.slice(0, 30) + '...' : t.division,
+    variance: Number(t.variance_pct.toFixed(1)),
+  }));
+
+  return (
+    <div className="space-y-4">
+      {/* Diverging bar chart */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-sm font-medium text-gray-700 mb-1">Price Variance vs Market</h3>
+        <p className="text-xs text-gray-400 mb-3">Green = cheaper than market, Red = more expensive</p>
+        <div style={{ height: Math.max(200, chartData.length * 28) }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart layout="vertical" data={chartData} margin={{ top: 0, right: 30, bottom: 0, left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v}%`} />
+              <YAxis type="category" dataKey="name" width={220} tick={{ fontSize: 10 }} />
+              { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
+              <Tooltip formatter={(value: any) => `${Number(value) > 0 ? '+' : ''}${value}%`} />
+              <Bar dataKey="variance" name="Variance %" radius={[0, 4, 4, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={index} fill={entry.variance < -5 ? '#22c55e' : entry.variance > 5 ? '#ef4444' : '#9ca3af'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-4 py-3 border-b">
+          <h3 className="text-sm font-medium text-gray-700">Price Tendencies vs Market Average</h3>
+          <p className="text-xs text-gray-400 mt-0.5">How {data.contractor_name}'s pricing compares to overall market averages by division</p>
+        </div>
+        <div className="overflow-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+              <tr>
+                <th className="px-3 py-2">Division</th>
+                <th className="px-3 py-2 text-right">Contractor Avg</th>
+                <th className="px-3 py-2 text-right">Market Avg</th>
+                <th className="px-3 py-2 text-right">Variance</th>
+                <th className="px-3 py-2 text-right">Samples</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {data.tendencies.map((t) => {
+                const varianceColor = t.variance_pct > 5
+                  ? 'text-red-600'
+                  : t.variance_pct < -5
+                    ? 'text-green-600'
+                    : 'text-gray-600';
+                return (
+                  <tr key={t.division} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 font-medium text-gray-900 max-w-[250px] truncate">{t.division}</td>
+                    <td className="px-3 py-2 text-right font-mono text-gray-900">{fmt.format(t.contractor_avg_price)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt.format(t.market_avg_price)}</td>
+                    <td className={`px-3 py-2 text-right font-medium ${varianceColor}`}>
+                      {t.variance_pct > 0 ? '+' : ''}{t.variance_pct.toFixed(1)}%
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-500">{t.contractor_sample_count}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// vs Market Tab
+// ============================================================
+
+function VsMarketTab({ pk }: { pk: string }) {
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['vsMarket', pk, page],
+    queryFn: () => getContractorVsMarket(pk, { page, page_size: 50 }),
+  });
+
+  const totalPages = data ? Math.ceil(data.total / 50) : 0;
+
+  if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
+  if (!data || data.items.length === 0) return <div className="p-4 text-sm text-gray-400">No item-level comparison data.</div>;
+
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="px-4 py-3 border-b">
-        <h3 className="text-sm font-medium text-gray-700">Price Tendencies vs Market Average</h3>
-        <p className="text-xs text-gray-400 mt-0.5">How {data.contractor_name}'s pricing compares to overall market averages by division</p>
+        <h3 className="text-sm font-medium text-gray-700">vs Market — Item-Level Price Comparison</h3>
+        <p className="text-xs text-gray-400 mt-0.5">How {data.contractor_name}'s prices compare to the overall market on individual pay items</p>
       </div>
       <div className="overflow-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase">
+          <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase sticky top-0">
             <tr>
-              <th className="px-3 py-2">Division</th>
+              <th className="px-3 py-2">Code</th>
+              <th className="px-3 py-2">Description</th>
+              <th className="px-3 py-2">Unit</th>
               <th className="px-3 py-2 text-right">Contractor Avg</th>
               <th className="px-3 py-2 text-right">Market Avg</th>
               <th className="px-3 py-2 text-right">Variance</th>
-              <th className="px-3 py-2 text-right">Samples</th>
+              <th className="px-3 py-2 text-right">Contractor Samples</th>
+              <th className="px-3 py-2 text-right">Market Samples</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {data.tendencies.map((t) => {
-              const varianceColor = t.variance_pct > 5
+            {data.items.map((item) => {
+              const varianceColor = item.variance_pct > 5
                 ? 'text-red-600'
-                : t.variance_pct < -5
+                : item.variance_pct < -5
                   ? 'text-green-600'
                   : 'text-gray-600';
               return (
-                <tr key={t.division} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 font-medium text-gray-900 max-w-[250px] truncate">{t.division}</td>
-                  <td className="px-3 py-2 text-right font-mono text-gray-900">{fmt.format(t.contractor_avg_price)}</td>
-                  <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt.format(t.market_avg_price)}</td>
+                <tr key={item.pay_item_code} className="hover:bg-gray-50">
+                  <td className="px-3 py-2 font-mono text-gray-400 text-xs">{item.pay_item_code}</td>
+                  <td className="px-3 py-2 text-gray-900 truncate max-w-[250px]">{item.description}</td>
+                  <td className="px-3 py-2 text-gray-500">{item.unit}</td>
+                  <td className="px-3 py-2 text-right font-mono text-gray-900">{fmt.format(item.contractor_avg_price)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-gray-600">{fmt.format(item.market_avg_price)}</td>
                   <td className={`px-3 py-2 text-right font-medium ${varianceColor}`}>
-                    {t.variance_pct > 0 ? '+' : ''}{t.variance_pct.toFixed(1)}%
+                    {item.variance_pct > 0 ? '+' : ''}{item.variance_pct.toFixed(1)}%
                   </td>
-                  <td className="px-3 py-2 text-right text-gray-500">{t.contractor_sample_count}</td>
+                  <td className="px-3 py-2 text-right text-gray-500">{item.contractor_samples}</td>
+                  <td className="px-3 py-2 text-right text-gray-500">{item.market_samples}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-3 py-2 border-t text-xs text-gray-500">
+          <span>{data.total.toLocaleString()} items — Page {page} of {totalPages}</span>
+          <div className="flex gap-1">
+            <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"><ChevronLeft size={14} /></button>
+            <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"><ChevronRight size={14} /></button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

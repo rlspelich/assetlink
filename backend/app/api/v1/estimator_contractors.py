@@ -38,6 +38,14 @@ from app.schemas.contractor_intelligence import (
     HeadToHeadItemComparison,
     HeadToHeadItemsOut,
     HeadToHeadSummary,
+    LettingBidderEntry,
+    LettingContractEntry,
+    LettingReportOut,
+    MarketAnalysisOut,
+    MarketPlayerEntry,
+    PayItemSearchOut,
+    PayItemSearchResult,
+    PayItemSearchStats,
     PriceTendencyItem,
     PriceTendencyOut,
 )
@@ -87,6 +95,28 @@ async def get_contractor_profile(
     )
     row = stats.one()
 
+    # $ on table: sum of low bids on contracts this contractor bid on
+    low_bid_sq = (
+        select(
+            Bid.contract_id,
+            func.min(Bid.total).filter(Bid.is_bad == False).label("low_total"),
+        )
+        .group_by(Bid.contract_id)
+        .subquery()
+    )
+    on_table_result = await db.execute(
+        select(
+            func.sum(low_bid_sq.c.low_total).label("on_table"),
+            func.sum(Bid.total).filter(Bid.is_low == True).label("total_won"),
+        )
+        .join(low_bid_sq, low_bid_sq.c.contract_id == Bid.contract_id)
+        .where(Bid.contractor_pk == contractor_pk)
+    )
+    ot_row = on_table_result.one()
+    on_table = Decimal(str(ot_row.on_table or 0))
+    total_won = Decimal(str(ot_row.total_won or 0))
+    dollar_capture = float(total_won / on_table * 100) if on_table > 0 else 0
+
     # Counties and districts
     geo = await db.execute(
         select(
@@ -116,6 +146,9 @@ async def get_contractor_profile(
         win_rate=round(total_wins / total_bids, 4) if total_bids > 0 else 0,
         avg_bid_total=round(row.avg_bid_total, 2) if row.avg_bid_total else None,
         total_bid_volume=round(row.total_bid_volume, 2) if row.total_bid_volume else Decimal("0"),
+        total_won=round(total_won, 2),
+        on_table=round(on_table, 2),
+        dollar_capture_pct=round(dollar_capture, 2),
         first_bid_date=first,
         last_bid_date=last,
         active_years=active_years,
@@ -394,6 +427,46 @@ async def get_price_tendencies(
 # ---------------------------------------------------------------------------
 # Head-to-Head Comparison
 # ---------------------------------------------------------------------------
+
+
+@router.get("/contractors/{contractor_pk}/competitors")
+async def get_competitors(
+    contractor_pk: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(50, ge=1, le=200),
+):
+    """Get contractors who have competed against this contractor, ranked by frequency."""
+    await _get_contractor(db, contractor_pk)
+
+    # Find all contractors who bid on the same contracts, ranked by shared contract count
+    result = await db.execute(
+        select(
+            Contractor.contractor_pk,
+            Contractor.name,
+            Contractor.contractor_id_code,
+            func.count(distinct(Bid.contract_id)).label("shared_contracts"),
+        )
+        .join(Bid, Bid.contractor_pk == Contractor.contractor_pk)
+        .where(
+            Bid.contract_id.in_(
+                select(Bid.contract_id).where(Bid.contractor_pk == contractor_pk)
+            ),
+            Contractor.contractor_pk != contractor_pk,
+        )
+        .group_by(Contractor.contractor_pk, Contractor.name, Contractor.contractor_id_code)
+        .order_by(func.count(distinct(Bid.contract_id)).desc())
+        .limit(limit)
+    )
+
+    return [
+        {
+            "contractor_pk": str(r.contractor_pk),
+            "name": r.name,
+            "contractor_id_code": r.contractor_id_code,
+            "shared_contracts": r.shared_contracts,
+        }
+        for r in result.all()
+    ]
 
 
 @router.get("/contractors/head-to-head", response_model=HeadToHeadSummary)
@@ -814,3 +887,556 @@ async def get_category_breakdown(
         ],
         grand_total=round(grand_total, 2),
     )
+
+
+# ===========================================================================
+# Market Analysis
+# ===========================================================================
+
+
+@router.get("/market-analysis", response_model=MarketAnalysisOut)
+async def get_market_analysis(
+    db: AsyncSession = Depends(get_db),
+    county: str | None = None,
+    district: str | None = None,
+    min_date: str | None = None,
+    max_date: str | None = None,
+    min_project_size: float | None = None,
+    max_project_size: float | None = None,
+    limit: int = Query(50, ge=1, le=200),
+):
+    """
+    Market analysis: who are the players in a given geography/time range?
+
+    Shows all contractors ranked by market share ($ won as low bidder).
+    Includes jobs bid, jobs won, win rate, $ capture rate, $ left on table.
+    """
+    # Base filters on contract
+    contract_filters = []
+    if county:
+        contract_filters.append(Contract.county.ilike(f"%{county}%"))
+    if district:
+        contract_filters.append(Contract.district == district)
+    if min_date:
+        contract_filters.append(Contract.letting_date >= date.fromisoformat(min_date))
+    if max_date:
+        contract_filters.append(Contract.letting_date <= date.fromisoformat(max_date))
+
+    # Subquery: low bid total per contract (for $ on table calculation)
+    low_bid_sq = (
+        select(
+            Bid.contract_id,
+            func.min(Bid.total).filter(Bid.is_bad == False).label("low_total"),
+        )
+        .group_by(Bid.contract_id)
+        .subquery()
+    )
+
+    # Main query: per-contractor stats
+    query = (
+        select(
+            Contractor.contractor_pk,
+            Contractor.name,
+            Contractor.contractor_id_code,
+            func.count(distinct(Bid.contract_id)).label("jobs_bid"),
+            func.count(distinct(Bid.contract_id)).filter(Bid.is_low == True).label("jobs_won"),
+            func.sum(Bid.total).filter(Bid.is_bad == False).label("total_bid"),
+            func.sum(Bid.total).filter(Bid.is_low == True).label("total_low"),
+            # $ on table = sum of low bids on contracts they bid on
+            func.sum(low_bid_sq.c.low_total).label("on_table"),
+        )
+        .join(Bid, Bid.contractor_pk == Contractor.contractor_pk)
+        .join(Contract, Bid.contract_id == Contract.contract_id)
+        .join(low_bid_sq, low_bid_sq.c.contract_id == Bid.contract_id)
+    )
+
+    if contract_filters:
+        query = query.where(*contract_filters)
+
+    # Project size filter (on the low bid total)
+    if min_project_size:
+        query = query.where(low_bid_sq.c.low_total >= min_project_size)
+    if max_project_size:
+        query = query.where(low_bid_sq.c.low_total <= max_project_size)
+
+    query = (
+        query
+        .group_by(Contractor.contractor_pk, Contractor.name, Contractor.contractor_id_code)
+        .order_by(func.sum(Bid.total).filter(Bid.is_low == True).desc().nullslast())
+        .limit(limit)
+    )
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    # Total market stats
+    market_q = (
+        select(
+            func.sum(low_bid_sq.c.low_total).label("total_market"),
+            func.count(distinct(Contract.contract_id)).label("total_contracts"),
+            func.count(distinct(Bid.contractor_pk)).label("total_bidders"),
+        )
+        .select_from(Contract)
+        .join(Bid, Bid.contract_id == Contract.contract_id)
+        .join(low_bid_sq, low_bid_sq.c.contract_id == Contract.contract_id)
+    )
+    if contract_filters:
+        market_q = market_q.where(*contract_filters)
+    if min_project_size:
+        market_q = market_q.where(low_bid_sq.c.low_total >= min_project_size)
+    if max_project_size:
+        market_q = market_q.where(low_bid_sq.c.low_total <= max_project_size)
+
+    market_row = (await db.execute(market_q)).one()
+
+    players = []
+    for i, r in enumerate(rows):
+        jobs_bid = r.jobs_bid or 0
+        jobs_won = r.jobs_won or 0
+        total_low = Decimal(str(r.total_low or 0))
+        total_bid = Decimal(str(r.total_bid or 0))
+        on_table = Decimal(str(r.on_table or 0))
+        capture = float(total_low / on_table * 100) if on_table > 0 else 0
+
+        players.append(MarketPlayerEntry(
+            rank=i + 1,
+            contractor_pk=r.contractor_pk,
+            contractor_name=r.name,
+            contractor_id_code=r.contractor_id_code,
+            jobs_bid=jobs_bid,
+            jobs_won=jobs_won,
+            win_rate=round(jobs_won / jobs_bid, 4) if jobs_bid > 0 else 0,
+            total_low=round(total_low, 2),
+            total_bid=round(total_bid, 2),
+            pct_won_of_bids=round(jobs_won / jobs_bid * 100, 2) if jobs_bid > 0 else 0,
+            dollar_capture_pct=round(capture, 2),
+            pct_left_on_table=round(100 - capture, 2),
+        ))
+
+    return MarketAnalysisOut(
+        total_market_value=round(Decimal(str(market_row.total_market or 0)), 2),
+        total_contracts=market_row.total_contracts or 0,
+        total_bidders=market_row.total_bidders or 0,
+        filters_applied={
+            k: v for k, v in {
+                "county": county, "district": district,
+                "min_date": min_date, "max_date": max_date,
+                "min_project_size": min_project_size, "max_project_size": max_project_size,
+            }.items() if v is not None
+        },
+        players=players,
+    )
+
+
+# ===========================================================================
+# Letting Report
+# ===========================================================================
+
+
+@router.get("/letting-dates")
+async def get_letting_dates(
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(100, ge=1, le=500),
+):
+    """Get distinct letting dates for the letting report picker."""
+    result = await db.execute(
+        select(
+            Contract.letting_date,
+            func.count(Contract.contract_id).label("contract_count"),
+        )
+        .group_by(Contract.letting_date)
+        .order_by(Contract.letting_date.desc())
+        .limit(limit)
+    )
+    return [
+        {"letting_date": str(r.letting_date), "contract_count": r.contract_count}
+        for r in result.all()
+    ]
+
+
+@router.get("/letting-report", response_model=LettingReportOut)
+async def get_letting_report(
+    letting_date: str = Query(..., description="Letting date (YYYY-MM-DD)"),
+    db: AsyncSession = Depends(get_db),
+    county: str | None = None,
+    district: str | None = None,
+):
+    """
+    Letting report: all contracts and bidders for a specific letting date.
+
+    Shows each contract with all bidders ranked, including variance from low.
+    """
+    ld = date.fromisoformat(letting_date)
+
+    # Get contracts for this letting
+    query = select(Contract).where(Contract.letting_date == ld)
+    if county:
+        query = query.where(Contract.county.ilike(f"%{county}%"))
+    if district:
+        query = query.where(Contract.district == district)
+    query = query.order_by(Contract.county, Contract.number)
+
+    contracts_result = await db.execute(query)
+    contracts = contracts_result.scalars().all()
+
+    if not contracts:
+        return LettingReportOut(
+            letting_date=ld, total_contracts=0,
+            total_value=Decimal("0"), contracts=[],
+        )
+
+    # Get all bids for these contracts
+    contract_ids = [c.contract_id for c in contracts]
+    bids_result = await db.execute(
+        select(Bid)
+        .options(selectinload(Bid.contractor))
+        .where(Bid.contract_id.in_(contract_ids))
+        .order_by(Bid.contract_id, Bid.rank)
+    )
+    all_bids = bids_result.scalars().all()
+
+    # Group bids by contract
+    bids_by_contract: dict[uuid.UUID, list] = {}
+    for b in all_bids:
+        bids_by_contract.setdefault(b.contract_id, []).append(b)
+
+    total_value = Decimal("0")
+    contract_entries = []
+
+    for contract in contracts:
+        bids = bids_by_contract.get(contract.contract_id, [])
+        low_bid = next((b for b in bids if b.is_low and not b.is_bad), None)
+        low_total = low_bid.total if low_bid else None
+        if low_total:
+            total_value += low_total
+
+        bidder_entries = []
+        for b in bids:
+            variance = None
+            variance_pct = None
+            if low_total and not b.is_low and not b.is_bad and low_total > 0:
+                variance = b.total - low_total
+                variance_pct = float(variance / low_total * 100)
+
+            bidder_entries.append(LettingBidderEntry(
+                contractor_name=b.contractor.name if b.contractor else "",
+                contractor_id_code=b.contractor.contractor_id_code if b.contractor else "",
+                rank=b.rank,
+                total=b.total,
+                is_low=b.is_low,
+                variance_from_low=round(variance, 2) if variance is not None else None,
+                variance_pct=round(variance_pct, 2) if variance_pct is not None else None,
+            ))
+
+        contract_entries.append(LettingContractEntry(
+            contract_id=contract.contract_id,
+            contract_number=contract.number,
+            county=contract.county,
+            district=contract.district,
+            item_count=contract.item_count,
+            low_bidder_name=low_bid.contractor.name if low_bid and low_bid.contractor else "",
+            low_bid_total=low_total,
+            num_bidders=len(bids),
+            bidders=bidder_entries,
+        ))
+
+    return LettingReportOut(
+        letting_date=ld,
+        total_contracts=len(contract_entries),
+        total_value=round(total_value, 2),
+        contracts=contract_entries,
+    )
+
+
+# ===========================================================================
+# Enhanced Pay Item Search
+# ===========================================================================
+
+
+@router.get("/pay-item-search", response_model=PayItemSearchOut)
+async def search_pay_item_occurrences(
+    db: AsyncSession = Depends(get_db),
+    pay_item_code: str | None = None,
+    description: str | None = None,
+    county: str | None = None,
+    district: str | None = None,
+    contractor: str | None = None,
+    min_date: str | None = None,
+    max_date: str | None = None,
+    min_quantity: float | None = None,
+    max_quantity: float | None = None,
+    low_bids_only: bool = False,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+):
+    """
+    Search every occurrence of a pay item across all bids.
+
+    Returns individual bid-level prices with contractor, contract, and job context.
+    Includes summary stats (weighted avg, straight avg, median, high, low).
+    """
+    if not pay_item_code and not description:
+        raise HTTPException(status_code=400, detail="Provide pay_item_code or description")
+
+    query = (
+        select(
+            BidItem.bid_item_id,
+            BidItem.pay_item_code,
+            BidItem.abbreviation,
+            BidItem.unit,
+            BidItem.quantity,
+            BidItem.unit_price,
+            (BidItem.quantity * BidItem.unit_price).label("extension"),
+            Contractor.name.label("contractor_name"),
+            Contractor.contractor_id_code,
+            Contractor.contractor_pk,
+            Contract.number.label("contract_number"),
+            Contract.contract_id,
+            Contract.letting_date,
+            Contract.county,
+            Contract.district,
+            Bid.rank,
+            Bid.is_low,
+        )
+        .join(Bid, BidItem.bid_id == Bid.bid_id)
+        .join(Contract, Bid.contract_id == Contract.contract_id)
+        .join(Contractor, Bid.contractor_pk == Contractor.contractor_pk)
+        .where(BidItem.was_omitted == False, BidItem.unit_price > 0)
+    )
+
+    if pay_item_code:
+        if '%' in pay_item_code or '_' in pay_item_code:
+            query = query.where(BidItem.pay_item_code.ilike(pay_item_code))
+        else:
+            query = query.where(BidItem.pay_item_code == pay_item_code)
+    if description:
+        query = query.where(BidItem.abbreviation.ilike(f"%{description}%"))
+    if county:
+        query = query.where(Contract.county.ilike(f"%{county}%"))
+    if district:
+        query = query.where(Contract.district == district)
+    if contractor:
+        query = query.where(Contractor.name.ilike(f"%{contractor}%"))
+    if min_date:
+        query = query.where(Contract.letting_date >= date.fromisoformat(min_date))
+    if max_date:
+        query = query.where(Contract.letting_date <= date.fromisoformat(max_date))
+    if min_quantity:
+        query = query.where(BidItem.quantity >= min_quantity)
+    if max_quantity:
+        query = query.where(BidItem.quantity <= max_quantity)
+    if low_bids_only:
+        query = query.where(Bid.is_low == True)
+
+    # Count
+    count_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar() or 0
+
+    # Stats (on full filtered set, not just current page)
+    stats_q = (
+        select(
+            func.count(BidItem.bid_item_id).label("count"),
+            func.sum(BidItem.quantity * BidItem.unit_price).label("weighted_total"),
+            func.sum(BidItem.quantity).label("total_qty"),
+            func.avg(BidItem.unit_price).label("straight_avg"),
+            func.min(BidItem.unit_price).label("low"),
+            func.max(BidItem.unit_price).label("high"),
+        )
+        .join(Bid, BidItem.bid_id == Bid.bid_id)
+        .join(Contract, Bid.contract_id == Contract.contract_id)
+        .join(Contractor, Bid.contractor_pk == Contractor.contractor_pk)
+        .where(BidItem.was_omitted == False, BidItem.unit_price > 0)
+    )
+    # Apply same filters
+    if pay_item_code:
+        if '%' in pay_item_code or '_' in pay_item_code:
+            stats_q = stats_q.where(BidItem.pay_item_code.ilike(pay_item_code))
+        else:
+            stats_q = stats_q.where(BidItem.pay_item_code == pay_item_code)
+    if description:
+        stats_q = stats_q.where(BidItem.abbreviation.ilike(f"%{description}%"))
+    if county:
+        stats_q = stats_q.where(Contract.county.ilike(f"%{county}%"))
+    if district:
+        stats_q = stats_q.where(Contract.district == district)
+    if contractor:
+        stats_q = stats_q.where(Contractor.name.ilike(f"%{contractor}%"))
+    if min_date:
+        stats_q = stats_q.where(Contract.letting_date >= date.fromisoformat(min_date))
+    if max_date:
+        stats_q = stats_q.where(Contract.letting_date <= date.fromisoformat(max_date))
+    if min_quantity:
+        stats_q = stats_q.where(BidItem.quantity >= min_quantity)
+    if max_quantity:
+        stats_q = stats_q.where(BidItem.quantity <= max_quantity)
+    if low_bids_only:
+        stats_q = stats_q.where(Bid.is_low == True)
+
+    stats_row = (await db.execute(stats_q)).one()
+    weighted_avg = None
+    if stats_row.total_qty and stats_row.total_qty > 0:
+        weighted_avg = round(Decimal(str(stats_row.weighted_total)) / Decimal(str(stats_row.total_qty)), 4)
+
+    stats = PayItemSearchStats(
+        count=stats_row.count or 0,
+        weighted_avg=weighted_avg,
+        straight_avg=round(stats_row.straight_avg, 4) if stats_row.straight_avg else None,
+        median=None,  # Would need a window function; skip for now
+        high=stats_row.high,
+        low=stats_row.low,
+        total_quantity=round(stats_row.total_qty, 3) if stats_row.total_qty else None,
+    )
+
+    # Fetch page
+    query = query.order_by(Contract.letting_date.desc(), Contract.number, Bid.rank)
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+
+    return PayItemSearchOut(
+        results=[
+            PayItemSearchResult(
+                bid_item_id=r.bid_item_id,
+                pay_item_code=r.pay_item_code,
+                abbreviation=r.abbreviation,
+                unit=r.unit,
+                quantity=r.quantity,
+                unit_price=r.unit_price,
+                extension=round(r.extension, 2) if r.extension else Decimal("0"),
+                contractor_name=r.contractor_name,
+                contractor_id_code=r.contractor_id_code,
+                contractor_pk=r.contractor_pk,
+                contract_number=r.contract_number,
+                contract_id=r.contract_id,
+                letting_date=r.letting_date,
+                county=r.county,
+                district=r.district,
+                rank=r.rank,
+                is_low=r.is_low,
+            )
+            for r in result.all()
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+        stats=stats,
+    )
+
+
+# ===========================================================================
+# Compare to State Average (head-to-head variant)
+# ===========================================================================
+
+
+@router.get("/contractors/{contractor_pk}/vs-market")
+async def get_contractor_vs_market(
+    contractor_pk: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    min_date: str | None = None,
+    county: str | None = None,
+    district: str | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+):
+    """
+    Compare a contractor's average prices to the market average (all other bidders).
+
+    Like head-to-head but contractor B is 'the market'.
+    """
+    contractor = await _get_contractor(db, contractor_pk)
+
+    date_filter = []
+    if min_date:
+        date_filter.append(Contract.letting_date >= date.fromisoformat(min_date))
+    if county:
+        date_filter.append(Contract.county.ilike(f"%{county}%"))
+    if district:
+        date_filter.append(Contract.district == district)
+
+    # Contractor's averages by pay item
+    contractor_q = (
+        select(
+            BidItem.pay_item_code,
+            func.avg(BidItem.unit_price).label("avg_price"),
+            func.count(BidItem.bid_item_id).label("sample_count"),
+        )
+        .join(Bid, BidItem.bid_id == Bid.bid_id)
+        .join(Contract, Bid.contract_id == Contract.contract_id)
+        .where(
+            Bid.contractor_pk == contractor_pk,
+            BidItem.was_omitted == False,
+            BidItem.unit_price > 0,
+            *date_filter,
+        )
+        .group_by(BidItem.pay_item_code)
+        .having(func.count(BidItem.bid_item_id) >= 2)
+        .subquery()
+    )
+
+    # Market averages for the same items (all bidders except this one)
+    market_q = (
+        select(
+            BidItem.pay_item_code,
+            func.avg(BidItem.unit_price).label("avg_price"),
+            func.count(BidItem.bid_item_id).label("sample_count"),
+        )
+        .join(Bid, BidItem.bid_id == Bid.bid_id)
+        .join(Contract, Bid.contract_id == Contract.contract_id)
+        .where(
+            Bid.contractor_pk != contractor_pk,
+            BidItem.was_omitted == False,
+            BidItem.unit_price > 0,
+            BidItem.pay_item_code.in_(select(contractor_q.c.pay_item_code)),
+            *date_filter,
+        )
+        .group_by(BidItem.pay_item_code)
+        .subquery()
+    )
+
+    # Join contractor vs market
+    query = (
+        select(
+            contractor_q.c.pay_item_code,
+            contractor_q.c.avg_price.label("contractor_avg"),
+            contractor_q.c.sample_count.label("contractor_samples"),
+            market_q.c.avg_price.label("market_avg"),
+            market_q.c.sample_count.label("market_samples"),
+            PayItem.description.label("description"),
+            PayItem.unit.label("unit"),
+        )
+        .join(market_q, contractor_q.c.pay_item_code == market_q.c.pay_item_code)
+        .outerjoin(PayItem, and_(PayItem.code == contractor_q.c.pay_item_code, PayItem.agency == "IDOT"))
+    )
+
+    # Count
+    count_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar() or 0
+
+    # Page
+    query = query.order_by(contractor_q.c.pay_item_code)
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+
+    items = []
+    for r in result.all():
+        c_avg = Decimal(str(r.contractor_avg or 0))
+        m_avg = Decimal(str(r.market_avg or 0))
+        variance = float((c_avg - m_avg) / m_avg * 100) if m_avg > 0 else 0
+        items.append({
+            "pay_item_code": r.pay_item_code,
+            "description": r.description or "",
+            "unit": r.unit or "",
+            "contractor_avg_price": round(c_avg, 4),
+            "market_avg_price": round(m_avg, 4),
+            "variance_pct": round(variance, 2),
+            "contractor_samples": r.contractor_samples,
+            "market_samples": r.market_samples,
+        })
+
+    return {
+        "contractor_pk": str(contractor_pk),
+        "contractor_name": contractor.name,
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }

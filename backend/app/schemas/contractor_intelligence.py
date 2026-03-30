@@ -26,6 +26,9 @@ class ContractorProfileOut(BaseModel):
     win_rate: float  # 0.0-1.0
     avg_bid_total: Decimal | None = None
     total_bid_volume: Decimal = Decimal("0")
+    total_won: Decimal = Decimal("0")  # $ won as low bidder
+    on_table: Decimal = Decimal("0")  # $ available in contracts they bid on
+    dollar_capture_pct: float = 0  # % of available $ captured
     first_bid_date: date | None = None
     last_bid_date: date | None = None
     active_years: int = 0
@@ -214,3 +217,109 @@ class CategoryBreakdownOut(BaseModel):
     contractor_name: str
     breakdown: list[CategoryBreakdownEntry]
     grand_total: Decimal
+
+
+# ---------------------------------------------------------------------------
+# Market Analysis
+# ---------------------------------------------------------------------------
+
+
+class MarketPlayerEntry(BaseModel):
+    rank: int
+    contractor_pk: uuid.UUID
+    contractor_name: str
+    contractor_id_code: str
+    jobs_bid: int
+    jobs_won: int
+    win_rate: float
+    total_low: Decimal  # $ won as low bidder
+    total_bid: Decimal  # $ total of all bids
+    pct_won_of_bids: float  # % of jobs won out of jobs bid
+    dollar_capture_pct: float  # % of available $ captured ($ won / $ on table)
+    pct_left_on_table: float  # 100 - dollar_capture_pct
+
+
+class MarketAnalysisOut(BaseModel):
+    total_market_value: Decimal  # sum of all low bids in the filtered set
+    total_contracts: int
+    total_bidders: int
+    filters_applied: dict  # echo back what was filtered
+    players: list[MarketPlayerEntry]
+
+
+# ---------------------------------------------------------------------------
+# Letting Report
+# ---------------------------------------------------------------------------
+
+
+class LettingBidderEntry(BaseModel):
+    contractor_name: str
+    contractor_id_code: str
+    rank: int
+    total: Decimal
+    is_low: bool
+    variance_from_low: Decimal | None  # $ over low bid
+    variance_pct: float | None  # % over low bid
+
+
+class LettingContractEntry(BaseModel):
+    contract_id: uuid.UUID
+    contract_number: str
+    county: str
+    district: str
+    item_count: int
+    low_bidder_name: str
+    low_bid_total: Decimal | None
+    num_bidders: int
+    bidders: list[LettingBidderEntry]
+
+
+class LettingReportOut(BaseModel):
+    letting_date: date
+    total_contracts: int
+    total_value: Decimal  # sum of low bids
+    contracts: list[LettingContractEntry]
+
+
+# ---------------------------------------------------------------------------
+# Enhanced Pay Item Search
+# ---------------------------------------------------------------------------
+
+
+class PayItemSearchResult(BaseModel):
+    """One occurrence of a pay item in a bid."""
+    bid_item_id: uuid.UUID
+    pay_item_code: str
+    abbreviation: str
+    unit: str
+    quantity: Decimal
+    unit_price: Decimal
+    extension: Decimal
+    contractor_name: str
+    contractor_id_code: str
+    contractor_pk: uuid.UUID
+    contract_number: str
+    contract_id: uuid.UUID
+    letting_date: date
+    county: str
+    district: str
+    rank: int
+    is_low: bool
+
+
+class PayItemSearchStats(BaseModel):
+    count: int
+    weighted_avg: Decimal | None
+    straight_avg: Decimal | None
+    median: Decimal | None
+    high: Decimal | None
+    low: Decimal | None
+    total_quantity: Decimal | None
+
+
+class PayItemSearchOut(BaseModel):
+    results: list[PayItemSearchResult]
+    total: int
+    page: int
+    page_size: int
+    stats: PayItemSearchStats | None = None

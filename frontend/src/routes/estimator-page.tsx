@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Calculator, Plus, Trash2, Copy, RefreshCw, Download, Users, GitCompareArrows, Table } from 'lucide-react';
+import { Search, Calculator, Plus, Trash2, Copy, RefreshCw, Download, Users, GitCompareArrows, Table, TrendingUp, Calendar, FileSearch } from 'lucide-react';
 import { PayItemSearch } from '../components/estimator/pay-item-search';
 import { PriceHistoryPanel } from '../components/estimator/price-history-panel';
 import { ConfidenceBadge } from '../components/estimator/confidence-badge';
 import { ContractorSearch } from '../components/estimator/contractor-search';
 import { HeadToHead } from '../components/estimator/head-to-head';
 import { BidTabView } from '../components/estimator/bid-tab-view';
+import { MarketAnalysis } from '../components/estimator/market-analysis';
+import { LettingReport } from '../components/estimator/letting-report';
+import { PayItemDetailSearch } from '../components/estimator/pay-item-detail-search';
 import {
   listEstimates, createEstimate, getEstimate, deleteEstimate, updateEstimate,
   duplicateEstimate, recalculateEstimate, addEstimateItems,
@@ -14,7 +17,7 @@ import {
   type PayItem, type Estimate, type EstimateItem,
 } from '../api/estimator';
 
-type Tab = 'pay-items' | 'estimates' | 'contractors' | 'head-to-head' | 'bid-tabs';
+type Tab = 'pay-items' | 'estimates' | 'contractors' | 'head-to-head' | 'bid-tabs' | 'market-analysis' | 'letting-report' | 'pi-detail';
 
 export function EstimatorPage() {
   const [activeTab, setActiveTab] = useState<Tab>('pay-items');
@@ -53,6 +56,24 @@ export function EstimatorPage() {
           icon={<Table size={15} />}
           label="Bid Tabs"
         />
+        <TabButton
+          active={activeTab === 'market-analysis'}
+          onClick={() => setActiveTab('market-analysis')}
+          icon={<TrendingUp size={15} />}
+          label="Market Analysis"
+        />
+        <TabButton
+          active={activeTab === 'letting-report'}
+          onClick={() => setActiveTab('letting-report')}
+          icon={<Calendar size={15} />}
+          label="Letting Report"
+        />
+        <TabButton
+          active={activeTab === 'pi-detail'}
+          onClick={() => setActiveTab('pi-detail')}
+          icon={<FileSearch size={15} />}
+          label="PI Detail Search"
+        />
       </div>
 
       {/* Tab content */}
@@ -62,6 +83,9 @@ export function EstimatorPage() {
         {activeTab === 'contractors' && <ContractorSearch />}
         {activeTab === 'head-to-head' && <HeadToHead />}
         {activeTab === 'bid-tabs' && <BidTabView />}
+        {activeTab === 'market-analysis' && <MarketAnalysis />}
+        {activeTab === 'letting-report' && <LettingReport />}
+        {activeTab === 'pi-detail' && <PayItemDetailSearch />}
       </div>
     </div>
   );

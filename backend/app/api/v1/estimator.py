@@ -52,23 +52,43 @@ router = APIRouter()
 
 @router.get("/contracts/filter-options")
 async def get_contract_filter_options(db: AsyncSession = Depends(get_db)):
-    """Get distinct counties, districts, and date range for contract filters."""
-    from datetime import date as dt
+    """Get distinct counties, districts, county-district mappings, and date range."""
 
-    counties_q = await db.execute(
-        select(Contract.county).where(Contract.county != "").distinct().order_by(Contract.county)
+    # County-district pairs (for dependent dropdowns)
+    pairs_q = await db.execute(
+        select(Contract.county, Contract.district)
+        .where(Contract.county != "", Contract.district != "")
+        .distinct()
+        .order_by(Contract.county, Contract.district)
     )
-    districts_q = await db.execute(
-        select(Contract.district).where(Contract.district != "").distinct().order_by(Contract.district)
-    )
+    pairs = pairs_q.all()
+
+    # Build mappings
+    counties = sorted(set(r[0] for r in pairs))
+    districts = sorted(set(r[1] for r in pairs))
+
+    # county → [districts] and district → [counties]
+    county_to_districts: dict[str, list[str]] = {}
+    district_to_counties: dict[str, list[str]] = {}
+    for county, district in pairs:
+        county_to_districts.setdefault(county, []).append(district)
+        district_to_counties.setdefault(district, []).append(county)
+    # Dedupe and sort
+    for k in county_to_districts:
+        county_to_districts[k] = sorted(set(county_to_districts[k]))
+    for k in district_to_counties:
+        district_to_counties[k] = sorted(set(district_to_counties[k]))
+
     date_range = await db.execute(
         select(func.min(Contract.letting_date), func.max(Contract.letting_date))
     )
     dr = date_range.one()
 
     return {
-        "counties": [r[0] for r in counties_q.all()],
-        "districts": [r[0] for r in districts_q.all()],
+        "counties": counties,
+        "districts": districts,
+        "county_to_districts": county_to_districts,
+        "district_to_counties": district_to_counties,
         "min_date": str(dr[0]) if dr[0] else None,
         "max_date": str(dr[1]) if dr[1] else None,
     }

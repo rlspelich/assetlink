@@ -4,7 +4,7 @@
     {
       "name": "Docker Services (PostGIS + Redis + API)",
       "runtimeExecutable": "docker",
-      "runtimeArgs": ["compose", "up", "-d"],
+      "runtimeArgs": ["compose", "up"],
       "port": 8000,
       "autoPort": false
     },

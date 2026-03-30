@@ -283,6 +283,9 @@ export interface ContractorProfile {
   win_rate: number;
   avg_bid_total: number | null;
   total_bid_volume: number;
+  total_won: number;
+  on_table: number;
+  dollar_capture_pct: number;
   first_bid_date: string | null;
   last_bid_date: string | null;
   active_years: number;
@@ -518,6 +521,17 @@ export async function getPriceTendencies(pk: string, params: {
   return api.get(`estimator/contractors/${pk}/price-tendencies`, { searchParams: sp }).json();
 }
 
+export interface Competitor {
+  contractor_pk: string;
+  name: string;
+  contractor_id_code: string;
+  shared_contracts: number;
+}
+
+export async function getCompetitors(pk: string, limit = 50): Promise<Competitor[]> {
+  return api.get(`estimator/contractors/${pk}/competitors`, { searchParams: { limit: String(limit) } }).json();
+}
+
 export async function getHeadToHead(
   contractorA: string, contractorB: string, params: {
     min_date?: string;
@@ -549,6 +563,8 @@ export async function getHeadToHeadItems(
 export interface ContractFilterOptions {
   counties: string[];
   districts: string[];
+  county_to_districts: Record<string, string[]>;
+  district_to_counties: Record<string, string[]>;
   min_date: string | null;
   max_date: string | null;
 }
@@ -589,4 +605,143 @@ export async function getCategoryBreakdown(contractId: string, bidId?: string): 
   const sp: Record<string, string> = {};
   if (bidId) sp.bid_id = bidId;
   return api.get(`estimator/contracts/${contractId}/category-breakdown`, { searchParams: sp }).json();
+}
+
+
+// ============================================================
+// Market Analysis — Types
+// ============================================================
+
+export interface MarketPlayer {
+  rank: number;
+  contractor_pk: string;
+  contractor_name: string;
+  contractor_id_code: string;
+  jobs_bid: number;
+  jobs_won: number;
+  win_rate: number;
+  total_low: number;
+  total_bid: number;
+  pct_won_of_bids: number;
+  dollar_capture_pct: number;
+  pct_left_on_table: number;
+}
+
+export interface MarketAnalysis {
+  total_market_value: number;
+  total_contracts: number;
+  total_bidders: number;
+  filters_applied: Record<string, string>;
+  players: MarketPlayer[];
+}
+
+// ============================================================
+// Letting Report — Types
+// ============================================================
+
+export interface LettingDate { letting_date: string; contract_count: number; }
+export interface LettingBidder { contractor_name: string; contractor_id_code: string; rank: number; total: number; is_low: boolean; variance_from_low: number | null; variance_pct: number | null; }
+export interface LettingContract { contract_id: string; contract_number: string; county: string; district: string; item_count: number; low_bidder_name: string; low_bid_total: number | null; num_bidders: number; bidders: LettingBidder[]; }
+export interface LettingReport { letting_date: string; total_contracts: number; total_value: number; contracts: LettingContract[]; }
+
+// ============================================================
+// Pay Item Detail Search — Types
+// ============================================================
+
+export interface PayItemOccurrence { bid_item_id: string; pay_item_code: string; abbreviation: string; unit: string; quantity: number; unit_price: number; extension: number; contractor_name: string; contractor_id_code: string; contractor_pk: string; contract_number: string; contract_id: string; letting_date: string; county: string; district: string; rank: number; is_low: boolean; }
+export interface PayItemSearchStats { count: number; weighted_avg: number | null; straight_avg: number | null; median: number | null; high: number | null; low: number | null; total_quantity: number | null; }
+export interface PayItemSearchResponse { results: PayItemOccurrence[]; total: number; page: number; page_size: number; stats: PayItemSearchStats | null; }
+
+// ============================================================
+// Contractor vs Market — Types
+// ============================================================
+
+export interface VsMarketItem { pay_item_code: string; description: string; unit: string; contractor_avg_price: number; market_avg_price: number; variance_pct: number; contractor_samples: number; market_samples: number; }
+export interface VsMarketResponse { contractor_pk: string; contractor_name: string; items: VsMarketItem[]; total: number; page: number; page_size: number; }
+
+// ============================================================
+// Market Analysis / Letting / PI Detail / vs Market — API Functions
+// ============================================================
+
+export async function getMarketAnalysis(params: {
+  county?: string;
+  district?: string;
+  min_date?: string;
+  max_date?: string;
+  min_project_size?: number;
+  max_project_size?: number;
+  limit?: number;
+} = {}): Promise<MarketAnalysis> {
+  const sp: Record<string, string> = {};
+  if (params.county) sp.county = params.county;
+  if (params.district) sp.district = params.district;
+  if (params.min_date) sp.min_date = params.min_date;
+  if (params.max_date) sp.max_date = params.max_date;
+  if (params.min_project_size != null) sp.min_project_size = String(params.min_project_size);
+  if (params.max_project_size != null) sp.max_project_size = String(params.max_project_size);
+  if (params.limit != null) sp.limit = String(params.limit);
+  return api.get('estimator/market-analysis', { searchParams: sp }).json();
+}
+
+export async function getLettingDates(limit?: number): Promise<LettingDate[]> {
+  const sp: Record<string, string> = {};
+  if (limit != null) sp.limit = String(limit);
+  return api.get('estimator/letting-dates', { searchParams: sp }).json();
+}
+
+export async function getLettingReport(lettingDate: string, params?: {
+  county?: string;
+  district?: string;
+}): Promise<LettingReport> {
+  const sp: Record<string, string> = {};
+  if (params?.county) sp.county = params.county;
+  if (params?.district) sp.district = params.district;
+  const sp2: Record<string, string> = { letting_date: lettingDate, ...sp };
+  return api.get('estimator/letting-report', { searchParams: sp2 }).json();
+}
+
+export async function searchPayItemOccurrences(params: {
+  pay_item_code?: string;
+  description?: string;
+  county?: string;
+  district?: string;
+  contractor?: string;
+  min_date?: string;
+  max_date?: string;
+  min_quantity?: number;
+  max_quantity?: number;
+  low_bids_only?: boolean;
+  page?: number;
+  page_size?: number;
+}): Promise<PayItemSearchResponse> {
+  const sp: Record<string, string> = {};
+  if (params.pay_item_code) sp.pay_item_code = params.pay_item_code;
+  if (params.description) sp.description = params.description;
+  if (params.county) sp.county = params.county;
+  if (params.district) sp.district = params.district;
+  if (params.contractor) sp.contractor = params.contractor;
+  if (params.min_date) sp.min_date = params.min_date;
+  if (params.max_date) sp.max_date = params.max_date;
+  if (params.min_quantity != null) sp.min_quantity = String(params.min_quantity);
+  if (params.max_quantity != null) sp.max_quantity = String(params.max_quantity);
+  if (params.low_bids_only) sp.low_bids_only = 'true';
+  if (params.page) sp.page = String(params.page);
+  if (params.page_size) sp.page_size = String(params.page_size);
+  return api.get('estimator/pay-item-search', { searchParams: sp }).json();
+}
+
+export async function getContractorVsMarket(pk: string, params?: {
+  min_date?: string;
+  county?: string;
+  district?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<VsMarketResponse> {
+  const sp: Record<string, string> = {};
+  if (params?.min_date) sp.min_date = params.min_date;
+  if (params?.county) sp.county = params.county;
+  if (params?.district) sp.district = params.district;
+  if (params?.page) sp.page = String(params.page);
+  if (params?.page_size) sp.page_size = String(params.page_size);
+  return api.get(`estimator/contractors/${pk}/vs-market`, { searchParams: sp }).json();
 }
