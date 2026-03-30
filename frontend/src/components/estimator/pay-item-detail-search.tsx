@@ -113,16 +113,42 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
           />
           <div>
             <label className="block text-[10px] font-medium text-gray-500 mb-1">County</label>
-            <select value={county} onChange={(e) => setCounty(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md w-36 bg-white">
+            <select
+              value={county}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCounty(val);
+                if (val && district && filterOpts?.county_to_districts?.[val] && !filterOpts.county_to_districts[val].includes(district)) {
+                  setDistrict('');
+                }
+              }}
+              className="px-2 py-1.5 text-sm border rounded-md w-36 bg-white"
+            >
               <option value="">All</option>
-              {filterOpts?.counties.map((c) => <option key={c} value={c}>{c}</option>)}
+              {(district && filterOpts?.district_to_counties?.[district]
+                ? filterOpts.district_to_counties[district]
+                : filterOpts?.counties || []
+              ).map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-[10px] font-medium text-gray-500 mb-1">District</label>
-            <select value={district} onChange={(e) => setDistrict(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md w-28 bg-white">
+            <select
+              value={district}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDistrict(val);
+                if (val && county && filterOpts?.district_to_counties?.[val] && !filterOpts.district_to_counties[val].includes(county)) {
+                  setCounty('');
+                }
+              }}
+              className="px-2 py-1.5 text-sm border rounded-md w-28 bg-white"
+            >
               <option value="">All</option>
-              {filterOpts?.districts.map((d) => <option key={d} value={d}>{d}</option>)}
+              {(county && filterOpts?.county_to_districts?.[county]
+                ? filterOpts.county_to_districts[county]
+                : filterOpts?.districts || []
+              ).map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
           <TypeAheadField
