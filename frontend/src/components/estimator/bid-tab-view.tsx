@@ -5,6 +5,7 @@ import {
   listContracts,
   getBidTab,
   getCategoryBreakdown,
+  getContractFilterOptions,
 } from '../../api/estimator';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -33,6 +34,9 @@ function ContractList({ onSelect }: { onSelect: (id: string) => void }) {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [county, setCounty] = useState('');
   const [district, setDistrict] = useState('');
+  const [minDate, setMinDate] = useState('');
+  const [maxDate, setMaxDate] = useState('');
+  const [municipality, setMunicipality] = useState('');
   const [page, setPage] = useState(1);
 
   const handleSearch = (value: string) => {
@@ -42,18 +46,35 @@ function ContractList({ onSelect }: { onSelect: (id: string) => void }) {
     (window as any).__contractSearchTimer = setTimeout(() => setDebouncedSearch(value), 300);
   };
 
+  // Load filter options (counties, districts, date range)
+  const { data: filterOpts } = useQuery({
+    queryKey: ['contractFilterOptions'],
+    queryFn: getContractFilterOptions,
+    staleTime: 5 * 60 * 1000, // cache 5 min
+  });
+
   const { data, isLoading } = useQuery({
-    queryKey: ['contracts', debouncedSearch, county, district, page],
+    queryKey: ['contracts', debouncedSearch, county, district, minDate, maxDate, municipality, page],
     queryFn: () => listContracts({
       search: debouncedSearch || undefined,
       county: county || undefined,
       district: district || undefined,
+      min_date: minDate || undefined,
+      max_date: maxDate || undefined,
+      municipality: municipality || undefined,
       page,
       page_size: 25,
     }),
   });
 
   const totalPages = data ? Math.ceil(data.total / 25) : 0;
+
+  const clearFilters = () => {
+    setSearch(''); setDebouncedSearch(''); setCounty(''); setDistrict('');
+    setMinDate(''); setMaxDate(''); setMunicipality(''); setPage(1);
+  };
+
+  const hasFilters = county || district || minDate || maxDate || municipality || debouncedSearch;
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -63,31 +84,76 @@ function ContractList({ onSelect }: { onSelect: (id: string) => void }) {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by contract number..."
+            placeholder="Search by contract number, county, or municipality..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="County filter..."
+          <select
             value={county}
             onChange={(e) => { setCounty(e.target.value); setPage(1); }}
-            className="flex-1 px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="text"
-            placeholder="District filter..."
+            className="flex-1 px-3 py-1.5 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Counties</option>
+            {filterOpts?.counties.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <select
             value={district}
             onChange={(e) => { setDistrict(e.target.value); setPage(1); }}
+            className="w-28 px-3 py-1.5 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Districts</option>
+            {filterOpts?.districts.map((d) => (
+              <option key={d} value={d}>District {d}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <div className="flex-1 flex items-center gap-1.5">
+            <label className="text-xs text-gray-500 whitespace-nowrap">From</label>
+            <input
+              type="date"
+              value={minDate}
+              min={filterOpts?.min_date || undefined}
+              max={maxDate || filterOpts?.max_date || undefined}
+              onChange={(e) => { setMinDate(e.target.value); setPage(1); }}
+              className="flex-1 px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex-1 flex items-center gap-1.5">
+            <label className="text-xs text-gray-500 whitespace-nowrap">To</label>
+            <input
+              type="date"
+              value={maxDate}
+              min={minDate || filterOpts?.min_date || undefined}
+              max={filterOpts?.max_date || undefined}
+              onChange={(e) => { setMaxDate(e.target.value); setPage(1); }}
+              className="flex-1 px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <input
+            type="text"
+            placeholder="Municipality..."
+            value={municipality}
+            onChange={(e) => { setMunicipality(e.target.value); setPage(1); }}
             className="flex-1 px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        {data && (
-          <div className="text-xs text-gray-500">{data.total.toLocaleString()} contracts</div>
-        )}
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-gray-500">
+            {data ? `${data.total.toLocaleString()} contracts` : ''}
+            {filterOpts && !hasFilters ? ` (${filterOpts.min_date?.slice(0,4)}–${filterOpts.max_date?.slice(0,4)})` : ''}
+          </div>
+          {hasFilters && (
+            <button onClick={clearFilters} className="text-xs text-blue-600 hover:text-blue-800">
+              Clear filters
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -104,7 +170,8 @@ function ContractList({ onSelect }: { onSelect: (id: string) => void }) {
               <th className="px-3 py-2">Contract #</th>
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">County</th>
-              <th className="px-3 py-2">District</th>
+              <th className="px-3 py-2">Dist.</th>
+              <th className="px-3 py-2">Municipality</th>
               <th className="px-3 py-2 text-right">Items</th>
               <th className="px-3 py-2 text-right">Bidders</th>
               <th className="px-3 py-2 text-right">Low Bid</th>
@@ -118,9 +185,10 @@ function ContractList({ onSelect }: { onSelect: (id: string) => void }) {
                 className="cursor-pointer hover:bg-blue-50"
               >
                 <td className="px-3 py-2 font-medium text-blue-600">{c.number}</td>
-                <td className="px-3 py-2 text-gray-600">{c.letting_date}</td>
+                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{c.letting_date}</td>
                 <td className="px-3 py-2 text-gray-600">{c.county}</td>
-                <td className="px-3 py-2 text-gray-600">{c.district}</td>
+                <td className="px-3 py-2 text-gray-600 text-center">{c.district}</td>
+                <td className="px-3 py-2 text-gray-600 max-w-[150px] truncate">{c.municipality || '-'}</td>
                 <td className="px-3 py-2 text-right text-gray-600">{c.item_count}</td>
                 <td className="px-3 py-2 text-right text-gray-600">{c.bid_count}</td>
                 <td className="px-3 py-2 text-right font-mono text-gray-900">

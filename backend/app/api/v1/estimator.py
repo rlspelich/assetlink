@@ -50,6 +50,30 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 
+@router.get("/contracts/filter-options")
+async def get_contract_filter_options(db: AsyncSession = Depends(get_db)):
+    """Get distinct counties, districts, and date range for contract filters."""
+    from datetime import date as dt
+
+    counties_q = await db.execute(
+        select(Contract.county).where(Contract.county != "").distinct().order_by(Contract.county)
+    )
+    districts_q = await db.execute(
+        select(Contract.district).where(Contract.district != "").distinct().order_by(Contract.district)
+    )
+    date_range = await db.execute(
+        select(func.min(Contract.letting_date), func.max(Contract.letting_date))
+    )
+    dr = date_range.one()
+
+    return {
+        "counties": [r[0] for r in counties_q.all()],
+        "districts": [r[0] for r in districts_q.all()],
+        "min_date": str(dr[0]) if dr[0] else None,
+        "max_date": str(dr[1]) if dr[1] else None,
+    }
+
+
 @router.get("/contracts", response_model=ContractListOut)
 async def list_contracts(
     db: AsyncSession = Depends(get_db),
@@ -59,8 +83,13 @@ async def list_contracts(
     county: str | None = None,
     district: str | None = None,
     search: str | None = None,
+    min_date: str | None = None,
+    max_date: str | None = None,
+    municipality: str | None = None,
 ):
     """List contracts with optional filters. Reference data — no tenant filter."""
+    from datetime import date as dt
+
     query = select(Contract)
 
     if agency:
@@ -75,6 +104,12 @@ async def list_contracts(
             | Contract.municipality.ilike(f"%{search}%")
             | Contract.county.ilike(f"%{search}%")
         )
+    if min_date:
+        query = query.where(Contract.letting_date >= dt.fromisoformat(min_date))
+    if max_date:
+        query = query.where(Contract.letting_date <= dt.fromisoformat(max_date))
+    if municipality:
+        query = query.where(Contract.municipality.ilike(f"%{municipality}%"))
 
     # Count
     count_q = select(func.count()).select_from(query.subquery())

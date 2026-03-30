@@ -546,6 +546,17 @@ export async function getHeadToHeadItems(
   return api.get('estimator/contractors/head-to-head/items', { searchParams: sp }).json();
 }
 
+export interface ContractFilterOptions {
+  counties: string[];
+  districts: string[];
+  min_date: string | null;
+  max_date: string | null;
+}
+
+export async function getContractFilterOptions(): Promise<ContractFilterOptions> {
+  return api.get('estimator/contracts/filter-options').json();
+}
+
 export async function listContracts(params: {
   page?: number;
   page_size?: number;
@@ -553,6 +564,9 @@ export async function listContracts(params: {
   county?: string;
   district?: string;
   search?: string;
+  min_date?: string;
+  max_date?: string;
+  municipality?: string;
 } = {}): Promise<ContractListResponse> {
   const sp: Record<string, string> = {};
   if (params.page) sp.page = String(params.page);
@@ -561,6 +575,9 @@ export async function listContracts(params: {
   if (params.county) sp.county = params.county;
   if (params.district) sp.district = params.district;
   if (params.search) sp.search = params.search;
+  if (params.min_date) sp.min_date = params.min_date;
+  if (params.max_date) sp.max_date = params.max_date;
+  if (params.municipality) sp.municipality = params.municipality;
   return api.get('estimator/contracts', { searchParams: sp }).json();
 }
 
