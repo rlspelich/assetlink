@@ -12,7 +12,7 @@ Provides:
 import time
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy import func, select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -844,3 +844,218 @@ async def get_regional_factors(db: AsyncSession = Depends(get_db)):
     """Get all state-level regional cost factors."""
     from app.services.estimator.regional_service import get_all_regional_factors as _get
     return [RegionalFactorOut.model_validate(f) for f in await _get(db)]
+
+
+# ===========================================================================
+# BULK IMPORT for Estimate Items
+# ===========================================================================
+
+
+@router.post("/estimates/{estimate_id}/import-items", response_model=list[EstimateItemOut], status_code=201)
+async def bulk_import_estimate_items(
+    estimate_id: uuid.UUID,
+    tenant_id: uuid.UUID = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+    text_data: str | None = Body(None, description="Pasted tab/comma-separated item data"),
+    file: UploadFile | None = File(None, description="CSV file upload"),
+):
+    """
+    Bulk import items into an estimate from pasted text or CSV upload.
+
+    Accepts tab-separated or comma-separated data with columns:
+    pay_item_code, quantity [, description, unit]
+
+    Auto-matches pay item codes to the catalog and prices from historical data.
+    Returns the created items with auto-filled prices and confidence scores.
+    """
+    import csv
+    import io
+
+    from app.services.estimator.estimate_service import get_estimate as _get, add_items_to_estimate
+
+    estimate = await _get(db, tenant_id, estimate_id)
+    if not estimate:
+        raise HTTPException(status_code=404, detail="Estimate not found")
+
+    # Get raw text from either paste or file upload
+    raw = ""
+    if file:
+        content = await file.read()
+        raw = content.decode("utf-8", errors="replace")
+    elif text_data:
+        raw = text_data
+    else:
+        raise HTTPException(status_code=400, detail="Provide text_data or file")
+
+    raw = raw.strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty input")
+
+    # Detect delimiter
+    delimiter = "\t" if "\t" in raw else ","
+
+    # Parse rows
+    reader = csv.reader(io.StringIO(raw), delimiter=delimiter)
+    items_to_add = []
+    errors = []
+
+    for row_num, row in enumerate(reader, start=1):
+        if not row or not row[0].strip():
+            continue
+
+        # Skip header rows
+        first = row[0].strip().upper()
+        if first in ("PAY ITEM", "CODE", "ITEM", "PAY_ITEM_CODE", "PAYITEM", "#"):
+            continue
+
+        try:
+            code = row[0].strip()
+            qty = float(row[1].strip().replace(",", "")) if len(row) > 1 and row[1].strip() else 1.0
+            desc = row[2].strip() if len(row) > 2 else ""
+            unit = row[3].strip() if len(row) > 3 else ""
+
+            items_to_add.append({
+                "pay_item_code": code,
+                "quantity": qty,
+                "description": desc,
+                "unit": unit,
+            })
+        except (ValueError, IndexError) as e:
+            errors.append(f"Row {row_num}: {e}")
+
+    if not items_to_add:
+        raise HTTPException(status_code=400, detail=f"No valid items found. Errors: {errors[:5]}")
+
+    created = await add_items_to_estimate(db, tenant_id, estimate, items_to_add)
+    return [EstimateItemOut.model_validate(i) for i in created]
+
+
+# ===========================================================================
+# ENGINEER'S ESTIMATE REPORT
+# ===========================================================================
+
+
+@router.get("/estimates/{estimate_id}/engineers-report")
+async def get_engineers_estimate_report(
+    estimate_id: uuid.UUID,
+    tenant_id: uuid.UUID = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+    format: str = Query("txt", description="Report format: txt or csv"),
+    contingency_pct: float = Query(0, ge=0, le=50, description="Contingency percentage to add"),
+):
+    """
+    Generate an Engineer's Estimate report.
+
+    TXT format: Formatted report with header, line items, subtotals, contingency.
+    CSV format: Tabular data ready for Excel with all pricing details.
+    """
+    from decimal import Decimal
+    from fastapi.responses import PlainTextResponse
+
+    from app.services.estimator.estimate_service import get_estimate as _get
+
+    estimate = await _get(db, tenant_id, estimate_id)
+    if not estimate:
+        raise HTTPException(status_code=404, detail="Estimate not found")
+
+    items = sorted(estimate.items, key=lambda x: x.sort_order)
+    total = sum(i.extension for i in items)
+    contingency_amt = total * Decimal(str(contingency_pct / 100)) if contingency_pct > 0 else Decimal("0")
+    grand_total = total + contingency_amt
+
+    if format == "csv":
+        import csv
+        import io
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "Pay Item Code", "Description", "Unit", "Quantity",
+            "Unit Price", "Price Source", "Extension",
+            "Confidence", "Data Points", "P25", "P50", "P75",
+        ])
+        for item in items:
+            writer.writerow([
+                item.pay_item_code,
+                item.description,
+                item.unit,
+                f"{item.quantity:.3f}",
+                f"{item.unit_price:.4f}",
+                item.unit_price_source,
+                f"{item.extension:.2f}",
+                item.confidence_label or "",
+                item.price_count,
+                f"{item.price_p25:.4f}" if item.price_p25 else "",
+                f"{item.price_p50:.4f}" if item.price_p50 else "",
+                f"{item.price_p75:.4f}" if item.price_p75 else "",
+            ])
+
+        # Subtotal and contingency rows
+        writer.writerow([])
+        writer.writerow(["", "", "", "", "", "SUBTOTAL", f"{total:.2f}"])
+        if contingency_pct > 0:
+            writer.writerow(["", "", "", "", "", f"CONTINGENCY ({contingency_pct:.0f}%)", f"{contingency_amt:.2f}"])
+            writer.writerow(["", "", "", "", "", "GRAND TOTAL", f"{grand_total:.2f}"])
+
+        return PlainTextResponse(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="engineers_estimate_{estimate.name.replace(" ", "_")}.csv"'},
+        )
+
+    else:  # txt format
+        from datetime import date as dt
+
+        lines = []
+        lines.append("=" * 90)
+        lines.append("ENGINEER'S ESTIMATE")
+        lines.append("=" * 90)
+        lines.append(f"Project:    {estimate.name}")
+        if estimate.description:
+            lines.append(f"Desc:       {estimate.description}")
+        lines.append(f"Date:       {dt.today().isoformat()}")
+        lines.append(f"State:      {estimate.target_state}")
+        if estimate.target_district:
+            lines.append(f"District:   {estimate.target_district}")
+        lines.append(f"Inflation:  {'Adjusted' if estimate.use_inflation_adjustment else 'Nominal'}")
+        if estimate.target_year:
+            lines.append(f"Base Year:  {estimate.target_year}")
+        lines.append(f"Items:      {len(items)}")
+        lines.append("")
+        lines.append(f"{'Code':<12} {'Description':<40} {'Unit':<6} {'Quantity':>10} {'Unit Price':>12} {'Extension':>14} {'Conf':>6} {'Basis'}")
+        lines.append("-" * 120)
+
+        for item in items:
+            basis = f"{item.price_count} awards" if item.unit_price_source == "computed" and item.price_count > 0 else item.unit_price_source
+            conf = item.confidence_label or ""
+            lines.append(
+                f"{item.pay_item_code:<12} "
+                f"{item.description[:40]:<40} "
+                f"{item.unit:<6} "
+                f"{item.quantity:>10,.3f} "
+                f"{item.unit_price:>12,.4f} "
+                f"{item.extension:>14,.2f} "
+                f"{conf:>6} "
+                f"{basis}"
+            )
+
+        lines.append("-" * 120)
+        lines.append(f"{'':>82} SUBTOTAL: {total:>14,.2f}")
+        if contingency_pct > 0:
+            lines.append(f"{'':>72} CONTINGENCY ({contingency_pct:.0f}%): {contingency_amt:>14,.2f}")
+            lines.append(f"{'':>78} GRAND TOTAL: {grand_total:>14,.2f}")
+        lines.append("")
+        lines.append(f"Confidence Range: ${float(estimate.confidence_low or 0):,.2f} — ${float(estimate.confidence_high or 0):,.2f} (P25–P75)")
+        lines.append("")
+        lines.append("Pricing Methodology:")
+        lines.append(f"  Source:    IDOT historical award data ({estimate.target_state})")
+        lines.append(f"  Method:   Recency-weighted average with FHWA NHCCI inflation adjustment")
+        lines.append(f"  Data:     1.4M+ awarded prices, 2003–2026")
+        lines.append(f"  Generated by AssetLink Estimator")
+        lines.append("=" * 90)
+
+        return PlainTextResponse(
+            content="\n".join(lines),
+            media_type="text/plain",
+            headers={"Content-Disposition": f'attachment; filename="engineers_estimate_{estimate.name.replace(" ", "_")}.txt"'},
+        )

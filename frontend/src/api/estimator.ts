@@ -252,6 +252,25 @@ export async function deleteEstimateItem(estimateId: string, itemId: string): Pr
   await api.delete(`estimator/estimates/${estimateId}/items/${itemId}`);
 }
 
+export async function bulkImportEstimateItems(estimateId: string, textData: string): Promise<EstimateItem[]> {
+  return api.post(`estimator/estimates/${estimateId}/import-items`, { json: { text_data: textData } }).json();
+}
+
+export async function downloadEngineersReport(estimateId: string, format: 'txt' | 'csv', contingencyPct: number = 0): Promise<void> {
+  const resp = await api.get(`estimator/estimates/${estimateId}/engineers-report`, {
+    searchParams: { format, contingency_pct: String(contingencyPct) },
+  });
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = format === 'csv' ? 'engineers_estimate.csv' : 'engineers_estimate.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 
 // ============================================================
 // Contractor Intelligence — Types

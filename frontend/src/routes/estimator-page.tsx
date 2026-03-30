@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Calculator, Plus, Trash2, Copy, RefreshCw, Download, Users, GitCompareArrows, Table, TrendingUp, Calendar, FileSearch } from 'lucide-react';
+import { Search, Calculator, Plus, Trash2, Copy, RefreshCw, Download, Users, GitCompareArrows, Table, TrendingUp, Calendar, FileSearch, Upload, FileText, ChevronDown, X } from 'lucide-react';
 import { PayItemSearch } from '../components/estimator/pay-item-search';
 import { PriceHistoryPanel } from '../components/estimator/price-history-panel';
 import { ConfidenceBadge } from '../components/estimator/confidence-badge';
@@ -14,6 +14,7 @@ import {
   listEstimates, createEstimate, getEstimate, deleteEstimate, updateEstimate,
   duplicateEstimate, recalculateEstimate, addEstimateItems,
   deleteEstimateItem, searchPayItems, updateEstimateItem,
+  bulkImportEstimateItems, downloadEngineersReport,
   type PayItem, type Estimate, type EstimateItem,
 } from '../api/estimator';
 
@@ -359,11 +360,26 @@ function NewEstimateForm({ onSubmit, onCancel, isLoading }: {
 // Estimate Detail View
 // ============================================================
 
+const CONTINGENCY_PHASES = [
+  { label: 'Conceptual (25%)', value: 25 },
+  { label: 'Preliminary (15%)', value: 15 },
+  { label: 'Final Design (10%)', value: 10 },
+  { label: 'Custom', value: -1 },
+] as const;
+
 function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack: () => void }) {
   const [showAddItem, setShowAddItem] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showReportDropdown, setShowReportDropdown] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState('');
+  const [contingencyPhase, setContingencyPhase] = useState<string>('Final Design (10%)');
+  const [customContingencyPct, setCustomContingencyPct] = useState(10);
   const queryClient = useQueryClient();
+
+  const contingencyPct = contingencyPhase === 'Custom'
+    ? customContingencyPct
+    : CONTINGENCY_PHASES.find(p => p.label === contingencyPhase)?.value ?? 10;
 
   const { data: estimate, isLoading } = useQuery({
     queryKey: ['estimate', estimateId],
@@ -414,6 +430,10 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
   if (isLoading || !estimate) {
     return <div className="p-8 text-center text-gray-400">Loading estimate...</div>;
   }
+
+  const subtotal = Number(estimate.total_with_regional || estimate.total_adjusted);
+  const contingencyAmount = subtotal * (contingencyPct / 100);
+  const grandTotal = subtotal + contingencyAmount;
 
   return (
     <div className="h-full flex flex-col">
@@ -491,6 +511,42 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
               <Download size={14} />
               CSV
             </button>
+            {/* Engineer's Report dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowReportDropdown(!showReportDropdown)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs border rounded-md hover:bg-gray-100"
+                title="Engineer's Estimate Report"
+              >
+                <FileText size={14} />
+                Engineer&apos;s Report
+                <ChevronDown size={12} />
+              </button>
+              {showReportDropdown && (
+                <div className="absolute right-0 top-full mt-1 z-20 bg-white shadow-lg rounded-md border min-w-[180px]">
+                  <button
+                    onClick={() => {
+                      downloadEngineersReport(estimateId, 'txt', contingencyPct);
+                      setShowReportDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <FileText size={14} className="text-gray-400" />
+                    TXT Report
+                  </button>
+                  <button
+                    onClick={() => {
+                      downloadEngineersReport(estimateId, 'csv', contingencyPct);
+                      setShowReportDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 border-t"
+                  >
+                    <Download size={14} className="text-gray-400" />
+                    CSV Report
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => recalcMut.mutate()}
               disabled={recalcMut.isPending}
@@ -541,13 +597,22 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-gray-700">Line Items</span>
-            <button
-              onClick={() => setShowAddItem(true)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              <Plus size={14} />
-              Add Item
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                <Upload size={14} />
+                Import Items
+              </button>
+              <button
+                onClick={() => setShowAddItem(true)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                <Plus size={14} />
+                Add Item
+              </button>
+            </div>
           </div>
 
           {showAddItem && (
@@ -588,6 +653,175 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
               </tbody>
             </table>
           )}
+
+          {/* Contingency calculator */}
+          {estimate.items.length > 0 && (
+            <div className="mt-4 bg-gray-50 border-t rounded-b-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-xs font-semibold text-gray-600 uppercase">Contingency</span>
+                  <select
+                    value={contingencyPhase}
+                    onChange={(e) => setContingencyPhase(e.target.value)}
+                    className="px-2 py-1 text-xs border rounded-md bg-white"
+                  >
+                    {CONTINGENCY_PHASES.map((p) => (
+                      <option key={p.label} value={p.label}>{p.label}</option>
+                    ))}
+                  </select>
+                  {contingencyPhase === 'Custom' && (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        value={customContingencyPct}
+                        onChange={(e) => setCustomContingencyPct(Number(e.target.value))}
+                        min={0}
+                        max={100}
+                        step={1}
+                        className="w-16 px-2 py-1 text-xs border rounded-md text-right"
+                      />
+                      <span className="text-xs text-gray-500">%</span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right space-y-1">
+                  <div className="flex items-center justify-end gap-8 text-xs text-gray-600">
+                    <span>Subtotal</span>
+                    <span className="font-mono font-medium w-28 text-right">
+                      ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-end gap-8 text-xs text-gray-600">
+                    <span>Contingency ({contingencyPct}%)</span>
+                    <span className="font-mono font-medium w-28 text-right">
+                      ${contingencyAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-end gap-8 text-sm font-bold text-gray-900 border-t pt-1">
+                    <span>Grand Total</span>
+                    <span className="font-mono w-28 text-right">
+                      ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bulk import modal */}
+      {showImportModal && (
+        <BulkImportModal
+          estimateId={estimateId}
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['estimate', estimateId] });
+            setShowImportModal(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Bulk Import Modal
+// ============================================================
+
+function BulkImportModal({ estimateId, onClose, onSuccess }: {
+  estimateId: string; onClose: () => void; onSuccess: () => void;
+}) {
+  const [textData, setTextData] = useState('');
+  const [importResult, setImportResult] = useState<{ count: number; error?: string } | null>(null);
+
+  const importMut = useMutation({
+    mutationFn: (text: string) => bulkImportEstimateItems(estimateId, text),
+    onSuccess: (items) => {
+      setImportResult({ count: items.length });
+      setTimeout(() => onSuccess(), 1500);
+    },
+    onError: (err: Error) => {
+      setImportResult({ count: 0, error: err.message });
+    },
+  });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = ev.target?.result;
+      if (typeof content === 'string') {
+        setTextData(content);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport = () => {
+    if (!textData.trim()) return;
+    importMut.mutate(textData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-xl mx-4">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="text-sm font-semibold text-gray-900">Bulk Import Items</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Paste tab-separated or comma-separated data
+            </label>
+            <div className="text-[10px] text-gray-400 mb-2">
+              Format: pay_item_code, quantity, description (optional), unit (optional) -- one item per line
+            </div>
+            <textarea
+              value={textData}
+              onChange={(e) => setTextData(e.target.value)}
+              rows={8}
+              placeholder={"40201000\t500\tHOT-MIX ASPHALT SURFACE COURSE\tTON\n48101400\t1200\tPORTLAND CEMENT CONCRETE\tSQ YD"}
+              className="w-full px-3 py-2 text-xs font-mono border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Or upload CSV</label>
+            <input
+              type="file"
+              accept=".csv,.tsv,.txt"
+              onChange={handleFileUpload}
+              className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-gray-300 file:text-xs file:font-medium file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+            />
+          </div>
+          {importResult && (
+            <div className={`p-3 rounded-md text-xs ${importResult.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+              {importResult.error
+                ? `Import failed: ${importResult.error}`
+                : `Successfully imported ${importResult.count} item${importResult.count !== 1 ? 's' : ''}.`
+              }
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 p-4 border-t bg-gray-50 rounded-b-lg">
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 text-xs border rounded-md hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleImport}
+            disabled={!textData.trim() || importMut.isPending}
+            className="flex items-center gap-1 px-4 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Upload size={14} />
+            {importMut.isPending ? 'Importing...' : 'Import'}
+          </button>
         </div>
       </div>
     </div>
