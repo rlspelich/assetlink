@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.v1 import attachments, dashboard, email, estimator, imports, reports, signs, supports, work_orders, inspections, users, water, sewer
+from app.api.v1 import attachments, dashboard, email, estimator, estimator_contractors, imports, reports, signs, supports, work_orders, inspections, users, water, sewer
 from app.config import settings
 
 
@@ -52,6 +52,7 @@ app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(attachments.router, prefix="/api/v1")
 # Estimator module
 app.include_router(estimator.router, prefix="/api/v1/estimator", tags=["Estimator"])
+app.include_router(estimator_contractors.router, prefix="/api/v1/estimator", tags=["Contractor Intelligence"])
 # Water module
 app.include_router(water.router, prefix="/api/v1", tags=["Water"])
 # Sewer module
