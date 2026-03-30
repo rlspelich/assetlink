@@ -72,7 +72,7 @@ export function EstimatorPage() {
           active={activeTab === 'pi-detail'}
           onClick={() => setActiveTab('pi-detail')}
           icon={<FileSearch size={15} />}
-          label="PI Detail Search"
+          label="Bid Price Search"
         />
       </div>
 

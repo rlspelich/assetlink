@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 import {
   searchPayItemOccurrences,
+  searchPayItems,
+  listContractors,
   getContractFilterOptions,
   type PayItemOccurrence,
   type PayItemSearchStats,
@@ -83,53 +85,59 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
       {/* Filter form */}
       <div className="border-b bg-gray-50 px-4 py-3">
         <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-[10px] font-medium text-gray-500 mb-1">Pay Item Code</label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="e.g. 40600105"
-              className="px-2 py-1.5 text-sm border rounded-md w-32"
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-medium text-gray-500 mb-1">Description</label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search text..."
-              className="px-2 py-1.5 text-sm border rounded-md w-44"
-            />
-          </div>
+          <TypeAheadField
+            label="Pay Item Code"
+            value={code}
+            onChange={setCode}
+            onKeyDown={handleKeyDown}
+            placeholder="Type code..."
+            width="w-36"
+            queryKey="payItemCodeSearch"
+            queryFn={async (q) => {
+              const res = await searchPayItems({ search: q, page_size: 10 });
+              return res.pay_items.map((p) => ({ value: p.code, label: `${p.code} — ${p.description}`, secondary: p.unit }));
+            }}
+          />
+          <TypeAheadField
+            label="Description"
+            value={description}
+            onChange={setDescription}
+            onKeyDown={handleKeyDown}
+            placeholder="e.g. asphalt..."
+            width="w-52"
+            queryKey="payItemDescSearch"
+            queryFn={async (q) => {
+              const res = await searchPayItems({ search: q, page_size: 10 });
+              return res.pay_items.map((p) => ({ value: p.description, label: p.description, secondary: p.code }));
+            }}
+          />
           <div>
             <label className="block text-[10px] font-medium text-gray-500 mb-1">County</label>
-            <select value={county} onChange={(e) => setCounty(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md w-36">
+            <select value={county} onChange={(e) => setCounty(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md w-36 bg-white">
               <option value="">All</option>
               {filterOpts?.counties.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-[10px] font-medium text-gray-500 mb-1">District</label>
-            <select value={district} onChange={(e) => setDistrict(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md w-28">
+            <select value={district} onChange={(e) => setDistrict(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md w-28 bg-white">
               <option value="">All</option>
               {filterOpts?.districts.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
-          <div>
-            <label className="block text-[10px] font-medium text-gray-500 mb-1">Contractor</label>
-            <input
-              type="text"
-              value={contractor}
-              onChange={(e) => setContractor(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Name..."
-              className="px-2 py-1.5 text-sm border rounded-md w-36"
-            />
-          </div>
+          <TypeAheadField
+            label="Contractor"
+            value={contractor}
+            onChange={setContractor}
+            onKeyDown={handleKeyDown}
+            placeholder="Type name..."
+            width="w-48"
+            queryKey="contractorNameSearch"
+            queryFn={async (q) => {
+              const res = await listContractors({ search: q, page_size: 10 });
+              return res.contractors.map((c) => ({ value: c.name, label: c.name, secondary: `${c.bid_count} bids` }));
+            }}
+          />
           <div>
             <label className="block text-[10px] font-medium text-gray-500 mb-1">From</label>
             <input type="date" value={minDate} onChange={(e) => setMinDate(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md" />
@@ -263,7 +271,7 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
         {!activeSearch && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <Search size={48} className="mb-3" />
-            <p className="text-lg">Pay Item Detail Search</p>
+            <p className="text-lg">Bid Price Search</p>
             <p className="text-sm mt-1">Search every occurrence of a pay item across all bids</p>
           </div>
         )}
@@ -342,6 +350,127 @@ function StatsBar({ stats }: { stats: PayItemSearchStats }) {
     </div>
   );
 }
+
+// ============================================================
+// TypeAheadField — reusable autocomplete dropdown
+// ============================================================
+
+interface TypeAheadOption {
+  value: string;
+  label: string;
+  secondary?: string;
+}
+
+function TypeAheadField({
+  label, value, onChange, onKeyDown, placeholder, width, queryKey, queryFn,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+  placeholder: string;
+  width: string;
+  queryKey: string;
+  queryFn: (query: string) => Promise<TypeAheadOption[]>;
+}) {
+  const [inputVal, setInputVal] = useState(value);
+  const [open, setOpen] = useState(false);
+  const [debounced, setDebounced] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync external value changes
+  useEffect(() => { setInputVal(value); }, [value]);
+
+  const { data: options } = useQuery({
+    queryKey: [queryKey, debounced],
+    queryFn: () => queryFn(debounced),
+    enabled: debounced.length >= 2 && open,
+    staleTime: 30_000,
+  });
+
+  const handleInput = (v: string) => {
+    setInputVal(v);
+    setOpen(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setDebounced(v), 250);
+  };
+
+  const handleSelect = (opt: TypeAheadOption) => {
+    setInputVal(opt.value);
+    onChange(opt.value);
+    setOpen(false);
+  };
+
+  const handleClear = () => {
+    setInputVal('');
+    onChange('');
+    setOpen(false);
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        // Commit whatever is typed
+        if (inputVal !== value) onChange(inputVal);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [inputVal, value, onChange]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <label className="block text-[10px] font-medium text-gray-500 mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          value={inputVal}
+          onChange={(e) => handleInput(e.target.value)}
+          onFocus={() => { if (inputVal.length >= 2) setOpen(true); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { setOpen(false); onChange(inputVal); }
+            onKeyDown(e);
+          }}
+          placeholder={placeholder}
+          className={`px-2 py-1.5 text-sm border rounded-md ${width} ${inputVal ? 'pr-6' : ''}`}
+        />
+        {inputVal && (
+          <button
+            onClick={handleClear}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={12} />
+          </button>
+        )}
+      </div>
+      {open && options && options.length > 0 && (
+        <div className="absolute z-30 mt-1 w-72 bg-white border rounded-md shadow-lg max-h-52 overflow-auto">
+          {options.map((opt, i) => (
+            <button
+              key={`${opt.value}-${i}`}
+              onClick={() => handleSelect(opt)}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex items-center justify-between"
+            >
+              <span className="truncate text-gray-900">{opt.label}</span>
+              {opt.secondary && (
+                <span className="text-[10px] text-gray-400 ml-2 shrink-0">{opt.secondary}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && debounced.length >= 2 && options && options.length === 0 && (
+        <div className="absolute z-30 mt-1 w-72 bg-white border rounded-md shadow-lg p-2 text-xs text-gray-400">
+          No matches found
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function OccurrenceRow({ item, onSelectContract }: { item: PayItemOccurrence; onSelectContract?: (id: string) => void }) {
   return (
