@@ -251,3 +251,325 @@ export async function updateEstimateItem(estimateId: string, itemId: string, dat
 export async function deleteEstimateItem(estimateId: string, itemId: string): Promise<void> {
   await api.delete(`estimator/estimates/${estimateId}/items/${itemId}`);
 }
+
+
+// ============================================================
+// Contractor Intelligence — Types
+// ============================================================
+
+export interface Contractor {
+  contractor_pk: string;
+  contractor_id_code: string;
+  name: string;
+  bid_count: number;
+  win_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContractorListResponse {
+  contractors: Contractor[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface ContractorProfile {
+  contractor_pk: string;
+  contractor_id_code: string;
+  name: string;
+  total_bids: number;
+  total_wins: number;
+  win_rate: number;
+  avg_bid_total: number | null;
+  total_bid_volume: number;
+  first_bid_date: string | null;
+  last_bid_date: string | null;
+  active_years: number;
+  counties: string[];
+  districts: string[];
+}
+
+export interface BiddingHistoryEntry {
+  bid_id: string;
+  contract_id: string;
+  contract_number: string;
+  letting_date: string;
+  county: string;
+  district: string;
+  rank: number;
+  total: number;
+  is_low: boolean;
+  is_bad: boolean;
+  num_bidders: number;
+}
+
+export interface BiddingHistoryResponse {
+  entries: BiddingHistoryEntry[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface GeoFootprintEntry {
+  name: string;
+  bid_count: number;
+  win_count: number;
+  win_rate: number;
+  total_volume: number;
+}
+
+export interface GeoFootprint {
+  contractor_pk: string;
+  by_county: GeoFootprintEntry[];
+  by_district: GeoFootprintEntry[];
+}
+
+export interface ActivityTrendPoint {
+  year: number;
+  bid_count: number;
+  win_count: number;
+  total_bid_volume: number;
+}
+
+export interface ActivityTrend {
+  contractor_pk: string;
+  trend: ActivityTrendPoint[];
+}
+
+export interface PriceTendencyItem {
+  division: string;
+  contractor_avg_price: number;
+  market_avg_price: number;
+  variance_pct: number;
+  contractor_sample_count: number;
+  market_sample_count: number;
+}
+
+export interface PriceTendencies {
+  contractor_pk: string;
+  contractor_name: string;
+  tendencies: PriceTendencyItem[];
+}
+
+export interface HeadToHeadContract {
+  contract_id: string;
+  contract_number: string;
+  letting_date: string;
+  county: string;
+  contractor_a_rank: number;
+  contractor_a_total: number;
+  contractor_b_rank: number;
+  contractor_b_total: number;
+  winner: string;
+}
+
+export interface HeadToHeadSummary {
+  contractor_a_pk: string;
+  contractor_a_name: string;
+  contractor_b_pk: string;
+  contractor_b_name: string;
+  shared_contracts: number;
+  a_wins_vs_b: number;
+  b_wins_vs_a: number;
+  a_total_wins: number;
+  b_total_wins: number;
+  contracts: HeadToHeadContract[];
+}
+
+export interface HeadToHeadItemComparison {
+  pay_item_code: string;
+  description: string;
+  unit: string;
+  contractor_a_avg_price: number;
+  contractor_b_avg_price: number;
+  variance_pct: number;
+  sample_count: number;
+}
+
+export interface HeadToHeadItemsResponse {
+  contractor_a_name: string;
+  contractor_b_name: string;
+  items: HeadToHeadItemComparison[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface BidTabBidder {
+  contractor_pk: string;
+  contractor_name: string;
+  contractor_id_code: string;
+  rank: number;
+  total: number;
+  is_low: boolean;
+  is_bad: boolean;
+}
+
+export interface BidTabLineItem {
+  pay_item_code: string;
+  abbreviation: string;
+  unit: string;
+  quantity: number;
+  prices: Record<string, number | null>;
+  low_price: number | null;
+  high_price: number | null;
+  spread_pct: number | null;
+}
+
+export interface BidTab {
+  contract_id: string;
+  contract_number: string;
+  letting_date: string;
+  county: string;
+  district: string;
+  bidders: BidTabBidder[];
+  items: BidTabLineItem[];
+  total_items: number;
+}
+
+export interface CategoryBreakdownEntry {
+  division: string;
+  total: number;
+  pct_of_contract: number;
+  item_count: number;
+}
+
+export interface CategoryBreakdown {
+  contract_id: string;
+  bid_id: string;
+  contractor_name: string;
+  breakdown: CategoryBreakdownEntry[];
+  grand_total: number;
+}
+
+export interface ContractListItem {
+  contract_id: string;
+  number: string;
+  letting_date: string;
+  agency: string;
+  county: string;
+  district: string;
+  municipality: string;
+  item_count: number;
+  bid_count: number;
+  low_bid_total: number | null;
+}
+
+export interface ContractListResponse {
+  contracts: ContractListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+
+// ============================================================
+// Contractor Intelligence — API Functions
+// ============================================================
+
+export async function listContractors(params: {
+  page?: number;
+  page_size?: number;
+  search?: string;
+} = {}): Promise<ContractorListResponse> {
+  const sp: Record<string, string> = {};
+  if (params.page) sp.page = String(params.page);
+  if (params.page_size) sp.page_size = String(params.page_size);
+  if (params.search) sp.search = params.search;
+  return api.get('estimator/contractors', { searchParams: sp }).json();
+}
+
+export async function getContractorProfile(pk: string): Promise<ContractorProfile> {
+  return api.get(`estimator/contractors/${pk}/profile`).json();
+}
+
+export async function getBiddingHistory(pk: string, params: {
+  page?: number;
+  page_size?: number;
+  county?: string;
+  district?: string;
+  wins_only?: boolean;
+} = {}): Promise<BiddingHistoryResponse> {
+  const sp: Record<string, string> = {};
+  if (params.page) sp.page = String(params.page);
+  if (params.page_size) sp.page_size = String(params.page_size);
+  if (params.county) sp.county = params.county;
+  if (params.district) sp.district = params.district;
+  if (params.wins_only) sp.wins_only = 'true';
+  return api.get(`estimator/contractors/${pk}/bidding-history`, { searchParams: sp }).json();
+}
+
+export async function getGeoFootprint(pk: string): Promise<GeoFootprint> {
+  return api.get(`estimator/contractors/${pk}/geographic-footprint`).json();
+}
+
+export async function getActivityTrend(pk: string): Promise<ActivityTrend> {
+  return api.get(`estimator/contractors/${pk}/activity-trend`).json();
+}
+
+export async function getPriceTendencies(pk: string, params: {
+  min_date?: string;
+  limit?: number;
+} = {}): Promise<PriceTendencies> {
+  const sp: Record<string, string> = {};
+  if (params.min_date) sp.min_date = params.min_date;
+  if (params.limit) sp.limit = String(params.limit);
+  return api.get(`estimator/contractors/${pk}/price-tendencies`, { searchParams: sp }).json();
+}
+
+export async function getHeadToHead(
+  contractorA: string, contractorB: string, params: {
+    min_date?: string;
+    max_date?: string;
+    county?: string;
+  } = {}
+): Promise<HeadToHeadSummary> {
+  const sp: Record<string, string> = { contractor_a: contractorA, contractor_b: contractorB };
+  if (params.min_date) sp.min_date = params.min_date;
+  if (params.max_date) sp.max_date = params.max_date;
+  if (params.county) sp.county = params.county;
+  return api.get('estimator/contractors/head-to-head', { searchParams: sp }).json();
+}
+
+export async function getHeadToHeadItems(
+  contractorA: string, contractorB: string, params: {
+    page?: number;
+    page_size?: number;
+    division?: string;
+  } = {}
+): Promise<HeadToHeadItemsResponse> {
+  const sp: Record<string, string> = { contractor_a: contractorA, contractor_b: contractorB };
+  if (params.page) sp.page = String(params.page);
+  if (params.page_size) sp.page_size = String(params.page_size);
+  if (params.division) sp.division = params.division;
+  return api.get('estimator/contractors/head-to-head/items', { searchParams: sp }).json();
+}
+
+export async function listContracts(params: {
+  page?: number;
+  page_size?: number;
+  agency?: string;
+  county?: string;
+  district?: string;
+  search?: string;
+} = {}): Promise<ContractListResponse> {
+  const sp: Record<string, string> = {};
+  if (params.page) sp.page = String(params.page);
+  if (params.page_size) sp.page_size = String(params.page_size);
+  if (params.agency) sp.agency = params.agency;
+  if (params.county) sp.county = params.county;
+  if (params.district) sp.district = params.district;
+  if (params.search) sp.search = params.search;
+  return api.get('estimator/contracts', { searchParams: sp }).json();
+}
+
+export async function getBidTab(contractId: string): Promise<BidTab> {
+  return api.get(`estimator/contracts/${contractId}/bid-tab`).json();
+}
+
+export async function getCategoryBreakdown(contractId: string, bidId?: string): Promise<CategoryBreakdown> {
+  const sp: Record<string, string> = {};
+  if (bidId) sp.bid_id = bidId;
+  return api.get(`estimator/contracts/${contractId}/category-breakdown`, { searchParams: sp }).json();
+}

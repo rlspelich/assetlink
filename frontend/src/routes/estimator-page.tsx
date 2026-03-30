@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Calculator, Plus, Trash2, Copy, RefreshCw, Download } from 'lucide-react';
+import { Search, Calculator, Plus, Trash2, Copy, RefreshCw, Download, Users, GitCompareArrows, Table } from 'lucide-react';
 import { PayItemSearch } from '../components/estimator/pay-item-search';
 import { PriceHistoryPanel } from '../components/estimator/price-history-panel';
 import { ConfidenceBadge } from '../components/estimator/confidence-badge';
+import { ContractorSearch } from '../components/estimator/contractor-search';
+import { HeadToHead } from '../components/estimator/head-to-head';
+import { BidTabView } from '../components/estimator/bid-tab-view';
 import {
   listEstimates, createEstimate, getEstimate, deleteEstimate, updateEstimate,
   duplicateEstimate, recalculateEstimate, addEstimateItems,
@@ -11,7 +14,7 @@ import {
   type PayItem, type Estimate, type EstimateItem,
 } from '../api/estimator';
 
-type Tab = 'pay-items' | 'estimates';
+type Tab = 'pay-items' | 'estimates' | 'contractors' | 'head-to-head' | 'bid-tabs';
 
 export function EstimatorPage() {
   const [activeTab, setActiveTab] = useState<Tab>('pay-items');
@@ -32,12 +35,33 @@ export function EstimatorPage() {
           icon={<Calculator size={15} />}
           label="Estimate Builder"
         />
+        <TabButton
+          active={activeTab === 'contractors'}
+          onClick={() => setActiveTab('contractors')}
+          icon={<Users size={15} />}
+          label="Contractors"
+        />
+        <TabButton
+          active={activeTab === 'head-to-head'}
+          onClick={() => setActiveTab('head-to-head')}
+          icon={<GitCompareArrows size={15} />}
+          label="Head-to-Head"
+        />
+        <TabButton
+          active={activeTab === 'bid-tabs'}
+          onClick={() => setActiveTab('bid-tabs')}
+          icon={<Table size={15} />}
+          label="Bid Tabs"
+        />
       </div>
 
       {/* Tab content */}
       <div className="flex-1 overflow-hidden">
         {activeTab === 'pay-items' && <PayItemsTab />}
         {activeTab === 'estimates' && <EstimatesTab />}
+        {activeTab === 'contractors' && <ContractorSearch />}
+        {activeTab === 'head-to-head' && <HeadToHead />}
+        {activeTab === 'bid-tabs' && <BidTabView />}
       </div>
     </div>
   );
