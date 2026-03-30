@@ -899,6 +899,7 @@ async def get_market_analysis(
     db: AsyncSession = Depends(get_db),
     county: str | None = None,
     district: str | None = None,
+    project_type: str | None = None,
     min_date: str | None = None,
     max_date: str | None = None,
     min_project_size: float | None = None,
@@ -921,6 +922,8 @@ async def get_market_analysis(
         contract_filters.append(Contract.letting_date >= date.fromisoformat(min_date))
     if max_date:
         contract_filters.append(Contract.letting_date <= date.fromisoformat(max_date))
+    if project_type:
+        contract_filters.append(Contract.project_type == project_type)
 
     # Subquery: low bid total per contract (for $ on table calculation)
     low_bid_sq = (

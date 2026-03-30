@@ -40,6 +40,7 @@ class Contract(Base, TimestampMixin):
     project_no: Mapped[str] = mapped_column(String(50), default="", server_default="")
     letting_no: Mapped[str] = mapped_column(String(20), default="", server_default="")
     item_count: Mapped[int] = mapped_column(Integer, default=0)
+    project_type: Mapped[str] = mapped_column(String(50), default="", server_default="", index=True)
     source_file: Mapped[str] = mapped_column(String(255), default="", server_default="")
 
     # Relationships

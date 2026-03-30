@@ -54,6 +54,7 @@ class ContractOut(BaseModel):
     project_no: str
     letting_no: str
     item_count: int
+    project_type: str = ""
     source_file: str
     bid_count: int = 0
     low_bid_total: Decimal | None = None
@@ -92,6 +93,10 @@ class ContractorOut(BaseModel):
     contractor_pk: uuid.UUID
     contractor_id_code: str
     name: str
+    status: str = "unknown"
+    first_bid_date: date | None = None
+    last_bid_date: date | None = None
+    total_bids: int = 0
     bid_count: int = 0
     win_count: int = 0
     created_at: datetime

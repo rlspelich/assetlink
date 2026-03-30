@@ -1,6 +1,7 @@
 import uuid
+from datetime import date
 
-from sqlalchemy import String, UniqueConstraint
+from sqlalchemy import Date, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,6 +27,10 @@ class Contractor(Base, TimestampMixin):
         String(10), default="", server_default="", index=True
     )
     name: Mapped[str] = mapped_column(String(150), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="unknown", server_default="unknown")
+    first_bid_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_bid_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    total_bids: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     # Relationships
     bids: Mapped[list["Bid"]] = relationship("Bid", back_populates="contractor")
