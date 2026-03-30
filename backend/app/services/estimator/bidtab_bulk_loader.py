@@ -34,6 +34,11 @@ from app.services.estimator.parsers.idot_bidtabs import (
     identify_bad_bidders,
     build_name_to_id_map,
 )
+from app.services.estimator.data_cleaner import (
+    normalize_county,
+    normalize_municipality,
+    normalize_contractor_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -154,9 +159,9 @@ def _process_one_file(conn, filepath: Path, stats: BidTabLoadStats):
             "letting_date": letting_date,
             "letting_type": header.letting_type or "",
             "agency": "IDOT",
-            "county": header.county or "",
+            "county": normalize_county(header.county or ""),
             "district": header.district or "",
-            "municipality": header.municipality or "",
+            "municipality": normalize_municipality(header.municipality or ""),
             "section_no": header.section_no or "",
             "job_no": header.job_no or "",
             "project_no": header.project_no or "",
@@ -174,8 +179,9 @@ def _process_one_file(conn, filepath: Path, stats: BidTabLoadStats):
         # 3. Process each contractor
         bid_item_batch = []
 
-        for contractor_name, calc_total in totals.items():
-            cid = name_to_id.get(contractor_name, "")
+        for raw_contractor_name, calc_total in totals.items():
+            cid = name_to_id.get(raw_contractor_name, "")
+            contractor_name = normalize_contractor_name(raw_contractor_name)
 
             # Upsert contractor
             result = conn.execute(CONTRACTOR_UPSERT, {
@@ -195,11 +201,11 @@ def _process_one_file(conn, filepath: Path, stats: BidTabLoadStats):
                 "bid_id": str(uuid.uuid4()),
                 "contract_id": contract_id,
                 "contractor_pk": contractor_pk,
-                "rank": rankings.get(contractor_name, 0),
+                "rank": rankings.get(raw_contractor_name, 0),
                 "total": round(float(calc_total), 2),
                 "doc_total": doc_total,
                 "is_low": bool(summary.is_low) if summary else False,
-                "is_bad": contractor_name in bad_bidders,
+                "is_bad": raw_contractor_name in bad_bidders,
                 "has_alt": bool(summary.has_alt) if summary else False,
                 "no_omitted": summary.no_omitted if summary else None,
             })
@@ -209,7 +215,7 @@ def _process_one_file(conn, filepath: Path, stats: BidTabLoadStats):
             # Collect bid items
             for line_item in parsed.line_items:
                 for line_bid in line_item.bids:
-                    if line_bid.contractor_name == contractor_name:
+                    if line_bid.contractor_name == raw_contractor_name:
                         bid_item_batch.append({
                             "bid_item_id": str(uuid.uuid4()),
                             "bid_id": bid_id,

@@ -27,6 +27,8 @@ from pathlib import Path
 
 from sqlalchemy import text
 
+from app.services.estimator.data_cleaner import normalize_county
+
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 5000
@@ -101,7 +103,7 @@ def _parse_csv_rows(csv_path: Path) -> list[dict]:
                 "quantity": quantity,
                 "unit_price": price,
                 "contract_number": (row.get("contract") or "").strip(),
-                "county": (row.get("county") or "").strip(),
+                "county": normalize_county((row.get("county") or "").strip()),
                 "district": (row.get("district") or "").strip(),
                 "source_file": csv_path.name,
             })

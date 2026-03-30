@@ -4,6 +4,11 @@ Bid data import service — saves parsed bid tab data to the database.
 Handles IDOT bid tabs, IDOT awards, and ISTHA bid tabs.
 Contract, Contractor, Bid, and BidItem are reference tables (no tenant_id) —
 public DOT data shared across all tenants. AwardItem is also a reference table.
+
+All data is cleaned at import time via data_cleaner module:
+- County names normalized (typos, abbreviations, multi-county splits)
+- Municipality names normalized
+- Contractor names cleaned (whitespace, trailing punctuation)
 """
 from __future__ import annotations
 
@@ -27,6 +32,9 @@ from app.services.estimator.parsers.idot_bidtabs import (
     build_name_to_id_map,
 )
 from app.services.estimator.parsers.istha_bidtabs import ParsedISTHA
+from app.services.estimator.data_cleaner import (
+    normalize_county, normalize_municipality, normalize_contractor_name,
+)
 
 
 async def import_idot_bidtab(
@@ -70,9 +78,9 @@ async def import_idot_bidtab(
     # Update contract fields
     contract.letting_date = letting_date
     contract.letting_type = header.letting_type
-    contract.county = header.county
+    contract.county = normalize_county(header.county or "")
     contract.district = header.district
-    contract.municipality = header.municipality
+    contract.municipality = normalize_municipality(header.municipality or "")
     contract.section_no = header.section_no
     contract.job_no = header.job_no
     contract.project_no = header.project_no
@@ -101,8 +109,9 @@ async def import_idot_bidtab(
     bids_created = 0
     bid_items_created = 0
 
-    for contractor_name, calc_total in totals.items():
-        cid = name_to_id.get(contractor_name, "")
+    for raw_contractor_name, calc_total in totals.items():
+        cid = name_to_id.get(raw_contractor_name, "")
+        contractor_name = normalize_contractor_name(raw_contractor_name)
 
         # Get or create contractor
         result = await db.execute(
@@ -129,11 +138,11 @@ async def import_idot_bidtab(
         bid = Bid(
             contract_id=contract.contract_id,
             contractor_pk=contractor.contractor_pk,
-            rank=rankings.get(contractor_name, 0),
+            rank=rankings.get(raw_contractor_name, 0),
             total=round(calc_total, 2),
             doc_total=doc_total,
             is_low=(summary.is_low if summary else False),
-            is_bad=(contractor_name in bad_bidders),
+            is_bad=(raw_contractor_name in bad_bidders),
             has_alt=(summary.has_alt if summary else False),
             no_omitted=(summary.no_omitted if summary else None),
         )
@@ -144,7 +153,7 @@ async def import_idot_bidtab(
         # Create bid items for this contractor
         for line_item in parsed.line_items:
             for line_bid in line_item.bids:
-                if line_bid.contractor_name == contractor_name:
+                if line_bid.contractor_name == raw_contractor_name:
                     bid_item = BidItem(
                         bid_id=bid.bid_id,
                         pay_item_code=line_item.item_code,
@@ -201,7 +210,7 @@ async def import_idot_awards(
             quantity=item.quantity,
             unit_price=item.unit_price,
             contract_number=item.contract_number,
-            county=item.county,
+            county=normalize_county(item.county or ""),
             district=item.district,
             source_file=parsed.source_file,
         )
@@ -277,7 +286,8 @@ async def import_istha_bidtabs(
     bids_created = 0
     bid_items_created = 0
 
-    for contractor_name, records in contractors_data.items():
+    for raw_contractor_name, records in contractors_data.items():
+        contractor_name = normalize_contractor_name(raw_contractor_name)
         # Get or create contractor
         result = await db.execute(
             select(Contractor).where(
