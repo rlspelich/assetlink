@@ -10,6 +10,7 @@ import {
   type Contractor,
 } from '../../api/estimator';
 import { downloadCSV, downloadTXT, exportCurrency } from '../../utils/export';
+import { LoadingSpinner, InlineLoading, InlineError, ErrorState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
@@ -21,13 +22,13 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: a
 
   const canCompare = contractorA && contractorB && contractorA.contractor_pk !== contractorB.contractor_pk;
 
-  const { data: h2h, isLoading: h2hLoading, refetch: refetchH2h } = useQuery({
+  const { data: h2h, isLoading: h2hLoading, isError: h2hError, refetch: refetchH2h } = useQuery({
     queryKey: ['headToHead', contractorA?.contractor_pk, contractorB?.contractor_pk],
     queryFn: () => getHeadToHead(contractorA!.contractor_pk, contractorB!.contractor_pk),
     enabled: false,
   });
 
-  const { data: items, isLoading: itemsLoading } = useQuery({
+  const { data: items, isLoading: itemsLoading, isError: itemsError, refetch: refetchItems } = useQuery({
     queryKey: ['headToHeadItems', contractorA?.contractor_pk, contractorB?.contractor_pk, itemPage],
     queryFn: () => getHeadToHeadItems(contractorA!.contractor_pk, contractorB!.contractor_pk, { page: itemPage, page_size: 25 }),
     enabled: comparing && !!contractorA && !!contractorB,
@@ -86,9 +87,8 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: a
         </div>
       </div>
 
-      {h2hLoading && (
-        <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>
-      )}
+      {h2hLoading && <LoadingSpinner />}
+      {h2hError && comparing && <ErrorState title="Failed to load comparison" onRetry={() => refetchH2h()} />}
 
       {h2h && comparing && (
         <>
@@ -273,7 +273,9 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: a
               )}
             </div>
             {itemsLoading ? (
-              <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>
+              <InlineLoading />
+            ) : itemsError ? (
+              <InlineError message="Failed to load items" onRetry={() => refetchItems()} />
             ) : !items || items.items.length === 0 ? (
               <div className="p-4 text-sm text-gray-400">No shared pay items found.</div>
             ) : (

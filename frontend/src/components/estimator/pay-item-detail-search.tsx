@@ -11,6 +11,7 @@ import {
   type PayItemSearchStats,
 } from '../../api/estimator';
 import { downloadCSV, exportCurrency } from '../../utils/export';
+import { LoadingSpinner, ErrorState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
@@ -49,7 +50,7 @@ export function PayItemDetailSearch({ navigateTo, navParams }: {
     queryFn: getContractFilterOptions,
   });
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['payItemOccurrences', activeSearch, page],
     queryFn: () => searchPayItemOccurrences({
       pay_item_code: activeSearch?.code as string | undefined,
@@ -316,9 +317,8 @@ export function PayItemDetailSearch({ navigateTo, navParams }: {
           </div>
         )}
 
-        {isLoading && (
-          <div className="flex items-center justify-center h-full text-gray-400">Searching...</div>
-        )}
+        {isLoading && <LoadingSpinner message="Searching..." />}
+        {isError && <ErrorState title="Search failed" onRetry={() => refetch()} />}
 
         {data && (
           <>

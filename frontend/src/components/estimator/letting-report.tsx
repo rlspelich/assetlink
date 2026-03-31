@@ -9,6 +9,7 @@ import {
   type LettingBidder,
 } from '../../api/estimator';
 import { downloadCSV, downloadTXT, exportCurrency } from '../../utils/export';
+import { LoadingSpinner, ErrorState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
@@ -30,7 +31,7 @@ export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params
     queryFn: getContractFilterOptions,
   });
 
-  const { data: report, isLoading, isFetching } = useQuery({
+  const { data: report, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['lettingReport', searchDate, searchFilters],
     queryFn: () => getLettingReport(searchDate, searchFilters),
     enabled: !!searchDate,
@@ -127,9 +128,8 @@ export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params
           </div>
         )}
 
-        {isLoading && (
-          <div className="flex items-center justify-center h-full text-gray-400">Loading letting report...</div>
-        )}
+        {isLoading && <LoadingSpinner message="Loading letting report..." />}
+        {isError && <ErrorState title="Failed to load letting report" onRetry={() => refetch()} />}
 
         {report && (
           <div className="max-w-6xl mx-auto space-y-4">

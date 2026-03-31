@@ -8,6 +8,7 @@ import {
   type MarketPlayer,
 } from '../../api/estimator';
 import { downloadCSV, downloadTXT, exportCurrency, exportPct } from '../../utils/export';
+import { LoadingSpinner, ErrorState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
@@ -26,7 +27,7 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
     queryFn: getContractFilterOptions,
   });
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['marketAnalysis', searchParams],
     queryFn: () => getMarketAnalysis({
       county: searchParams.county as string | undefined,
@@ -134,9 +135,8 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
           </div>
         )}
 
-        {isLoading && (
-          <div className="flex items-center justify-center h-full text-gray-400">Loading market data...</div>
-        )}
+        {isLoading && <LoadingSpinner message="Analyzing market..." />}
+        {isError && <ErrorState title="Failed to load market data" onRetry={() => refetch()} />}
 
         {data && (
           <div className="space-y-4 max-w-7xl mx-auto">

@@ -16,6 +16,7 @@ import {
   type ContractorProfile,
 } from '../../api/estimator';
 import { downloadTXT, exportCurrency, exportPct } from '../../utils/export';
+import { LoadingSpinner, InlineLoading, InlineError, ErrorState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
@@ -47,7 +48,7 @@ export function ContractorSearch({ navigateTo, navParams }: {
     (window as any).__contractorSearchTimer = setTimeout(() => setDebouncedSearch(value), 300);
   };
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['contractors', debouncedSearch, page],
     queryFn: () => listContractors({ search: debouncedSearch || undefined, page, page_size: 25 }),
   });
@@ -77,9 +78,8 @@ export function ContractorSearch({ navigateTo, navParams }: {
         </div>
 
         <div className="flex-1 overflow-auto">
-          {isLoading && (
-            <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>
-          )}
+          {isLoading && <InlineLoading />}
+          {isError && <InlineError message="Failed to load contractors" onRetry={() => refetch()} />}
           {data && data.contractors.length === 0 && (
             <div className="p-4 text-sm text-gray-400">No contractors found.</div>
           )}
@@ -168,13 +168,16 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange, navigateTo }: {
   const [maxDate, setMaxDate] = useState('');
   const dateParams = { min_date: minDate || undefined, max_date: maxDate || undefined };
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError, refetch } = useQuery({
     queryKey: ['contractorProfile', pk, minDate, maxDate],
     queryFn: () => getContractorProfile(pk, dateParams),
   });
 
   if (isLoading || !profile) {
-    return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
+    return <LoadingSpinner />;
+  }
+  if (isError) {
+    return <ErrorState title="Failed to load profile" onRetry={() => refetch()} />;
   }
 
   const tabs: { key: ProfileTab; label: string; icon: React.ReactNode }[] = [
@@ -356,7 +359,7 @@ function HistoryTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { 
   const [page, setPage] = useState(1);
   const [winsOnly, setWinsOnly] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['biddingHistory', pk, page, winsOnly, dateParams],
     queryFn: () => getBiddingHistory(pk, { page, page_size: 25, wins_only: winsOnly || undefined, ...dateParams }),
   });
@@ -378,7 +381,9 @@ function HistoryTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { 
         </label>
       </div>
       {isLoading ? (
-        <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>
+        <InlineLoading />
+      ) : isError ? (
+        <InlineError message="Failed to load history" onRetry={() => refetch()} />
       ) : !data || data.entries.length === 0 ? (
         <div className="p-4 text-sm text-gray-400">No bidding history found.</div>
       ) : (
@@ -453,12 +458,13 @@ function HistoryTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { 
 // ============================================================
 
 function GeoTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['geoFootprint', pk, dateParams],
     queryFn: () => getGeoFootprint(pk, dateParams),
   });
 
-  if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
+  if (isLoading) return <LoadingSpinner />;
+  if (isError) return <ErrorState title="Failed to load geographic data" onRetry={() => refetch()} />;
   if (!data) return null;
 
   const top10Counties = data.by_county.slice(0, 10).map((e) => ({
@@ -538,12 +544,13 @@ function GeoTable({ title, entries }: { title: string; entries: { name: string; 
 // ============================================================
 
 function ActivityTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['activityTrend', pk, dateParams],
     queryFn: () => getActivityTrend(pk, dateParams),
   });
 
-  if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
+  if (isLoading) return <LoadingSpinner />;
+  if (isError) return <ErrorState title="Failed to load activity data" onRetry={() => refetch()} />;
   if (!data || data.trend.length === 0) return <div className="p-4 text-sm text-gray-400">No activity data.</div>;
 
   const chartData = data.trend.map((t) => ({
@@ -612,12 +619,13 @@ function ActivityTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: 
 // ============================================================
 
 function PricesTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['priceTendencies', pk, dateParams],
     queryFn: () => getPriceTendencies(pk, dateParams),
   });
 
-  if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
+  if (isLoading) return <LoadingSpinner />;
+  if (isError) return <ErrorState title="Failed to load price data" onRetry={() => refetch()} />;
   if (!data || data.tendencies.length === 0) return <div className="p-4 text-sm text-gray-400">No price tendency data.</div>;
 
   const chartData = data.tendencies.slice(0, 15).map((t) => ({
@@ -700,14 +708,15 @@ function PricesTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: st
 function VsMarketTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { min_date?: string; max_date?: string }; navigateTo: (tab: string, params: any) => void }) {
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['vsMarket', pk, page, dateParams],
     queryFn: () => getContractorVsMarket(pk, { page, page_size: 50, ...dateParams }),
   });
 
   const totalPages = data ? Math.ceil(data.total / 50) : 0;
 
-  if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
+  if (isLoading) return <LoadingSpinner />;
+  if (isError) return <ErrorState title="Failed to load market comparison" onRetry={() => refetch()} />;
   if (!data || data.items.length === 0) return <div className="p-4 text-sm text-gray-400">No item-level comparison data.</div>;
 
   return (

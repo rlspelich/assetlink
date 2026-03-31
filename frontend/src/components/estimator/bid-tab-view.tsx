@@ -8,6 +8,7 @@ import {
   getContractFilterOptions,
 } from '../../api/estimator';
 import { downloadCSV, exportCurrency } from '../../utils/export';
+import { LoadingSpinner, ErrorState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
@@ -99,7 +100,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
   };
 
   // Only query when user has clicked Search
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['contracts', appliedFilters, page],
     queryFn: () => listContracts({
       search: appliedFilters.search || undefined,
@@ -224,9 +225,8 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
             <p className="text-xs mt-1">Select a county, district, date range, or enter a contract number, then click Search.</p>
           </div>
         )}
-        {hasSearched && isLoading && (
-          <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>
-        )}
+        {hasSearched && isLoading && <LoadingSpinner />}
+        {hasSearched && isError && <ErrorState title="Failed to load contracts" onRetry={() => refetch()} />}
         {hasSearched && data && data.contracts.length === 0 && (
           <div className="flex flex-col items-center justify-center p-8 text-gray-400">
             <p className="text-sm">No contracts found matching your filters.</p>
@@ -288,7 +288,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
 // ============================================================
 
 function BidTabDetail({ contractId, onBack, navigateTo }: { contractId: string; onBack: () => void; navigateTo?: (tab: string, params: any) => void }) {
-  const { data: bidTab, isLoading } = useQuery({
+  const { data: bidTab, isLoading, isError, refetch } = useQuery({
     queryKey: ['bidTab', contractId],
     queryFn: () => getBidTab(contractId),
   });
@@ -300,7 +300,10 @@ function BidTabDetail({ contractId, onBack, navigateTo }: { contractId: string; 
   });
 
   if (isLoading || !bidTab) {
-    return <div className="flex items-center justify-center p-8 text-gray-400">Loading bid tab...</div>;
+    return <LoadingSpinner message="Loading bid tab..." />;
+  }
+  if (isError) {
+    return <ErrorState title="Failed to load bid tab" onRetry={() => refetch()} />;
   }
 
   const sortedBidders = [...bidTab.bidders].sort((a, b) => a.rank - b.rank);
