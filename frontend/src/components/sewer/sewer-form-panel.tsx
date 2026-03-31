@@ -45,9 +45,9 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-const inputClass = 'w-full px-2.5 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white';
+const inputClass = 'w-full px-2.5 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white';
 const selectClass = inputClass;
-const readonlyClass = 'w-full px-2.5 py-1.5 text-sm border border-gray-100 rounded-md bg-gray-50 text-gray-600 font-mono text-xs';
+const readonlyClass = 'w-full px-2.5 py-2 text-sm border border-gray-100 rounded-md bg-gray-50 text-gray-600 font-mono text-xs';
 
 function ConditionRatingPicker({ value, onChange }: { value: number | null; onChange: (v: number | null) => void }) {
   const ratings = [1, 2, 3, 4, 5];
@@ -58,7 +58,7 @@ function ConditionRatingPicker({ value, onChange }: { value: number | null; onCh
       {ratings.map((r, i) => (
         <button key={r} type="button" onClick={() => onChange(value === r ? null : r)}
           title={`${r} - ${labels[i]}`}
-          className={`flex-1 py-1.5 text-xs font-medium rounded transition-colors ${
+          className={`flex-1 py-2 text-xs font-medium rounded transition-colors ${
             value === r ? `${colors[i]} text-white` : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
           }`}>
           {r}

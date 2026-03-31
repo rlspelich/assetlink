@@ -310,7 +310,7 @@ export function InspectionForm({
                             type="text"
                             value={row.findings}
                             onChange={(e) => updateAssetRow(idx, 'findings', e.target.value)}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                             placeholder="Describe condition..."
                           />
                         </div>
@@ -325,7 +325,7 @@ export function InspectionForm({
                                 step="0.01"
                                 value={row.retroreflectivity_value}
                                 onChange={(e) => updateAssetRow(idx, 'retroreflectivity_value', e.target.value)}
-                                className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 placeholder="e.g. 85.0"
                               />
                             </div>
@@ -337,7 +337,7 @@ export function InspectionForm({
                                   const v = e.target.value;
                                   updateAssetRow(idx, 'passes_minimum_retro', v === '' ? null : v === 'true');
                                 }}
-                                className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                               >
                                 <option value="">N/A</option>
                                 <option value="true">Yes</option>
@@ -353,7 +353,7 @@ export function InspectionForm({
                           <select
                             value={row.action_recommended}
                             onChange={(e) => updateAssetRow(idx, 'action_recommended', e.target.value)}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
                             {INSPECTION_ACTION_OPTIONS.map((opt) => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>

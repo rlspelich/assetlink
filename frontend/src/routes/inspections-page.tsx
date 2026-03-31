@@ -269,7 +269,7 @@ export function InspectionsPage() {
           placeholder="Search INS #, findings..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
@@ -298,7 +298,7 @@ export function InspectionsPage() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setSelectedInspection(null); setSelectedInspectionId(null); }}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All statuses</option>
               {INSPECTION_STATUS_OPTIONS.map((s) => (
@@ -308,7 +308,7 @@ export function InspectionsPage() {
             <select
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setSelectedInspection(null); setSelectedInspectionId(null); }}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All types</option>
               {INSPECTION_TYPE_OPTIONS.map((t) => (
@@ -318,7 +318,7 @@ export function InspectionsPage() {
             <select
               value={followUpFilter}
               onChange={(e) => { setFollowUpFilter(e.target.value); setSelectedInspection(null); setSelectedInspectionId(null); }}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All follow-up</option>
               <option value="true">Follow-up Required</option>

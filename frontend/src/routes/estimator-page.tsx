@@ -31,6 +31,7 @@ export interface EstimatorNavParams {
   county?: string;
   district?: string;
   year?: string;
+  sourceTab?: string;
 }
 
 export function EstimatorPage() {
@@ -39,7 +40,7 @@ export function EstimatorPage() {
 
   // Navigate to a tab with optional drill-down params
   const navigateTo = (tab: string, params: EstimatorNavParams = {}) => {
-    setNavParams(params);
+    setNavParams({ ...params, sourceTab: params.sourceTab ?? activeTab });
     setActiveTab(tab as Tab);
   };
 
@@ -193,7 +194,7 @@ function PayItemsTab() {
           <select
             value={options.targetState}
             onChange={(e) => setOptions({ ...options, targetState: e.target.value })}
-            className="px-2 py-1 border rounded text-xs"
+            className="px-2 py-2 border rounded text-xs"
           >
             {US_STATES.map((s) => (
               <option key={s.code} value={s.code}>
@@ -683,7 +684,7 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
                   <select
                     value={contingencyPhase}
                     onChange={(e) => setContingencyPhase(e.target.value)}
-                    className="px-2 py-1 text-xs border rounded-md bg-white"
+                    className="px-2 py-2 text-xs border rounded-md bg-white"
                   >
                     {CONTINGENCY_PHASES.map((p) => (
                       <option key={p.label} value={p.label}>{p.label}</option>
@@ -698,7 +699,7 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
                         min={0}
                         max={100}
                         step={1}
-                        className="w-16 px-2 py-1 text-xs border rounded-md text-right"
+                        className="w-16 px-2 py-2 text-xs border rounded-md text-right"
                       />
                       <span className="text-xs text-gray-500">%</span>
                     </div>
@@ -1033,7 +1034,7 @@ function AddItemForm({ onAdd, onCancel, isLoading }: {
               onChange={(e) => handleSearch(e.target.value)}
               onFocus={() => { if (selectedItem) { setSearch(selectedItem.description); setSelectedItem(null); } }}
               placeholder="Type to search by description..."
-              className="w-full px-3 py-1.5 text-sm border rounded-md"
+              className="w-full px-3 py-2 text-sm border rounded-md"
             />
             {data && !selectedItem && debouncedSearch.length >= 2 && (
               <div className="absolute z-10 left-0 right-0 top-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-auto">
@@ -1064,7 +1065,7 @@ function AddItemForm({ onAdd, onCancel, isLoading }: {
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder={selectedItem ? `0 ${selectedItem.unit}` : '0'}
-              className="w-full px-3 py-1.5 text-sm border rounded-md"
+              className="w-full px-3 py-2 text-sm border rounded-md"
             />
           </div>
           <button onClick={handleAdd} disabled={!canAdd || isLoading}
@@ -1082,7 +1083,7 @@ function AddItemForm({ onAdd, onCancel, isLoading }: {
               value={customDesc}
               onChange={(e) => setCustomDesc(e.target.value)}
               placeholder="e.g., Subcontractor — Traffic Control"
-              className="w-full px-3 py-1.5 text-sm border rounded-md"
+              className="w-full px-3 py-2 text-sm border rounded-md"
             />
           </div>
           <div className="w-24">
@@ -1090,7 +1091,7 @@ function AddItemForm({ onAdd, onCancel, isLoading }: {
             <select
               value={customUnit}
               onChange={(e) => setCustomUnit(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border rounded-md"
+              className="w-full px-2 py-2 text-sm border rounded-md"
             >
               <option value="EACH">EACH</option>
               <option value="L SUM">L SUM</option>
@@ -1113,7 +1114,7 @@ function AddItemForm({ onAdd, onCancel, isLoading }: {
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="0"
-              className="w-full px-3 py-1.5 text-sm border rounded-md"
+              className="w-full px-3 py-2 text-sm border rounded-md"
             />
           </div>
           <button onClick={handleAdd} disabled={!canAdd || isLoading}

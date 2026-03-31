@@ -70,7 +70,7 @@ export function SignListPanel({
             placeholder="Search road, MUTCD, description..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -97,7 +97,7 @@ export function SignListPanel({
             <select
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All statuses</option>
               {STATUS_OPTIONS.map((s) => (
@@ -107,7 +107,7 @@ export function SignListPanel({
             <select
               value={categoryFilter}
               onChange={(e) => onCategoryFilterChange(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All categories</option>
               {CATEGORIES.map((c) => (
@@ -117,7 +117,7 @@ export function SignListPanel({
             <select
               value={conditionFilter}
               onChange={(e) => onConditionFilterChange(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All conditions</option>
               <option value="5">5 — Excellent</option>

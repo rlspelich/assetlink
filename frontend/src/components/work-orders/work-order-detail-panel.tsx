@@ -158,7 +158,7 @@ function AssetCard({
                 setEditingAction(e.target.value);
                 handleFieldSave('action_required', e.target.value);
               }}
-              className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">None</option>
               {WO_ACTION_OPTIONS.map((opt) => (
@@ -176,7 +176,7 @@ function AssetCard({
                 setEditingStatus(e.target.value);
                 handleFieldSave('status', e.target.value);
               }}
-              className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               {WO_ASSET_STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -192,7 +192,7 @@ function AssetCard({
               onChange={(e) => setEditingDamageNotes(e.target.value)}
               onBlur={() => handleFieldSave('damage_notes', editingDamageNotes)}
               rows={2}
-              className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
               placeholder="Describe damage..."
             />
           </div>
@@ -205,7 +205,7 @@ function AssetCard({
               onChange={(e) => setEditingResolution(e.target.value)}
               onBlur={() => handleFieldSave('resolution', editingResolution)}
               rows={2}
-              className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
               placeholder="Resolution notes..."
             />
           </div>

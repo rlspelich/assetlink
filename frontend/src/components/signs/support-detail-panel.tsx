@@ -223,7 +223,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                     ...support.signs.map((s) => ({ asset_type: 'sign', asset_id: s.sign_id, label: `${s.mutcd_code ?? 'Sign'} — ${s.description ?? 'Unknown'}` })),
                   ],
                 })}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
               >
                 Create Work Order
               </button>
@@ -237,7 +237,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                     ...support.signs.map((s) => ({ asset_type: 'sign', asset_id: s.sign_id, label: `${s.mutcd_code ?? 'Sign'} — ${s.description ?? 'Unknown'}` })),
                   ],
                 })}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
               >
                 <ClipboardCheck size={12} />
                 Inspect
@@ -357,7 +357,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
             )}
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded bg-white text-gray-700 hover:bg-gray-50"
+              className="w-full px-2 py-2 text-xs border border-gray-200 rounded bg-white text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </button>
@@ -382,7 +382,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                   value={editForm.asset_tag}
                   onChange={(e) => setEditForm({ ...editForm, asset_tag: e.target.value })}
                   placeholder="e.g. SUP-001"
-                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-2 py-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 />
               </div>
               <div>
@@ -390,7 +390,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                 <select
                   value={editForm.support_type}
                   onChange={(e) => setEditForm({ ...editForm, support_type: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-2 py-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 >
                   <option value="u_channel">U Channel</option>
                   <option value="square_tube">Square Tube</option>
@@ -406,7 +406,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                 <select
                   value={editForm.support_material}
                   onChange={(e) => setEditForm({ ...editForm, support_material: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-2 py-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 >
                   <option value="">Not specified</option>
                   <option value="galvanized_steel">Galvanized Steel</option>
@@ -425,7 +425,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                     value={editForm.height_inches}
                     onChange={(e) => setEditForm({ ...editForm, height_inches: e.target.value })}
                     placeholder="84"
-                    className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-2 py-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
                 </div>
                 <div>
@@ -433,7 +433,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                   <select
                     value={editForm.condition_rating}
                     onChange={(e) => setEditForm({ ...editForm, condition_rating: e.target.value })}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    className="w-full px-2 py-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   >
                     <option value="">Not rated</option>
                     <option value="5">5 — Excellent</option>
@@ -449,7 +449,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                 <select
                   value={editForm.status}
                   onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-2 py-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 >
                   <option value="active">Active</option>
                   <option value="damaged">Damaged</option>
@@ -465,7 +465,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                   type="date"
                   value={editForm.install_date}
                   onChange={(e) => setEditForm({ ...editForm, install_date: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-2 py-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 />
               </div>
               <div>
@@ -475,7 +475,7 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                   rows={2}
                   placeholder="Additional notes..."
-                  className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  className="w-full px-2 py-2 text-sm border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
                 />
               </div>
               <div className="flex gap-2 pt-1">

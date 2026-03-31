@@ -257,7 +257,7 @@ export function WorkOrdersPage() {
           placeholder="Search WO #, description, address..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
@@ -286,7 +286,7 @@ export function WorkOrdersPage() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setSelectedWO(null); }}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All statuses</option>
               {WO_STATUS_OPTIONS.map((s) => (
@@ -296,7 +296,7 @@ export function WorkOrdersPage() {
             <select
               value={priorityFilter}
               onChange={(e) => { setPriorityFilter(e.target.value); setSelectedWO(null); }}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All priorities</option>
               {WO_PRIORITY_OPTIONS.map((p) => (
@@ -306,7 +306,7 @@ export function WorkOrdersPage() {
             <select
               value={workTypeFilter}
               onChange={(e) => { setWorkTypeFilter(e.target.value); setSelectedWO(null); }}
-              className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full text-xs border border-gray-200 rounded-md px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All types</option>
               {WO_WORK_TYPE_OPTIONS.map((t) => (

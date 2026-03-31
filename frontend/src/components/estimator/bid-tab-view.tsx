@@ -15,6 +15,7 @@ const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency:
 
 export function BidTabView({ navParams, navigateTo }: { navParams: any; navigateTo?: (tab: string, params: any) => void }) {
   const [selectedContractId, setSelectedContractId] = useState<string | null>(navParams?.contractId || null);
+  const [cameFromTab] = useState<string | null>(navParams?.sourceTab || null);
 
   // Auto-open contract from navParams
   useEffect(() => {
@@ -23,10 +24,19 @@ export function BidTabView({ navParams, navigateTo }: { navParams: any; navigate
     }
   }, [navParams?.contractId]);
 
+  const handleBack = () => {
+    // If we drilled in from another tab, go back there
+    if (cameFromTab && navigateTo) {
+      navigateTo(cameFromTab, {});
+    } else {
+      setSelectedContractId(null);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {selectedContractId ? (
-        <BidTabDetail contractId={selectedContractId} onBack={() => setSelectedContractId(null)} navigateTo={navigateTo} />
+        <BidTabDetail contractId={selectedContractId} onBack={handleBack} navigateTo={navigateTo} cameFromTab={cameFromTab} />
       ) : (
         <ContractList onSelect={setSelectedContractId} initialCounty={navParams?.county} />
       )}
@@ -39,11 +49,13 @@ export function BidTabView({ navParams, navigateTo }: { navParams: any; navigate
 // ============================================================
 
 function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => void; initialCounty?: string }) {
+  const defaultMinDate = `${new Date().getFullYear() - 5}-01-01`;
+
   // Filter state (what the user is editing)
   const [search, setSearch] = useState('');
   const [county, setCounty] = useState(initialCounty || '');
   const [district, setDistrict] = useState('');
-  const [minDate, setMinDate] = useState(`${new Date().getFullYear() - 5}-01-01`);
+  const [minDate, setMinDate] = useState(defaultMinDate);
   const [maxDate, setMaxDate] = useState('');
   const [municipality, setMunicipality] = useState('');
 
@@ -52,7 +64,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
     search: string; county: string; district: string;
     minDate: string; maxDate: string; municipality: string;
   }>(initialCounty
-    ? { search: '', county: initialCounty, district: '', minDate: '', maxDate: '', municipality: '' }
+    ? { search: '', county: initialCounty, district: '', minDate: defaultMinDate, maxDate: '', municipality: '' }
     : { search: '', county: '', district: '', minDate: '', maxDate: '', municipality: '' }
   );
   const [page, setPage] = useState(1);
@@ -117,10 +129,9 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
 
   const totalPages = data ? Math.ceil(data.total / 25) : 0;
 
-  const defaultMin = `${new Date().getFullYear() - 5}-01-01`;
   const clearFilters = () => {
     setSearch(''); setCounty(''); setDistrict('');
-    setMinDate(defaultMin); setMaxDate(''); setMunicipality('');
+    setMinDate(defaultMinDate); setMaxDate(''); setMunicipality('');
     setAppliedFilters({ search: '', county: '', district: '', minDate: '', maxDate: '', municipality: '' });
     setPage(1);
     setHasSearched(false);
@@ -146,7 +157,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
           <select
             value={county}
             onChange={(e) => handleCountyChange(e.target.value)}
-            className="flex-1 px-3 py-1.5 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Counties</option>
             {availableCounties.map((c) => (
@@ -156,7 +167,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
           <select
             value={district}
             onChange={(e) => handleDistrictChange(e.target.value)}
-            className="w-32 px-3 py-1.5 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-32 px-3 py-2 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Districts</option>
             {availableDistricts.map((d) => (
@@ -173,7 +184,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
               min={filterOpts?.min_date || undefined}
               max={maxDate || filterOpts?.max_date || undefined}
               onChange={(e) => setMinDate(e.target.value)}
-              className="flex-1 px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-2 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex-1 flex items-center gap-1.5">
@@ -184,7 +195,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
               min={minDate || filterOpts?.min_date || undefined}
               max={filterOpts?.max_date || undefined}
               onChange={(e) => setMaxDate(e.target.value)}
-              className="flex-1 px-2 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-2 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <input
@@ -192,7 +203,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
             placeholder="Municipality..."
             value={municipality}
             onChange={(e) => setMunicipality(e.target.value)}
-            className="flex-1 px-3 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -287,7 +298,18 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
 // Bid Tab Detail
 // ============================================================
 
-function BidTabDetail({ contractId, onBack, navigateTo }: { contractId: string; onBack: () => void; navigateTo?: (tab: string, params: any) => void }) {
+const TAB_LABELS: Record<string, string> = {
+  'pay-items': 'Pay Item Search',
+  'estimates': 'Estimate Builder',
+  'contractors': 'Contractors',
+  'head-to-head': 'Head-to-Head',
+  'bid-tabs': 'Bid Tabs',
+  'market-analysis': 'Market Analysis',
+  'letting-report': 'Letting Report',
+  'pi-detail': 'Bid Price Search',
+};
+
+function BidTabDetail({ contractId, onBack, navigateTo, cameFromTab }: { contractId: string; onBack: () => void; navigateTo?: (tab: string, params: any) => void; cameFromTab?: string | null }) {
   const { data: bidTab, isLoading, isError, refetch } = useQuery({
     queryKey: ['bidTab', contractId],
     queryFn: () => getBidTab(contractId),
@@ -313,7 +335,7 @@ function BidTabDetail({ contractId, onBack, navigateTo }: { contractId: string; 
       {/* Header */}
       <div className="bg-white border-b p-4">
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mb-2">
-          <ArrowLeft size={14} /> Back to contracts
+          <ArrowLeft size={14} /> {cameFromTab ? `Back to ${TAB_LABELS[cameFromTab] || cameFromTab}` : 'Back to contracts'}
         </button>
         <div className="flex items-center justify-between">
           <div>

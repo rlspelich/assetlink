@@ -275,7 +275,7 @@ export function WorkOrderForm({
                           <select
                             value={row.action_required}
                             onChange={(e) => updateAssetRow(idx, 'action_required', e.target.value)}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
                             <option value="">None</option>
                             {WO_ACTION_OPTIONS.map((opt) => (
@@ -289,7 +289,7 @@ export function WorkOrderForm({
                             type="text"
                             value={row.damage_notes}
                             onChange={(e) => updateAssetRow(idx, 'damage_notes', e.target.value)}
-                            className="w-full rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full rounded border border-gray-200 px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                             placeholder="Optional"
                           />
                         </div>

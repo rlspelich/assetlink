@@ -2000,14 +2000,14 @@ export function ReportsPage() {
                     type="date"
                     value={startDate}
                     onChange={(e) => handleDateChange('start', e.target.value)}
-                    className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="px-2 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <label className="text-xs text-gray-500">To</label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => handleDateChange('end', e.target.value)}
-                    className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="px-2 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
               </div>

@@ -222,14 +222,14 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange, navigateTo }: {
           type="date"
           value={minDate}
           onChange={(e) => setMinDate(e.target.value)}
-          className="px-2 py-1 text-xs border rounded-md"
+          className="px-2 py-2 text-xs border rounded-md"
         />
         <span className="text-xs text-gray-400">to</span>
         <input
           type="date"
           value={maxDate}
           onChange={(e) => setMaxDate(e.target.value)}
-          className="px-2 py-1 text-xs border rounded-md"
+          className="px-2 py-2 text-xs border rounded-md"
           placeholder="Present"
         />
         <button

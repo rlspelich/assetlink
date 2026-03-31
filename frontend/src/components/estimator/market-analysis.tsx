@@ -70,7 +70,7 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
                   setDistrict('');
                 }
               }}
-              className="px-2 py-1.5 text-sm border rounded-md w-40 bg-white"
+              className="px-2 py-2 text-sm border rounded-md w-40 bg-white"
             >
               <option value="">All Counties</option>
               {(district && filterOpts?.district_to_counties?.[district]
@@ -90,7 +90,7 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
                   setCounty('');
                 }
               }}
-              className="px-2 py-1.5 text-sm border rounded-md w-36 bg-white"
+              className="px-2 py-2 text-sm border rounded-md w-36 bg-white"
             >
               <option value="">All Districts</option>
               {(county && filterOpts?.county_to_districts?.[county]
@@ -101,24 +101,24 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
           </div>
           <div>
             <label className="block text-[10px] font-medium text-gray-500 mb-1">From Date</label>
-            <input type="date" value={minDate} onChange={(e) => setMinDate(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md" />
+            <input type="date" value={minDate} onChange={(e) => setMinDate(e.target.value)} className="px-2 py-2 text-sm border rounded-md" />
           </div>
           <div>
             <label className="block text-[10px] font-medium text-gray-500 mb-1">To Date</label>
-            <input type="date" value={maxDate} onChange={(e) => setMaxDate(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md" />
+            <input type="date" value={maxDate} onChange={(e) => setMaxDate(e.target.value)} className="px-2 py-2 text-sm border rounded-md" />
           </div>
           <div>
             <label className="block text-[10px] font-medium text-gray-500 mb-1">Min Project $</label>
-            <input type="number" value={minSize} onChange={(e) => setMinSize(e.target.value)} placeholder="0" className="px-2 py-1.5 text-sm border rounded-md w-28" />
+            <input type="number" value={minSize} onChange={(e) => setMinSize(e.target.value)} placeholder="0" className="px-2 py-2 text-sm border rounded-md w-28" />
           </div>
           <div>
             <label className="block text-[10px] font-medium text-gray-500 mb-1">Max Project $</label>
-            <input type="number" value={maxSize} onChange={(e) => setMaxSize(e.target.value)} placeholder="No limit" className="px-2 py-1.5 text-sm border rounded-md w-28" />
+            <input type="number" value={maxSize} onChange={(e) => setMaxSize(e.target.value)} placeholder="No limit" className="px-2 py-2 text-sm border rounded-md w-28" />
           </div>
           <button
             onClick={handleSearch}
             disabled={isFetching}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
             {isFetching ? 'Searching...' : 'Search'}
           </button>
@@ -224,7 +224,7 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
                         ],
                       );
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
                   >
                     <Download size={12} /> Export CSV
                   </button>
@@ -255,7 +255,7 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
                       ];
                       downloadTXT(lines.join('\n'), 'market_analysis_summary.txt');
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
                   >
                     <Download size={12} /> Export Summary
                   </button>
