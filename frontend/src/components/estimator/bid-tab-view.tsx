@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ChevronLeft, ChevronRight, ArrowLeft, Download } from 'lucide-react';
 import {
@@ -12,15 +12,22 @@ import { downloadCSV, exportCurrency } from '../../utils/export';
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-export function BidTabView() {
-  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+export function BidTabView({ navParams, navigateTo }: { navParams: any; navigateTo?: (tab: string, params: any) => void }) {
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(navParams?.contractId || null);
+
+  // Auto-open contract from navParams
+  useEffect(() => {
+    if (navParams?.contractId) {
+      setSelectedContractId(navParams.contractId);
+    }
+  }, [navParams?.contractId]);
 
   return (
     <div className="h-full flex flex-col">
       {selectedContractId ? (
-        <BidTabDetail contractId={selectedContractId} onBack={() => setSelectedContractId(null)} />
+        <BidTabDetail contractId={selectedContractId} onBack={() => setSelectedContractId(null)} navigateTo={navigateTo} />
       ) : (
-        <ContractList onSelect={setSelectedContractId} />
+        <ContractList onSelect={setSelectedContractId} initialCounty={navParams?.county} />
       )}
     </div>
   );
@@ -30,10 +37,10 @@ export function BidTabView() {
 // Contract List
 // ============================================================
 
-function ContractList({ onSelect }: { onSelect: (id: string) => void }) {
+function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => void; initialCounty?: string }) {
   // Filter state (what the user is editing)
   const [search, setSearch] = useState('');
-  const [county, setCounty] = useState('');
+  const [county, setCounty] = useState(initialCounty || '');
   const [district, setDistrict] = useState('');
   const [minDate, setMinDate] = useState('');
   const [maxDate, setMaxDate] = useState('');
@@ -43,9 +50,12 @@ function ContractList({ onSelect }: { onSelect: (id: string) => void }) {
   const [appliedFilters, setAppliedFilters] = useState<{
     search: string; county: string; district: string;
     minDate: string; maxDate: string; municipality: string;
-  }>({ search: '', county: '', district: '', minDate: '', maxDate: '', municipality: '' });
+  }>(initialCounty
+    ? { search: '', county: initialCounty, district: '', minDate: '', maxDate: '', municipality: '' }
+    : { search: '', county: '', district: '', minDate: '', maxDate: '', municipality: '' }
+  );
   const [page, setPage] = useState(1);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(!!initialCounty);
 
   // Load filter options (counties, districts, mappings)
   const { data: filterOpts } = useQuery({
@@ -276,7 +286,7 @@ function ContractList({ onSelect }: { onSelect: (id: string) => void }) {
 // Bid Tab Detail
 // ============================================================
 
-function BidTabDetail({ contractId, onBack }: { contractId: string; onBack: () => void }) {
+function BidTabDetail({ contractId, onBack, navigateTo }: { contractId: string; onBack: () => void; navigateTo?: (tab: string, params: any) => void }) {
   const { data: bidTab, isLoading } = useQuery({
     queryKey: ['bidTab', contractId],
     queryFn: () => getBidTab(contractId),
@@ -355,7 +365,15 @@ function BidTabDetail({ contractId, onBack }: { contractId: string; onBack: () =
               }`}
             >
               <div className="font-medium text-gray-900 truncate max-w-[180px]">
-                #{b.rank} {b.contractor_name}
+                #{b.rank}{' '}
+                {navigateTo ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigateTo('contractors', { contractorPk: b.contractor_pk }); }}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {b.contractor_name}
+                  </button>
+                ) : b.contractor_name}
               </div>
               <div className={`font-mono ${b.is_low ? 'text-green-700 font-bold' : b.is_bad ? 'text-red-600' : 'text-gray-600'}`}>
                 {fmt.format(b.total)}

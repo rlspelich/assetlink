@@ -20,8 +20,28 @@ import {
 
 type Tab = 'pay-items' | 'estimates' | 'contractors' | 'head-to-head' | 'bid-tabs' | 'market-analysis' | 'letting-report' | 'pi-detail';
 
+/**
+ * Cross-tab navigation parameters.
+ * When navigating to a tab, optional params pre-fill/select data in the target.
+ */
+export interface EstimatorNavParams {
+  contractId?: string;
+  contractorPk?: string;
+  payItemCode?: string;
+  county?: string;
+  district?: string;
+  year?: string;
+}
+
 export function EstimatorPage() {
   const [activeTab, setActiveTab] = useState<Tab>('pay-items');
+  const [navParams, setNavParams] = useState<EstimatorNavParams>({});
+
+  // Navigate to a tab with optional drill-down params
+  const navigateTo = (tab: string, params: EstimatorNavParams = {}) => {
+    setNavParams(params);
+    setActiveTab(tab as Tab);
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -81,12 +101,12 @@ export function EstimatorPage() {
       <div className="flex-1 overflow-hidden">
         {activeTab === 'pay-items' && <PayItemsTab />}
         {activeTab === 'estimates' && <EstimatesTab />}
-        {activeTab === 'contractors' && <ContractorSearch />}
-        {activeTab === 'head-to-head' && <HeadToHead />}
-        {activeTab === 'bid-tabs' && <BidTabView />}
-        {activeTab === 'market-analysis' && <MarketAnalysis />}
-        {activeTab === 'letting-report' && <LettingReport />}
-        {activeTab === 'pi-detail' && <PayItemDetailSearch />}
+        {activeTab === 'contractors' && <ContractorSearch navigateTo={navigateTo} navParams={activeTab === 'contractors' ? navParams : {}} />}
+        {activeTab === 'head-to-head' && <HeadToHead navigateTo={navigateTo} />}
+        {activeTab === 'bid-tabs' && <BidTabView navParams={activeTab === 'bid-tabs' ? navParams : {}} navigateTo={navigateTo} />}
+        {activeTab === 'market-analysis' && <MarketAnalysis navigateTo={navigateTo} />}
+        {activeTab === 'letting-report' && <LettingReport navigateTo={navigateTo} />}
+        {activeTab === 'pi-detail' && <PayItemDetailSearch navigateTo={navigateTo} navParams={activeTab === 'pi-detail' ? navParams : {}} />}
       </div>
     </div>
   );

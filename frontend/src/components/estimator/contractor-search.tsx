@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Trophy, TrendingUp, MapPin, DollarSign, BarChart3, ChevronLeft, ChevronRight, GitCompareArrows, Download } from 'lucide-react';
 import {
@@ -22,12 +22,23 @@ const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency:
 
 type ProfileTab = 'overview' | 'history' | 'geo' | 'activity' | 'prices' | 'vs-market';
 
-export function ContractorSearch() {
+export function ContractorSearch({ navigateTo, navParams }: {
+  navigateTo: (tab: string, params: any) => void;
+  navParams: any;
+}) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [selectedPk, setSelectedPk] = useState<string | null>(null);
+  const [selectedPk, setSelectedPk] = useState<string | null>(navParams?.contractorPk || null);
   const [profileTab, setProfileTab] = useState<ProfileTab>('overview');
+
+  // Auto-select contractor from navParams
+  useEffect(() => {
+    if (navParams?.contractorPk) {
+      setSelectedPk(navParams.contractorPk);
+      setProfileTab('overview');
+    }
+  }, [navParams?.contractorPk]);
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -134,7 +145,7 @@ export function ContractorSearch() {
             Select a contractor to view their profile
           </div>
         ) : (
-          <ContractorProfilePanel pk={selectedPk} activeTab={profileTab} onTabChange={setProfileTab} />
+          <ContractorProfilePanel pk={selectedPk} activeTab={profileTab} onTabChange={setProfileTab} navigateTo={navigateTo} />
         )}
       </div>
     </div>
@@ -145,10 +156,11 @@ export function ContractorSearch() {
 // Profile Panel
 // ============================================================
 
-function ContractorProfilePanel({ pk, activeTab, onTabChange }: {
+function ContractorProfilePanel({ pk, activeTab, onTabChange, navigateTo }: {
   pk: string;
   activeTab: ProfileTab;
   onTabChange: (t: ProfileTab) => void;
+  navigateTo: (tab: string, params: any) => void;
 }) {
   // Date range filter — defaults to last 5 years
   const defaultMinDate = `${new Date().getFullYear() - 5}-01-01`;
@@ -233,11 +245,11 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange }: {
 
       {/* Tab content */}
       {activeTab === 'overview' && <OverviewTab profile={profile} />}
-      {activeTab === 'history' && <HistoryTab pk={pk} dateParams={dateParams} />}
+      {activeTab === 'history' && <HistoryTab pk={pk} dateParams={dateParams} navigateTo={navigateTo} />}
       {activeTab === 'geo' && <GeoTab pk={pk} dateParams={dateParams} />}
       {activeTab === 'activity' && <ActivityTab pk={pk} dateParams={dateParams} />}
       {activeTab === 'prices' && <PricesTab pk={pk} dateParams={dateParams} />}
-      {activeTab === 'vs-market' && <VsMarketTab pk={pk} dateParams={dateParams} />}
+      {activeTab === 'vs-market' && <VsMarketTab pk={pk} dateParams={dateParams} navigateTo={navigateTo} />}
     </div>
   );
 }
@@ -340,7 +352,7 @@ function OverviewTab({ profile }: { profile: ContractorProfile }) {
 // Bidding History Tab
 // ============================================================
 
-function HistoryTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
+function HistoryTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { min_date?: string; max_date?: string }; navigateTo: (tab: string, params: any) => void }) {
   const [page, setPage] = useState(1);
   const [winsOnly, setWinsOnly] = useState(false);
 
@@ -388,8 +400,22 @@ function HistoryTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: s
                 {data.entries.map((e) => (
                   <tr key={e.bid_id} className="hover:bg-gray-50">
                     <td className="px-3 py-2 text-gray-600">{e.letting_date}</td>
-                    <td className="px-3 py-2 font-medium text-gray-900">{e.contract_number}</td>
-                    <td className="px-3 py-2 text-gray-600">{e.county}</td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => navigateTo('bid-tabs', { contractId: e.contract_id })}
+                        className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                      >
+                        {e.contract_number}
+                      </button>
+                    </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => navigateTo('bid-tabs', { county: e.county })}
+                        className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                      >
+                        {e.county}
+                      </button>
+                    </td>
                     <td className="px-3 py-2 text-right text-gray-600">{e.rank}</td>
                     <td className="px-3 py-2 text-right text-gray-600">{e.num_bidders}</td>
                     <td className="px-3 py-2 text-right font-mono text-gray-900">{fmt.format(e.total)}</td>
@@ -671,7 +697,7 @@ function PricesTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: st
 // vs Market Tab
 // ============================================================
 
-function VsMarketTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
+function VsMarketTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { min_date?: string; max_date?: string }; navigateTo: (tab: string, params: any) => void }) {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
@@ -713,7 +739,14 @@ function VsMarketTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: 
                   : 'text-gray-600';
               return (
                 <tr key={item.pay_item_code} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 font-mono text-gray-400 text-xs">{item.pay_item_code}</td>
+                  <td className="px-3 py-2 font-mono text-xs">
+                      <button
+                        onClick={() => navigateTo('pi-detail', { payItemCode: item.pay_item_code })}
+                        className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                      >
+                        {item.pay_item_code}
+                      </button>
+                    </td>
                   <td className="px-3 py-2 text-gray-900 truncate max-w-[250px]">{item.description}</td>
                   <td className="px-3 py-2 text-gray-500">{item.unit}</td>
                   <td className="px-3 py-2 text-right font-mono text-gray-900">{fmt.format(item.contractor_avg_price)}</td>

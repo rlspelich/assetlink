@@ -13,7 +13,7 @@ import { downloadCSV, downloadTXT, exportCurrency } from '../../utils/export';
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-export function LettingReport() {
+export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params: any) => void }) {
   const [selectedDate, setSelectedDate] = useState('');
   const [county, setCounty] = useState('');
   const [district, setDistrict] = useState('');
@@ -218,7 +218,7 @@ export function LettingReport() {
             ) : (
               <div className="space-y-2">
                 {report.contracts.map((contract) => (
-                  <ContractCard key={contract.contract_id} contract={contract} />
+                  <ContractCard key={contract.contract_id} contract={contract} navigateTo={navigateTo} />
                 ))}
               </div>
             )}
@@ -229,7 +229,7 @@ export function LettingReport() {
   );
 }
 
-function ContractCard({ contract }: { contract: LettingContract }) {
+function ContractCard({ contract, navigateTo }: { contract: LettingContract; navigateTo: (tab: string, params: any) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -241,7 +241,17 @@ function ContractCard({ contract }: { contract: LettingContract }) {
         <div className="flex items-center gap-3">
           {expanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
           <div>
-            <div className="text-sm font-medium text-gray-900">{contract.contract_number}</div>
+            <div className="text-sm font-medium">
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={(e) => { e.stopPropagation(); navigateTo('bid-tabs', { contractId: contract.contract_id }); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigateTo('bid-tabs', { contractId: contract.contract_id }); } }}
+                className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+              >
+                {contract.contract_number}
+              </span>
+            </div>
             <div className="text-xs text-gray-500 mt-0.5">
               {contract.county} | Dist. {contract.district} | {contract.item_count} items | {contract.num_bidders} bidders
             </div>
@@ -269,7 +279,7 @@ function ContractCard({ contract }: { contract: LettingContract }) {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {contract.bidders.map((bidder, idx) => (
-                <BidderRow key={`${bidder.contractor_id_code}-${idx}`} bidder={bidder} />
+                <BidderRow key={`${bidder.contractor_id_code}-${idx}`} bidder={bidder} navigateTo={navigateTo} />
               ))}
             </tbody>
           </table>
@@ -279,12 +289,21 @@ function ContractCard({ contract }: { contract: LettingContract }) {
   );
 }
 
-function BidderRow({ bidder }: { bidder: LettingBidder }) {
+function BidderRow({ bidder, navigateTo }: { bidder: LettingBidder; navigateTo: (tab: string, params: any) => void }) {
   return (
     <tr className={`hover:bg-gray-50 ${bidder.is_low ? 'bg-green-50' : ''}`}>
       <td className="px-3 py-2 text-center text-gray-600">{bidder.rank}</td>
-      <td className="px-3 py-2 font-medium text-gray-900">
-        {bidder.contractor_name}
+      <td className="px-3 py-2 font-medium">
+        {bidder.contractor_pk ? (
+          <button
+            onClick={() => navigateTo('contractors', { contractorPk: bidder.contractor_pk })}
+            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+          >
+            {bidder.contractor_name}
+          </button>
+        ) : (
+          <span className="text-gray-900">{bidder.contractor_name}</span>
+        )}
         {bidder.is_low && (
           <span className="ml-2 inline-block px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-green-100 text-green-700">LOW</span>
         )}

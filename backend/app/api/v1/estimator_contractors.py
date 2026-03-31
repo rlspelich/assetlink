@@ -1151,6 +1151,7 @@ async def get_letting_report(
             bidder_entries.append(LettingBidderEntry(
                 contractor_name=b.contractor.name if b.contractor else "",
                 contractor_id_code=b.contractor.contractor_id_code if b.contractor else "",
+                contractor_pk=str(b.contractor.contractor_pk) if b.contractor else None,
                 rank=b.rank,
                 total=b.total,
                 is_low=b.is_low,

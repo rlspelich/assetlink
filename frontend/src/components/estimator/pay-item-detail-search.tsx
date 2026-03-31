@@ -14,12 +14,11 @@ import { downloadCSV, exportCurrency } from '../../utils/export';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-interface PayItemDetailSearchProps {
-  onSelectContract?: (contractId: string) => void;
-}
-
-export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchProps) {
-  const [code, setCode] = useState('');
+export function PayItemDetailSearch({ navigateTo, navParams }: {
+  navigateTo?: (tab: string, params: any) => void;
+  navParams?: any;
+}) {
+  const [code, setCode] = useState(navParams?.payItemCode || '');
   const [description, setDescription] = useState('');
   const [county, setCounty] = useState('');
   const [district, setDistrict] = useState('');
@@ -30,7 +29,18 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
   const [maxQty, setMaxQty] = useState('');
   const [lowOnly, setLowOnly] = useState(false);
   const [page, setPage] = useState(1);
-  const [activeSearch, setActiveSearch] = useState<Record<string, unknown> | null>(null);
+  const [activeSearch, setActiveSearch] = useState<Record<string, unknown> | null>(
+    navParams?.payItemCode ? { code: navParams.payItemCode } : null
+  );
+
+  // Auto-fill and auto-search from navParams
+  useEffect(() => {
+    if (navParams?.payItemCode) {
+      setCode(navParams.payItemCode);
+      setPage(1);
+      setActiveSearch({ code: navParams.payItemCode });
+    }
+  }, [navParams?.payItemCode]);
 
   const pageSize = 50;
 
@@ -335,7 +345,7 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
                   </tr>
                 ) : (
                   data.results.map((r) => (
-                    <OccurrenceRow key={r.bid_item_id} item={r} onSelectContract={onSelectContract} />
+                    <OccurrenceRow key={r.bid_item_id} item={r} navigateTo={navigateTo} />
                   ))
                 )}
               </tbody>
@@ -502,15 +512,15 @@ function TypeAheadField({
 }
 
 
-function OccurrenceRow({ item, onSelectContract }: { item: PayItemOccurrence; onSelectContract?: (id: string) => void }) {
+function OccurrenceRow({ item, navigateTo }: { item: PayItemOccurrence; navigateTo?: (tab: string, params: any) => void }) {
   return (
     <tr className="hover:bg-gray-50">
       <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{item.letting_date}</td>
       <td className="px-3 py-2">
-        {onSelectContract ? (
+        {navigateTo ? (
           <button
-            onClick={() => onSelectContract(item.contract_id)}
-            className="text-blue-600 hover:underline font-medium"
+            onClick={() => navigateTo('bid-tabs', { contractId: item.contract_id })}
+            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
           >
             {item.contract_number}
           </button>
@@ -520,7 +530,18 @@ function OccurrenceRow({ item, onSelectContract }: { item: PayItemOccurrence; on
       </td>
       <td className="px-3 py-2 text-gray-600">{item.county}</td>
       <td className="px-3 py-2 text-gray-600">{item.district}</td>
-      <td className="px-3 py-2 text-gray-900 truncate max-w-[180px]">{item.contractor_name}</td>
+      <td className="px-3 py-2 truncate max-w-[180px]">
+        {navigateTo ? (
+          <button
+            onClick={() => navigateTo('contractors', { contractorPk: item.contractor_pk })}
+            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+          >
+            {item.contractor_name}
+          </button>
+        ) : (
+          <span className="text-gray-900">{item.contractor_name}</span>
+        )}
+      </td>
       <td className="px-3 py-2 text-center text-gray-600">{item.rank}</td>
       <td className="px-3 py-2 text-right font-mono text-gray-600">{Number(item.quantity).toLocaleString()}</td>
       <td className="px-3 py-2 text-gray-500">{item.unit}</td>

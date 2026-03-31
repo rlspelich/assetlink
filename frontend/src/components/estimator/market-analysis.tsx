@@ -12,7 +12,7 @@ import { downloadCSV, downloadTXT, exportCurrency, exportPct } from '../../utils
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-export function MarketAnalysis() {
+export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, params: any) => void }) {
   const [county, setCounty] = useState('');
   const [district, setDistrict] = useState('');
   const [minDate, setMinDate] = useState('');
@@ -281,7 +281,7 @@ export function MarketAnalysis() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {data.players.map((p) => (
-                        <PlayerRow key={p.contractor_pk} player={p} />
+                        <PlayerRow key={p.contractor_pk} player={p} navigateTo={navigateTo} />
                       ))}
                     </tbody>
                   </table>
@@ -295,7 +295,7 @@ export function MarketAnalysis() {
   );
 }
 
-function PlayerRow({ player: p }: { player: MarketPlayer }) {
+function PlayerRow({ player: p, navigateTo }: { player: MarketPlayer; navigateTo: (tab: string, params: any) => void }) {
   const captureColor = p.dollar_capture_pct > 50
     ? 'text-green-600'
     : p.dollar_capture_pct >= 25
@@ -305,7 +305,14 @@ function PlayerRow({ player: p }: { player: MarketPlayer }) {
   return (
     <tr className="hover:bg-gray-50">
       <td className="px-3 py-2 text-center text-gray-400 font-medium">{p.rank}</td>
-      <td className="px-3 py-2 font-medium text-gray-900 truncate max-w-[250px]">{p.contractor_name}</td>
+      <td className="px-3 py-2 truncate max-w-[250px]">
+        <button
+          onClick={() => navigateTo('contractors', { contractorPk: p.contractor_pk })}
+          className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+        >
+          {p.contractor_name}
+        </button>
+      </td>
       <td className="px-3 py-2 text-right text-gray-600">{p.jobs_bid.toLocaleString()}</td>
       <td className="px-3 py-2 text-right text-gray-600">{p.jobs_won.toLocaleString()}</td>
       <td className="px-3 py-2 text-right text-gray-600">{p.win_rate.toFixed(1)}%</td>

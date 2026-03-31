@@ -668,7 +668,7 @@ export interface MarketAnalysis {
 // ============================================================
 
 export interface LettingDate { letting_date: string; contract_count: number; }
-export interface LettingBidder { contractor_name: string; contractor_id_code: string; rank: number; total: number; is_low: boolean; variance_from_low: number | null; variance_pct: number | null; }
+export interface LettingBidder { contractor_name: string; contractor_id_code: string; contractor_pk: string | null; rank: number; total: number; is_low: boolean; variance_from_low: number | null; variance_pct: number | null; }
 export interface LettingContract { contract_id: string; contract_number: string; county: string; district: string; item_count: number; low_bidder_name: string; low_bid_total: number | null; num_bidders: number; bidders: LettingBidder[]; }
 export interface LettingReport { letting_date: string; total_contracts: number; total_value: number; contracts: LettingContract[]; }
 

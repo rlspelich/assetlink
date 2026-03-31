@@ -255,6 +255,7 @@ class MarketAnalysisOut(BaseModel):
 class LettingBidderEntry(BaseModel):
     contractor_name: str
     contractor_id_code: str
+    contractor_pk: str | None = None
     rank: int
     total: Decimal
     is_low: bool

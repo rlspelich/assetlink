@@ -13,7 +13,7 @@ import { downloadCSV, downloadTXT, exportCurrency } from '../../utils/export';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-export function HeadToHead() {
+export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: any) => void }) {
   const [contractorA, setContractorA] = useState<Contractor | null>(null);
   const [contractorB, setContractorB] = useState<Contractor | null>(null);
   const [comparing, setComparing] = useState(false);
@@ -161,7 +161,14 @@ export function HeadToHead() {
                     {h2h.contracts.map((c) => (
                       <tr key={c.contract_id} className="hover:bg-gray-50">
                         <td className="px-3 py-2 text-gray-600">{c.letting_date}</td>
-                        <td className="px-3 py-2 font-medium text-gray-900">{c.contract_number}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            onClick={() => navigateTo('bid-tabs', { contractId: c.contract_id })}
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                          >
+                            {c.contract_number}
+                          </button>
+                        </td>
                         <td className="px-3 py-2 text-gray-600">{c.county}</td>
                         <td className={`px-3 py-2 text-right ${c.winner === 'A' ? 'font-bold text-blue-600' : 'text-gray-600'}`}>
                           #{c.contractor_a_rank}
@@ -293,7 +300,14 @@ export function HeadToHead() {
                             : 'text-gray-600';
                         return (
                           <tr key={item.pay_item_code} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 font-mono text-gray-700">{item.pay_item_code}</td>
+                            <td className="px-3 py-2 font-mono">
+                              <button
+                                onClick={() => navigateTo('pi-detail', { payItemCode: item.pay_item_code })}
+                                className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                              >
+                                {item.pay_item_code}
+                              </button>
+                            </td>
                             <td className="px-3 py-2 text-gray-900 max-w-[200px] truncate">{item.description}</td>
                             <td className="px-3 py-2 text-gray-500">{item.unit}</td>
                             <td className="px-3 py-2 text-right font-mono text-gray-900">{fmt.format(item.contractor_a_avg_price)}</td>
