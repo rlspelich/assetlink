@@ -170,24 +170,24 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: a
                           </button>
                         </td>
                         <td className="px-3 py-2 text-gray-600">{c.county}</td>
-                        <td className={`px-3 py-2 text-right ${c.winner === 'A' ? 'font-bold text-blue-600' : 'text-gray-600'}`}>
+                        <td className={`px-3 py-2 text-right ${c.winner === 'a' ? 'font-bold text-blue-600' : 'text-gray-600'}`}>
                           #{c.contractor_a_rank}
                         </td>
-                        <td className={`px-3 py-2 text-right font-mono ${c.winner === 'A' ? 'font-bold text-blue-600' : 'text-gray-600'}`}>
+                        <td className={`px-3 py-2 text-right font-mono ${c.winner === 'a' ? 'font-bold text-blue-600' : 'text-gray-600'}`}>
                           {fmt.format(c.contractor_a_total)}
                         </td>
-                        <td className={`px-3 py-2 text-right ${c.winner === 'B' ? 'font-bold text-indigo-600' : 'text-gray-600'}`}>
+                        <td className={`px-3 py-2 text-right ${c.winner === 'b' ? 'font-bold text-indigo-600' : 'text-gray-600'}`}>
                           #{c.contractor_b_rank}
                         </td>
-                        <td className={`px-3 py-2 text-right font-mono ${c.winner === 'B' ? 'font-bold text-indigo-600' : 'text-gray-600'}`}>
+                        <td className={`px-3 py-2 text-right font-mono ${c.winner === 'b' ? 'font-bold text-indigo-600' : 'text-gray-600'}`}>
                           {fmt.format(c.contractor_b_total)}
                         </td>
                         <td className="px-3 py-2 text-center">
-                          {c.winner === 'A' ? (
+                          {c.winner === 'a' ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
                               <Trophy size={10} /> A
                             </span>
-                          ) : c.winner === 'B' ? (
+                          ) : c.winner === 'b' ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
                               <Trophy size={10} /> B
                             </span>

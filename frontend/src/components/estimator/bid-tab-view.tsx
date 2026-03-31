@@ -390,7 +390,7 @@ function BidTabDetail({ contractId, onBack, navigateTo, cameFromTab }: { contrac
                     : 'bg-gray-50 border border-gray-200'
               }`}
             >
-              <div className="font-medium text-gray-900 truncate max-w-[180px]">
+              <div className="font-medium text-gray-900" title={`#${b.rank} ${b.contractor_name}`}>
                 #{b.rank}{' '}
                 {navigateTo ? (
                   <button

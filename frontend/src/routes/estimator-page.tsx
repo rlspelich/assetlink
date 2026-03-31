@@ -396,6 +396,8 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
   const [nameValue, setNameValue] = useState('');
   const [contingencyPhase, setContingencyPhase] = useState<string>('Final Design (10%)');
   const [customContingencyPct, setCustomContingencyPct] = useState(10);
+  const [itemsPage, setItemsPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
   const queryClient = useQueryClient();
 
   const contingencyPct = contingencyPhase === 'Custom'
@@ -455,6 +457,11 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
   const subtotal = Number(estimate.total_with_regional || estimate.total_adjusted);
   const contingencyAmount = subtotal * (contingencyPct / 100);
   const grandTotal = subtotal + contingencyAmount;
+
+  const totalItems = estimate.items.length;
+  const totalItemPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const safePage = Math.min(itemsPage, totalItemPages);
+  const pagedItems = estimate.items.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
 
   return (
     <div className="h-full flex flex-col">
@@ -663,7 +670,7 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
                 </tr>
               </thead>
               <tbody>
-                {estimate.items.map((item) => (
+                {pagedItems.map((item) => (
                   <EditableItemRow
                     key={item.estimate_item_id}
                     item={item}
@@ -673,6 +680,48 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
                 ))}
               </tbody>
             </table>
+          )}
+
+          {/* Pagination */}
+          {totalItemPages > 1 && (
+            <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
+              <span>
+                Showing {(safePage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safePage * ITEMS_PER_PAGE, totalItems)} of {totalItems} items
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setItemsPage(1)}
+                  disabled={safePage === 1}
+                  className="px-2 py-1 border rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  First
+                </button>
+                <button
+                  onClick={() => setItemsPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage === 1}
+                  className="px-2 py-1 border rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Prev
+                </button>
+                <span className="px-2 py-1">
+                  Page {safePage} of {totalItemPages}
+                </span>
+                <button
+                  onClick={() => setItemsPage((p) => Math.min(totalItemPages, p + 1))}
+                  disabled={safePage === totalItemPages}
+                  className="px-2 py-1 border rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+                <button
+                  onClick={() => setItemsPage(totalItemPages)}
+                  disabled={safePage === totalItemPages}
+                  className="px-2 py-1 border rounded hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Last
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Contingency calculator */}
