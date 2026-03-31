@@ -76,9 +76,17 @@ async def _get_contractor(db: AsyncSession, contractor_pk: uuid.UUID) -> Contrac
 async def get_contractor_profile(
     contractor_pk: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    min_date: str | None = None,
+    max_date: str | None = None,
 ):
-    """Full contractor profile with aggregated statistics."""
+    """Full contractor profile with aggregated statistics. Optional date range filter."""
     contractor = await _get_contractor(db, contractor_pk)
+
+    date_filters = []
+    if min_date:
+        date_filters.append(Contract.letting_date >= date.fromisoformat(min_date))
+    if max_date:
+        date_filters.append(Contract.letting_date <= date.fromisoformat(max_date))
 
     # Aggregate bid stats
     stats = await db.execute(
@@ -91,7 +99,7 @@ async def get_contractor_profile(
             func.max(Contract.letting_date).label("last_bid_date"),
         )
         .join(Contract, Bid.contract_id == Contract.contract_id)
-        .where(Bid.contractor_pk == contractor_pk)
+        .where(Bid.contractor_pk == contractor_pk, *date_filters)
     )
     row = stats.one()
 
@@ -104,7 +112,7 @@ async def get_contractor_profile(
         .group_by(Bid.contract_id)
         .subquery()
     )
-    on_table_result = await db.execute(
+    on_table_q = (
         select(
             func.sum(low_bid_sq.c.low_total).label("on_table"),
             func.sum(Bid.total).filter(Bid.is_low == True).label("total_won"),
@@ -112,6 +120,9 @@ async def get_contractor_profile(
         .join(low_bid_sq, low_bid_sq.c.contract_id == Bid.contract_id)
         .where(Bid.contractor_pk == contractor_pk)
     )
+    if date_filters:
+        on_table_q = on_table_q.join(Contract, Bid.contract_id == Contract.contract_id).where(*date_filters)
+    on_table_result = await db.execute(on_table_q)
     ot_row = on_table_result.one()
     on_table = Decimal(str(ot_row.on_table or 0))
     total_won = Decimal(str(ot_row.total_won or 0))
@@ -124,7 +135,7 @@ async def get_contractor_profile(
             func.array_agg(distinct(Contract.district)).label("districts"),
         )
         .join(Bid, Bid.contract_id == Contract.contract_id)
-        .where(Bid.contractor_pk == contractor_pk)
+        .where(Bid.contractor_pk == contractor_pk, *date_filters)
     )
     geo_row = geo.one()
 
@@ -253,9 +264,17 @@ async def get_bidding_history(
 async def get_geographic_footprint(
     contractor_pk: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    min_date: str | None = None,
+    max_date: str | None = None,
 ):
     """Bid and win counts by county and district."""
     await _get_contractor(db, contractor_pk)
+
+    date_filters = []
+    if min_date:
+        date_filters.append(Contract.letting_date >= date.fromisoformat(min_date))
+    if max_date:
+        date_filters.append(Contract.letting_date <= date.fromisoformat(max_date))
 
     async def _geo_query(group_col):
         result = await db.execute(
@@ -266,7 +285,7 @@ async def get_geographic_footprint(
                 func.sum(Bid.total).filter(Bid.is_bad == False).label("total_volume"),
             )
             .join(Contract, Bid.contract_id == Contract.contract_id)
-            .where(Bid.contractor_pk == contractor_pk)
+            .where(Bid.contractor_pk == contractor_pk, *date_filters)
             .where(group_col != "")
             .group_by(group_col)
             .order_by(func.count(Bid.bid_id).desc())
@@ -298,9 +317,17 @@ async def get_geographic_footprint(
 async def get_activity_trend(
     contractor_pk: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    min_date: str | None = None,
+    max_date: str | None = None,
 ):
     """Bidding volume by year."""
     await _get_contractor(db, contractor_pk)
+
+    date_filters = []
+    if min_date:
+        date_filters.append(Contract.letting_date >= date.fromisoformat(min_date))
+    if max_date:
+        date_filters.append(Contract.letting_date <= date.fromisoformat(max_date))
 
     year_col = extract("year", Contract.letting_date)
     result = await db.execute(
@@ -311,7 +338,7 @@ async def get_activity_trend(
             func.sum(Bid.total).filter(Bid.is_bad == False).label("total_bid_volume"),
         )
         .join(Contract, Bid.contract_id == Contract.contract_id)
-        .where(Bid.contractor_pk == contractor_pk)
+        .where(Bid.contractor_pk == contractor_pk, *date_filters)
         .group_by(year_col)
         .order_by(year_col)
     )

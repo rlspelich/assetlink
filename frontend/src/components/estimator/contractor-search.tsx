@@ -150,9 +150,15 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange }: {
   activeTab: ProfileTab;
   onTabChange: (t: ProfileTab) => void;
 }) {
+  // Date range filter — defaults to last 5 years
+  const defaultMinDate = `${new Date().getFullYear() - 5}-01-01`;
+  const [minDate, setMinDate] = useState(defaultMinDate);
+  const [maxDate, setMaxDate] = useState('');
+  const dateParams = { min_date: minDate || undefined, max_date: maxDate || undefined };
+
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['contractorProfile', pk],
-    queryFn: () => getContractorProfile(pk),
+    queryKey: ['contractorProfile', pk, minDate, maxDate],
+    queryFn: () => getContractorProfile(pk, dateParams),
   });
 
   if (isLoading || !profile) {
@@ -194,13 +200,44 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange }: {
         ))}
       </div>
 
+      {/* Date range filter */}
+      <div className="flex items-center gap-3 bg-white rounded-lg shadow px-4 py-2">
+        <span className="text-xs font-medium text-gray-500">Date Range:</span>
+        <input
+          type="date"
+          value={minDate}
+          onChange={(e) => setMinDate(e.target.value)}
+          className="px-2 py-1 text-xs border rounded-md"
+        />
+        <span className="text-xs text-gray-400">to</span>
+        <input
+          type="date"
+          value={maxDate}
+          onChange={(e) => setMaxDate(e.target.value)}
+          className="px-2 py-1 text-xs border rounded-md"
+          placeholder="Present"
+        />
+        <button
+          onClick={() => { setMinDate(defaultMinDate); setMaxDate(''); }}
+          className={`text-xs px-2 py-1 rounded-md ${minDate === defaultMinDate && !maxDate ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
+        >
+          Last 5 Years
+        </button>
+        <button
+          onClick={() => { setMinDate(''); setMaxDate(''); }}
+          className={`text-xs px-2 py-1 rounded-md ${!minDate && !maxDate ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
+        >
+          All Time
+        </button>
+      </div>
+
       {/* Tab content */}
       {activeTab === 'overview' && <OverviewTab profile={profile} />}
-      {activeTab === 'history' && <HistoryTab pk={pk} />}
-      {activeTab === 'geo' && <GeoTab pk={pk} />}
-      {activeTab === 'activity' && <ActivityTab pk={pk} />}
-      {activeTab === 'prices' && <PricesTab pk={pk} />}
-      {activeTab === 'vs-market' && <VsMarketTab pk={pk} />}
+      {activeTab === 'history' && <HistoryTab pk={pk} dateParams={dateParams} />}
+      {activeTab === 'geo' && <GeoTab pk={pk} dateParams={dateParams} />}
+      {activeTab === 'activity' && <ActivityTab pk={pk} dateParams={dateParams} />}
+      {activeTab === 'prices' && <PricesTab pk={pk} dateParams={dateParams} />}
+      {activeTab === 'vs-market' && <VsMarketTab pk={pk} dateParams={dateParams} />}
     </div>
   );
 }
@@ -303,13 +340,13 @@ function OverviewTab({ profile }: { profile: ContractorProfile }) {
 // Bidding History Tab
 // ============================================================
 
-function HistoryTab({ pk }: { pk: string }) {
+function HistoryTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
   const [page, setPage] = useState(1);
   const [winsOnly, setWinsOnly] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['biddingHistory', pk, page, winsOnly],
-    queryFn: () => getBiddingHistory(pk, { page, page_size: 25, wins_only: winsOnly || undefined }),
+    queryKey: ['biddingHistory', pk, page, winsOnly, dateParams],
+    queryFn: () => getBiddingHistory(pk, { page, page_size: 25, wins_only: winsOnly || undefined, ...dateParams }),
   });
 
   const totalPages = data ? Math.ceil(data.total / 25) : 0;
@@ -389,10 +426,10 @@ function HistoryTab({ pk }: { pk: string }) {
 // Geographic Footprint Tab
 // ============================================================
 
-function GeoTab({ pk }: { pk: string }) {
+function GeoTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['geoFootprint', pk],
-    queryFn: () => getGeoFootprint(pk),
+    queryKey: ['geoFootprint', pk, dateParams],
+    queryFn: () => getGeoFootprint(pk, dateParams),
   });
 
   if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
@@ -474,10 +511,10 @@ function GeoTable({ title, entries }: { title: string; entries: { name: string; 
 // Activity Trend Tab
 // ============================================================
 
-function ActivityTab({ pk }: { pk: string }) {
+function ActivityTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['activityTrend', pk],
-    queryFn: () => getActivityTrend(pk),
+    queryKey: ['activityTrend', pk, dateParams],
+    queryFn: () => getActivityTrend(pk, dateParams),
   });
 
   if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
@@ -548,10 +585,10 @@ function ActivityTab({ pk }: { pk: string }) {
 // Price Tendencies Tab
 // ============================================================
 
-function PricesTab({ pk }: { pk: string }) {
+function PricesTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
   const { data, isLoading } = useQuery({
-    queryKey: ['priceTendencies', pk],
-    queryFn: () => getPriceTendencies(pk),
+    queryKey: ['priceTendencies', pk, dateParams],
+    queryFn: () => getPriceTendencies(pk, dateParams),
   });
 
   if (isLoading) return <div className="flex items-center justify-center p-8 text-gray-400">Loading...</div>;
@@ -634,12 +671,12 @@ function PricesTab({ pk }: { pk: string }) {
 // vs Market Tab
 // ============================================================
 
-function VsMarketTab({ pk }: { pk: string }) {
+function VsMarketTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: string; max_date?: string } }) {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['vsMarket', pk, page],
-    queryFn: () => getContractorVsMarket(pk, { page, page_size: 50 }),
+    queryKey: ['vsMarket', pk, page, dateParams],
+    queryFn: () => getContractorVsMarket(pk, { page, page_size: 50, ...dateParams }),
   });
 
   const totalPages = data ? Math.ceil(data.total / 50) : 0;

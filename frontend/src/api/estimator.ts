@@ -502,8 +502,11 @@ export async function listContractors(params: {
   return api.get('estimator/contractors', { searchParams: sp }).json();
 }
 
-export async function getContractorProfile(pk: string): Promise<ContractorProfile> {
-  return api.get(`estimator/contractors/${pk}/profile`).json();
+export async function getContractorProfile(pk: string, params: { min_date?: string; max_date?: string } = {}): Promise<ContractorProfile> {
+  const sp: Record<string, string> = {};
+  if (params.min_date) sp.min_date = params.min_date;
+  if (params.max_date) sp.max_date = params.max_date;
+  return api.get(`estimator/contractors/${pk}/profile`, { searchParams: sp }).json();
 }
 
 export async function getBiddingHistory(pk: string, params: {
@@ -522,12 +525,18 @@ export async function getBiddingHistory(pk: string, params: {
   return api.get(`estimator/contractors/${pk}/bidding-history`, { searchParams: sp }).json();
 }
 
-export async function getGeoFootprint(pk: string): Promise<GeoFootprint> {
-  return api.get(`estimator/contractors/${pk}/geographic-footprint`).json();
+export async function getGeoFootprint(pk: string, params: { min_date?: string; max_date?: string } = {}): Promise<GeoFootprint> {
+  const sp: Record<string, string> = {};
+  if (params.min_date) sp.min_date = params.min_date;
+  if (params.max_date) sp.max_date = params.max_date;
+  return api.get(`estimator/contractors/${pk}/geographic-footprint`, { searchParams: sp }).json();
 }
 
-export async function getActivityTrend(pk: string): Promise<ActivityTrend> {
-  return api.get(`estimator/contractors/${pk}/activity-trend`).json();
+export async function getActivityTrend(pk: string, params: { min_date?: string; max_date?: string } = {}): Promise<ActivityTrend> {
+  const sp: Record<string, string> = {};
+  if (params.min_date) sp.min_date = params.min_date;
+  if (params.max_date) sp.max_date = params.max_date;
+  return api.get(`estimator/contractors/${pk}/activity-trend`, { searchParams: sp }).json();
 }
 
 export async function getPriceTendencies(pk: string, params: {
