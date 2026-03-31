@@ -83,15 +83,16 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Filter form */}
-      <div className="border-b bg-gray-50 px-4 py-3">
-        <div className="flex flex-wrap items-end gap-3">
+      <div className="border-b bg-gray-50 px-4 py-3 space-y-2">
+        {/* Row 1: Pay Item + Description + Contractor */}
+        <div className="grid grid-cols-3 gap-3">
           <TypeAheadField
             label="Pay Item Code"
             value={code}
             onChange={setCode}
             onKeyDown={handleKeyDown}
             placeholder="Type code..."
-            width="w-36"
+            width="w-full"
             queryKey="payItemCodeSearch"
             queryFn={async (q) => {
               const res = await searchPayItems({ search: q, page_size: 10 });
@@ -103,15 +104,31 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
             value={description}
             onChange={setDescription}
             onKeyDown={handleKeyDown}
-            placeholder="e.g. asphalt..."
-            width="w-52"
+            placeholder="e.g. asphalt, earthwork..."
+            width="w-full"
             queryKey="payItemDescSearch"
             queryFn={async (q) => {
               const res = await searchPayItems({ search: q, page_size: 10 });
               return res.pay_items.map((p) => ({ value: p.description, label: p.description, secondary: p.code }));
             }}
           />
-          <div>
+          <TypeAheadField
+            label="Contractor"
+            value={contractor}
+            onChange={setContractor}
+            onKeyDown={handleKeyDown}
+            placeholder="Type name..."
+            width="w-full"
+            queryKey="contractorNameSearch"
+            queryFn={async (q) => {
+              const res = await listContractors({ search: q, page_size: 10 });
+              return res.contractors.map((c) => ({ value: c.name, label: c.name, secondary: `${c.bid_count} bids` }));
+            }}
+          />
+        </div>
+        {/* Row 2: County, District, Date Range, Qty Range, Low Only, Search */}
+        <div className="flex items-end gap-3">
+          <div className="w-36">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">County</label>
             <select
               value={county}
@@ -122,16 +139,16 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
                   setDistrict('');
                 }
               }}
-              className="px-2 py-1.5 text-sm border rounded-md w-36 bg-white"
+              className="w-full px-2 py-1.5 text-sm border rounded-md bg-white"
             >
-              <option value="">All</option>
+              <option value="">All Counties</option>
               {(district && filterOpts?.district_to_counties?.[district]
                 ? filterOpts.district_to_counties[district]
                 : filterOpts?.counties || []
               ).map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <div>
+          <div className="w-24">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">District</label>
             <select
               value={district}
@@ -142,7 +159,7 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
                   setCounty('');
                 }
               }}
-              className="px-2 py-1.5 text-sm border rounded-md w-28 bg-white"
+              className="w-full px-2 py-1.5 text-sm border rounded-md bg-white"
             >
               <option value="">All</option>
               {(county && filterOpts?.county_to_districts?.[county]
@@ -151,43 +168,30 @@ export function PayItemDetailSearch({ onSelectContract }: PayItemDetailSearchPro
               ).map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
-          <TypeAheadField
-            label="Contractor"
-            value={contractor}
-            onChange={setContractor}
-            onKeyDown={handleKeyDown}
-            placeholder="Type name..."
-            width="w-48"
-            queryKey="contractorNameSearch"
-            queryFn={async (q) => {
-              const res = await listContractors({ search: q, page_size: 10 });
-              return res.contractors.map((c) => ({ value: c.name, label: c.name, secondary: `${c.bid_count} bids` }));
-            }}
-          />
-          <div>
+          <div className="w-32">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">From</label>
-            <input type="date" value={minDate} onChange={(e) => setMinDate(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md" />
+            <input type="date" value={minDate} onChange={(e) => setMinDate(e.target.value)} className="w-full px-2 py-1.5 text-sm border rounded-md" />
           </div>
-          <div>
+          <div className="w-32">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">To</label>
-            <input type="date" value={maxDate} onChange={(e) => setMaxDate(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md" />
+            <input type="date" value={maxDate} onChange={(e) => setMaxDate(e.target.value)} className="w-full px-2 py-1.5 text-sm border rounded-md" />
           </div>
-          <div>
+          <div className="w-20">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">Min Qty</label>
-            <input type="number" value={minQty} onChange={(e) => setMinQty(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md w-20" />
+            <input type="number" value={minQty} onChange={(e) => setMinQty(e.target.value)} className="w-full px-2 py-1.5 text-sm border rounded-md" />
           </div>
-          <div>
+          <div className="w-20">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">Max Qty</label>
-            <input type="number" value={maxQty} onChange={(e) => setMaxQty(e.target.value)} className="px-2 py-1.5 text-sm border rounded-md w-20" />
+            <input type="number" value={maxQty} onChange={(e) => setMaxQty(e.target.value)} className="w-full px-2 py-1.5 text-sm border rounded-md" />
           </div>
-          <label className="flex items-center gap-1.5 pb-0.5">
+          <label className="flex items-center gap-1.5 pb-1">
             <input type="checkbox" checked={lowOnly} onChange={(e) => setLowOnly(e.target.checked)} className="rounded" />
-            <span className="text-xs text-gray-600">Low Bids Only</span>
+            <span className="text-xs text-gray-600 whitespace-nowrap">Low Bids Only</span>
           </label>
           <button
             onClick={handleSearch}
             disabled={isFetching}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
           >
             {isFetching ? 'Searching...' : 'Search'}
           </button>
