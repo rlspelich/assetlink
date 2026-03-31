@@ -42,7 +42,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
   const [search, setSearch] = useState('');
   const [county, setCounty] = useState(initialCounty || '');
   const [district, setDistrict] = useState('');
-  const [minDate, setMinDate] = useState('');
+  const [minDate, setMinDate] = useState(`${new Date().getFullYear() - 5}-01-01`);
   const [maxDate, setMaxDate] = useState('');
   const [municipality, setMunicipality] = useState('');
 
@@ -116,9 +116,10 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
 
   const totalPages = data ? Math.ceil(data.total / 25) : 0;
 
+  const defaultMin = `${new Date().getFullYear() - 5}-01-01`;
   const clearFilters = () => {
     setSearch(''); setCounty(''); setDistrict('');
-    setMinDate(''); setMaxDate(''); setMunicipality('');
+    setMinDate(defaultMin); setMaxDate(''); setMunicipality('');
     setAppliedFilters({ search: '', county: '', district: '', minDate: '', maxDate: '', municipality: '' });
     setPage(1);
     setHasSearched(false);

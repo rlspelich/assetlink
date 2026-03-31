@@ -23,7 +23,7 @@ export function PayItemDetailSearch({ navigateTo, navParams }: {
   const [county, setCounty] = useState('');
   const [district, setDistrict] = useState('');
   const [contractor, setContractor] = useState('');
-  const [minDate, setMinDate] = useState('');
+  const [minDate, setMinDate] = useState(`${new Date().getFullYear() - 5}-01-01`);
   const [maxDate, setMaxDate] = useState('');
   const [minQty, setMinQty] = useState('');
   const [maxQty, setMaxQty] = useState('');
