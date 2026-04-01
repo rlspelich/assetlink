@@ -147,18 +147,23 @@ async def list_contracts(
     low_bid_totals: dict[uuid.UUID, float] = {}
 
     if contract_ids:
-        bid_stats = await db.execute(
-            select(
-                Bid.contract_id,
-                func.count(Bid.bid_id),
-                func.min(Bid.total).filter(Bid.is_bad == False),
-            )
+        # Bid counts (all bids)
+        count_result = await db.execute(
+            select(Bid.contract_id, func.count(Bid.bid_id))
             .where(Bid.contract_id.in_(contract_ids))
             .group_by(Bid.contract_id)
         )
-        for row in bid_stats:
+        for row in count_result:
             bid_counts[row[0]] = row[1]
-            low_bid_totals[row[0]] = row[2]
+
+        # Low bid totals (exclude bad bids)
+        low_result = await db.execute(
+            select(Bid.contract_id, func.min(Bid.total))
+            .where(Bid.contract_id.in_(contract_ids), Bid.is_bad == False)
+            .group_by(Bid.contract_id)
+        )
+        for row in low_result:
+            low_bid_totals[row[0]] = row[1]
 
     return ContractListOut(
         contracts=[

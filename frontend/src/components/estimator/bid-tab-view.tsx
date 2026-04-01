@@ -15,14 +15,15 @@ const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency:
 
 export function BidTabView({ navParams, navigateTo }: { navParams: any; navigateTo?: (tab: string, params: any) => void }) {
   const [selectedContractId, setSelectedContractId] = useState<string | null>(navParams?.contractId || null);
-  const [cameFromTab] = useState<string | null>(navParams?.sourceTab || null);
+  const [cameFromTab, setCameFromTab] = useState<string | null>(navParams?.sourceTab || null);
 
-  // Auto-open contract from navParams
+  // Auto-open contract from navParams (tracks updates since component stays mounted)
   useEffect(() => {
     if (navParams?.contractId) {
       setSelectedContractId(navParams.contractId);
+      setCameFromTab(navParams.sourceTab || null);
     }
-  }, [navParams?.contractId]);
+  }, [navParams?.contractId, navParams?.sourceTab]);
 
   const handleBack = () => {
     // If we drilled in from another tab, go back there
