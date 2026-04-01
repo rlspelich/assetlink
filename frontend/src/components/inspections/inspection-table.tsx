@@ -7,6 +7,7 @@ import {
   getInspectionTypeOption,
   getInspectionStatusOption,
 } from '../../lib/constants';
+import { formatDate, formatShortDate } from '../../lib/format-utils';
 
 const PAGE_SIZE = 25;
 
@@ -25,31 +26,6 @@ const STATUS_ORDER: Record<string, number> = {
   completed: 2,
   cancelled: 3,
 };
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatShortDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
 
 export function InspectionTable({ inspections, selectedInspId, onInspSelect }: InspectionTableProps) {
   const [sortField, setSortField] = useState<SortField>('created_at');

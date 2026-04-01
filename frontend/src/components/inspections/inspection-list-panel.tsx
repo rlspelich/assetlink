@@ -25,17 +25,7 @@ interface InspectionListPanelProps {
   onSearchChange: (query: string) => void;
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
+import { formatShortDate as formatDate } from '../../lib/format-utils';
 
 export function InspectionListPanel({
   inspections,

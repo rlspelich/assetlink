@@ -25,18 +25,8 @@ interface SupportDetailPanelProps {
   onDeleteSupportAndSigns?: (supportId: string) => void;
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
+import { formatDate as _formatDate } from '../../lib/format-utils';
+const formatDate = (d: string | null) => _formatDate(d, '—');
 
 function conditionBadge(rating: number | null, status: string) {
   const color = INACTIVE_STATUSES.has(status)

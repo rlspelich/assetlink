@@ -20,12 +20,7 @@ interface SewerDetailPanelProps {
   onInspect?: () => void;
 }
 
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch { return dateStr; }
-}
+import { formatDate } from '../../lib/format-utils';
 
 function conditionBadge(rating: number | null, status: string) {
   const isInactive = INACTIVE_STATUSES.has(status) || status === 'inactive' || status === 'abandoned';

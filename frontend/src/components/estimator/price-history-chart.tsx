@@ -7,17 +7,7 @@ interface Props {
   unit: string;
 }
 
-function formatDate(dateStr: string) {
-  const d = new Date(dateStr);
-  return `${d.getMonth() + 1}/${d.getFullYear().toString().slice(2)}`;
-}
-
-function formatPrice(value: number) {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
-  if (value >= 1) return `$${value.toFixed(2)}`;
-  return `$${value.toFixed(4)}`;
-}
+import { formatChartDate as formatDate, formatCompactPrice as formatPrice } from '../../lib/format-utils';
 
 export function PriceHistoryChart({ dataPoints, stats, unit }: Props) {
   if (!dataPoints.length) {

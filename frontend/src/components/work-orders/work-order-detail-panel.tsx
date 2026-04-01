@@ -25,38 +25,7 @@ interface WorkOrderDetailPanelProps {
   isDeleting?: boolean;
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatDateTime(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatCurrency(val: number | null): string {
-  if (val === null || val === undefined) return '';
-  return `$${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { formatDate, formatDateTime, formatCurrency } from '../../lib/format-utils';
 
 function Section({ icon: Icon, title, badge, children }: { icon: React.ElementType; title: string; badge?: React.ReactNode; children: React.ReactNode }) {
   return (

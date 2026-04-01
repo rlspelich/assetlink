@@ -7,11 +7,7 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB — matches backend limit
 
 type ImportMode = 'signs' | 'signs_and_supports' | 'supports_only';
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { formatFileSize } from '../lib/format-utils';
 
 function estimateRowCount(bytes: number): number {
   // Rough estimate: ~150 bytes per row for a typical sign CSV with 20+ columns

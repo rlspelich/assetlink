@@ -29,18 +29,8 @@ interface InspectionDetailPanelProps {
   onRefresh?: () => void;
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '\u2014';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
+import { formatDate as _formatDate } from '../../lib/format-utils';
+const formatDate = (d: string | null) => _formatDate(d, '\u2014');
 
 function conditionBadge(rating: number | null) {
   const color = rating ? CONDITION_COLORS[rating] : UNRATED_COLOR;

@@ -10,15 +10,7 @@ interface Props {
   options?: PricingOptions;
 }
 
-function formatPrice(value: number | string | null | undefined) {
-  if (value == null) return '—';
-  const n = Number(value);
-  if (isNaN(n)) return '—';
-  if (n >= 1000000) return `$${(n / 1000000).toFixed(2)}M`;
-  if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
-  if (n >= 1) return `$${n.toFixed(2)}`;
-  return `$${n.toFixed(4)}`;
-}
+import { formatCompactPrice as formatPrice } from '../../lib/format-utils';
 
 export function PriceHistoryPanel({ payItem, options }: Props) {
   const code = payItem?.code || '';

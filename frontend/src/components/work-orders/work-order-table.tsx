@@ -7,6 +7,7 @@ import {
   formatEnumLabel,
 } from '../../lib/constants';
 import { useUsersList } from '../../hooks/use-users';
+import { formatDate, formatShortDate } from '../../lib/format-utils';
 
 const PAGE_SIZE = 25;
 
@@ -34,31 +35,6 @@ const STATUS_ORDER: Record<string, number> = {
   completed: 4,
   cancelled: 5,
 };
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatShortDate(dateStr: string | null): string {
-  if (!dateStr) return '';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
 
 export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrderTableProps) {
   const [sortField, setSortField] = useState<SortField>('created_at');

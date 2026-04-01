@@ -1,5 +1,6 @@
 import type { WorkOrder, Inspection } from '../api/types';
 import { formatEnumLabel } from './constants';
+import { formatDate, formatDateTime } from './format-utils';
 
 // --- Shared helpers ---
 
@@ -11,33 +12,9 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function formatDatePrint(dateStr: string | null): string {
-  if (!dateStr) return '\u2014';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
+const formatDatePrint = (d: string | null) => formatDate(d, '\u2014');
 
-export function formatDateTimePrint(dateStr: string | null): string {
-  if (!dateStr) return '\u2014';
-  try {
-    return new Date(dateStr).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
-}
+export const formatDateTimePrint = (d: string | null) => formatDateTime(d, '\u2014');
 
 function todayFormatted(): string {
   return new Date().toLocaleDateString('en-US', {
