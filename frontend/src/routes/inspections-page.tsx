@@ -515,6 +515,7 @@ export function InspectionsPage() {
                       </button>
                       <button
                         onClick={handleSelectionCancel}
+                        aria-label="Cancel selection"
                         className="p-1 hover:bg-white/20 rounded transition-colors"
                       >
                         <X size={14} />

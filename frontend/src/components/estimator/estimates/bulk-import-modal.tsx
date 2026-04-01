@@ -43,7 +43,7 @@ export function BulkImportModal({ estimateId, onClose, onSuccess }: {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-xl mx-4">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-sm font-semibold text-gray-900">Bulk Import Items</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
             <X size={18} />
           </button>
         </div>

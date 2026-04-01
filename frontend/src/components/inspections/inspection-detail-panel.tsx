@@ -143,6 +143,7 @@ export const InspectionDetailPanel = memo(function InspectionDetailPanel({
           <button
             onClick={() => previewInspection(inspection)}
             title="Print inspection"
+            aria-label="Print inspection"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
           >
             <Printer size={16} />
@@ -150,6 +151,7 @@ export const InspectionDetailPanel = memo(function InspectionDetailPanel({
           <button
             onClick={() => setShowEmailDialog(true)}
             title="Email inspection"
+            aria-label="Email inspection"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
           >
             <Mail size={16} />
@@ -158,6 +160,7 @@ export const InspectionDetailPanel = memo(function InspectionDetailPanel({
             <button
               onClick={onEdit}
               title="Edit inspection"
+              aria-label="Edit inspection"
               className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-blue-600"
             >
               <Pencil size={16} />
@@ -167,6 +170,7 @@ export const InspectionDetailPanel = memo(function InspectionDetailPanel({
             <button
               onClick={() => setShowDeleteConfirm(true)}
               title="Delete inspection"
+              aria-label="Delete inspection"
               className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-600"
             >
               <Trash2 size={16} />
@@ -174,6 +178,7 @@ export const InspectionDetailPanel = memo(function InspectionDetailPanel({
           )}
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600"
           >
             <X size={16} />

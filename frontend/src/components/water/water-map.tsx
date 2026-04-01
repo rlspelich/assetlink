@@ -395,6 +395,7 @@ export function WaterMap({
         <button
           onClick={handleZoomToExtent}
           title="Zoom to all assets"
+          aria-label="Zoom to all assets"
           className="w-[29px] h-[29px] bg-white rounded shadow flex items-center justify-center border border-gray-300 hover:bg-gray-50 transition-colors"
         >
           <Home size={15} className="text-gray-700" />

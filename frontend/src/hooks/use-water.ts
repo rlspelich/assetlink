@@ -83,6 +83,9 @@ export function useCreateWaterMain() {
   return useMutation({
     mutationFn: (data: WaterMainCreate) => waterApi.createWaterMain(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterMainLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create water main:', error.message);
+    },
   });
 }
 
@@ -92,6 +95,9 @@ export function useUpdateWaterMain() {
     mutationFn: ({ id, data }: { id: string; data: Partial<WaterMainCreate> }) =>
       waterApi.updateWaterMain(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterMainLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update water main:', error.message);
+    },
   });
 }
 
@@ -100,6 +106,9 @@ export function useDeleteWaterMain() {
   return useMutation({
     mutationFn: (id: string) => waterApi.deleteWaterMain(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterMainLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete water main:', error.message);
+    },
   });
 }
 
@@ -133,6 +142,9 @@ export function useCreateWaterValve() {
   return useMutation({
     mutationFn: (data: WaterValveCreate) => waterApi.createWaterValve(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterValveLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create water valve:', error.message);
+    },
   });
 }
 
@@ -142,6 +154,9 @@ export function useUpdateWaterValve() {
     mutationFn: ({ id, data }: { id: string; data: Partial<WaterValveCreate> }) =>
       waterApi.updateWaterValve(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterValveLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update water valve:', error.message);
+    },
   });
 }
 
@@ -150,6 +165,9 @@ export function useDeleteWaterValve() {
   return useMutation({
     mutationFn: (id: string) => waterApi.deleteWaterValve(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterValveLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete water valve:', error.message);
+    },
   });
 }
 
@@ -182,6 +200,9 @@ export function useCreateHydrant() {
   return useMutation({
     mutationFn: (data: FireHydrantCreate) => waterApi.createHydrant(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.hydrantLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create hydrant:', error.message);
+    },
   });
 }
 
@@ -191,6 +212,9 @@ export function useUpdateHydrant() {
     mutationFn: ({ id, data }: { id: string; data: Partial<FireHydrantCreate> }) =>
       waterApi.updateHydrant(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.hydrantLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update hydrant:', error.message);
+    },
   });
 }
 
@@ -199,6 +223,9 @@ export function useDeleteHydrant() {
   return useMutation({
     mutationFn: (id: string) => waterApi.deleteHydrant(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.hydrantLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete hydrant:', error.message);
+    },
   });
 }
 
@@ -229,6 +256,9 @@ export function useCreatePressureZone() {
   return useMutation({
     mutationFn: (data: PressureZoneCreate) => waterApi.createPressureZone(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.pressureZoneLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create pressure zone:', error.message);
+    },
   });
 }
 
@@ -238,6 +268,9 @@ export function useUpdatePressureZone() {
     mutationFn: ({ id, data }: { id: string; data: Partial<PressureZoneCreate> }) =>
       waterApi.updatePressureZone(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.pressureZoneLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update pressure zone:', error.message);
+    },
   });
 }
 
@@ -246,6 +279,9 @@ export function useDeletePressureZone() {
   return useMutation({
     mutationFn: (id: string) => waterApi.deletePressureZone(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.pressureZoneLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete pressure zone:', error.message);
+    },
   });
 }
 
@@ -278,6 +314,9 @@ export function useCreateWaterService() {
   return useMutation({
     mutationFn: (data: WaterServiceCreate) => waterApi.createWaterService(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterServiceLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create water service:', error.message);
+    },
   });
 }
 
@@ -287,6 +326,9 @@ export function useUpdateWaterService() {
     mutationFn: ({ id, data }: { id: string; data: Partial<WaterServiceCreate> }) =>
       waterApi.updateWaterService(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterServiceLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update water service:', error.message);
+    },
   });
 }
 
@@ -295,6 +337,9 @@ export function useDeleteWaterService() {
   return useMutation({
     mutationFn: (id: string) => waterApi.deleteWaterService(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterServiceLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete water service:', error.message);
+    },
   });
 }
 
@@ -327,6 +372,9 @@ export function useCreateWaterFitting() {
   return useMutation({
     mutationFn: (data: WaterFittingCreate) => waterApi.createWaterFitting(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterFittingLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create water fitting:', error.message);
+    },
   });
 }
 
@@ -336,6 +384,9 @@ export function useUpdateWaterFitting() {
     mutationFn: ({ id, data }: { id: string; data: Partial<WaterFittingCreate> }) =>
       waterApi.updateWaterFitting(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterFittingLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update water fitting:', error.message);
+    },
   });
 }
 
@@ -344,6 +395,9 @@ export function useDeleteWaterFitting() {
   return useMutation({
     mutationFn: (id: string) => waterApi.deleteWaterFitting(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: waterKeys.waterFittingLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete water fitting:', error.message);
+    },
   });
 }
 

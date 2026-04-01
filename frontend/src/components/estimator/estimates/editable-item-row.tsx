@@ -20,6 +20,9 @@ export function EditableItemRow({ item, estimateId, onDelete }: {
       queryClient.invalidateQueries({ queryKey: ['estimate', estimateId] });
       setEditing(false);
     },
+    onError: (error: Error) => {
+      console.error('Failed to update estimate item:', error.message);
+    },
   });
 
   const startEdit = () => {
@@ -87,6 +90,7 @@ export function EditableItemRow({ item, estimateId, onDelete }: {
           onClick={onDelete}
           className="text-gray-400 hover:text-red-500"
           title="Remove item"
+          aria-label="Remove item"
         >
           <Trash2 size={14} />
         </button>

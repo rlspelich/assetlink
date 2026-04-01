@@ -431,6 +431,7 @@ export function SignsPage() {
             Click the map to place a sign
             <button
               onClick={handleCancel}
+              aria-label="Cancel"
               className="ml-2 p-0.5 rounded hover:bg-blue-500"
             >
               <X size={14} />

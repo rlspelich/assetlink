@@ -232,6 +232,7 @@ export const WorkOrderDetailPanel = memo(function WorkOrderDetailPanel({ workOrd
           <button
             onClick={() => previewWorkOrder(workOrder)}
             title="Print preview"
+            aria-label="Print preview"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
           >
             <Printer size={16} />
@@ -239,6 +240,7 @@ export const WorkOrderDetailPanel = memo(function WorkOrderDetailPanel({ workOrd
           <button
             onClick={() => setShowEmailDialog(true)}
             title="Email work order"
+            aria-label="Email work order"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-700"
           >
             <Mail size={16} />
@@ -247,6 +249,7 @@ export const WorkOrderDetailPanel = memo(function WorkOrderDetailPanel({ workOrd
             <button
               onClick={onEdit}
               title="Edit work order"
+              aria-label="Edit work order"
               className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-blue-600"
             >
               <Pencil size={16} />
@@ -256,6 +259,7 @@ export const WorkOrderDetailPanel = memo(function WorkOrderDetailPanel({ workOrd
             <button
               onClick={() => setShowDeleteConfirm(true)}
               title="Delete work order"
+              aria-label="Delete work order"
               className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-600"
             >
               <Trash2 size={16} />
@@ -263,6 +267,7 @@ export const WorkOrderDetailPanel = memo(function WorkOrderDetailPanel({ workOrd
           )}
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600"
           >
             <X size={16} />

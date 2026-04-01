@@ -144,6 +144,7 @@ export function PhotoGallery({ entityType, entityId, compact = true }: PhotoGall
                     e.stopPropagation();
                     setConfirmDeleteId(photo.attachment_id);
                   }}
+                  aria-label="Delete photo"
                   className="opacity-0 group-hover:opacity-100 p-1 rounded bg-black/50 text-white hover:bg-red-600 transition-all"
                 >
                   <Trash2 size={10} />
@@ -198,6 +199,7 @@ export function PhotoGallery({ entityType, entityId, compact = true }: PhotoGall
         >
           <button
             onClick={() => setViewingPhoto(null)}
+            aria-label="Close photo viewer"
             className="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70"
           >
             <X size={20} />

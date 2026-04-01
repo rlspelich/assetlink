@@ -143,6 +143,7 @@ export const SignDetailPanel = memo(function SignDetailPanel({ sign, onClose, on
             <button
               onClick={onEdit}
               title="Edit sign"
+              aria-label="Edit sign"
               className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-blue-600"
             >
               <Pencil size={16} />
@@ -152,6 +153,7 @@ export const SignDetailPanel = memo(function SignDetailPanel({ sign, onClose, on
             <button
               onClick={() => setShowDeleteConfirm(true)}
               title="Delete sign"
+              aria-label="Delete sign"
               className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-600"
             >
               <Trash2 size={16} />
@@ -159,6 +161,7 @@ export const SignDetailPanel = memo(function SignDetailPanel({ sign, onClose, on
           )}
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600"
           >
             <X size={16} />

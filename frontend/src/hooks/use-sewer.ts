@@ -309,6 +309,9 @@ export function useCreateSewerLateral() {
   return useMutation({
     mutationFn: (data: SewerLateralCreate) => sewerApi.createSewerLateral(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.sewerLateralLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create sewer lateral:', error.message);
+    },
   });
 }
 
@@ -318,6 +321,9 @@ export function useUpdateSewerLateral() {
     mutationFn: ({ id, data }: { id: string; data: Partial<SewerLateralCreate> }) =>
       sewerApi.updateSewerLateral(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.sewerLateralLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update sewer lateral:', error.message);
+    },
   });
 }
 
@@ -326,6 +332,9 @@ export function useDeleteSewerLateral() {
   return useMutation({
     mutationFn: (id: string) => sewerApi.deleteSewerLateral(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.sewerLateralLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete sewer lateral:', error.message);
+    },
   });
 }
 

@@ -25,6 +25,9 @@ export function EstimatesTab() {
       setSelectedId(est.estimate_id);
       setShowNewForm(false);
     },
+    onError: (error: Error) => {
+      console.error('Failed to create estimate:', error.message);
+    },
   });
 
   if (selectedId) {

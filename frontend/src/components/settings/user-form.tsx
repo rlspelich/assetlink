@@ -65,7 +65,7 @@ export function UserForm({
           <h2 className="text-sm font-semibold text-gray-900">
             {mode === 'create' ? 'Add User' : 'Edit User'}
           </h2>
-          <button onClick={onCancel} className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+          <button onClick={onCancel} aria-label="Close" className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
             <X size={16} />
           </button>
         </div>

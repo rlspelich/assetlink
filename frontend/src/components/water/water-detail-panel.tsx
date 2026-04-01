@@ -128,16 +128,16 @@ export const WaterDetailPanel = memo(function WaterDetailPanel({ assetType, data
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {onEdit && (
-            <button onClick={onEdit} title="Edit" className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-blue-600">
+            <button onClick={onEdit} title="Edit" aria-label="Edit" className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-blue-600">
               <Pencil size={16} />
             </button>
           )}
           {onDelete && (
-            <button onClick={() => setShowDeleteConfirm(true)} title="Delete" className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-600">
+            <button onClick={() => setShowDeleteConfirm(true)} title="Delete" aria-label="Delete" className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-600">
               <Trash2 size={16} />
             </button>
           )}
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600">
             <X size={16} />
           </button>
         </div>

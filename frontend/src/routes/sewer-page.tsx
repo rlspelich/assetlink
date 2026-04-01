@@ -543,7 +543,7 @@ export function SewerPage() {
           <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2 text-sm font-medium flex items-center gap-2">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
             {placementMessage}
-            <button onClick={handleCancel} className="ml-2 p-0.5 rounded hover:bg-blue-500">
+            <button onClick={handleCancel} aria-label="Cancel" className="ml-2 p-0.5 rounded hover:bg-blue-500">
               <X size={14} />
             </button>
           </div>

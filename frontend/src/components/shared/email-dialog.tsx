@@ -83,7 +83,7 @@ export function EmailDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/40" role="presentation" onClick={handleClose} />
 
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         {/* Header */}
@@ -96,6 +96,7 @@ export function EmailDialog({
           </div>
           <button
             onClick={handleClose}
+            aria-label="Close"
             className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
           >
             <X size={16} />

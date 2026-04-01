@@ -47,6 +47,9 @@ export function EstimateDetailView({ estimateId, onBack }: { estimateId: string;
   const deleteMut = useMutation({
     mutationFn: () => deleteEstimate(estimateId),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['estimates'] }); onBack(); },
+    onError: (error: Error) => {
+      console.error('Failed to delete estimate:', error.message);
+    },
   });
 
   const dupMut = useMutation({
@@ -54,6 +57,9 @@ export function EstimateDetailView({ estimateId, onBack }: { estimateId: string;
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estimates'] });
       onBack();
+    },
+    onError: (error: Error) => {
+      console.error('Failed to duplicate estimate:', error.message);
     },
   });
 
@@ -64,11 +70,17 @@ export function EstimateDetailView({ estimateId, onBack }: { estimateId: string;
       queryClient.invalidateQueries({ queryKey: ['estimates'] });
       setEditingName(false);
     },
+    onError: (error: Error) => {
+      console.error('Failed to rename estimate:', error.message);
+    },
   });
 
   const recalcMut = useMutation({
     mutationFn: () => recalculateEstimate(estimateId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['estimate', estimateId] }),
+    onError: (error: Error) => {
+      console.error('Failed to recalculate estimate:', error.message);
+    },
   });
 
   const addItemsMut = useMutation({
@@ -78,11 +90,17 @@ export function EstimateDetailView({ estimateId, onBack }: { estimateId: string;
       queryClient.invalidateQueries({ queryKey: ['estimate', estimateId] });
       setShowAddItem(false);
     },
+    onError: (error: Error) => {
+      console.error('Failed to add estimate items:', error.message);
+    },
   });
 
   const deleteItemMut = useMutation({
     mutationFn: (itemId: string) => deleteEstimateItem(estimateId, itemId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['estimate', estimateId] }),
+    onError: (error: Error) => {
+      console.error('Failed to delete estimate item:', error.message);
+    },
   });
 
   if (isLoading || !estimate) {
@@ -228,6 +246,7 @@ export function EstimateDetailView({ estimateId, onBack }: { estimateId: string;
             </button>
             <button
               onClick={() => { if (confirm('Delete this estimate?')) deleteMut.mutate(); }}
+              aria-label="Delete estimate"
               className="flex items-center gap-1 px-3 py-1.5 text-xs border border-red-200 text-red-600 rounded-md hover:bg-red-50"
             >
               <Trash2 size={14} />

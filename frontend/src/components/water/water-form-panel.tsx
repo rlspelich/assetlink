@@ -120,7 +120,7 @@ export function WaterFormPanel({ mode, assetType, data, coordinates, lineCoordin
             {mode === 'add' ? `Add ${typeLabel}` : `Edit ${typeLabel}`}
           </div>
         </div>
-        <button type="button" onClick={onCancel} className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600">
+        <button type="button" onClick={onCancel} aria-label="Close" className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600">
           <X size={16} />
         </button>
       </div>

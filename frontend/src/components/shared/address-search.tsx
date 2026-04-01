@@ -96,6 +96,7 @@ export function AddressSearch({ onSelect, placeholder = 'Search address...', cla
       {query && (
         <button
           onClick={handleClear}
+          aria-label="Clear search"
           className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
         >
           <X size={12} />

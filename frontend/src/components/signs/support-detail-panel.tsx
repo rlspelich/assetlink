@@ -240,6 +240,7 @@ export const SupportDetailPanel = memo(function SupportDetailPanel({ supportId, 
             <button
               onClick={startEditing}
               title="Edit support"
+              aria-label="Edit support"
               className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-blue-600"
             >
               <Pencil size={16} />
@@ -249,6 +250,7 @@ export const SupportDetailPanel = memo(function SupportDetailPanel({ supportId, 
             <button
               onClick={() => setShowDeleteConfirm(true)}
               title="Delete support"
+              aria-label="Delete support"
               className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-red-600"
             >
               <Trash2 size={16} />
@@ -256,6 +258,7 @@ export const SupportDetailPanel = memo(function SupportDetailPanel({ supportId, 
           )}
           <button
             onClick={() => { setIsEditing(false); onClose(); }}
+            aria-label="Close"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600"
           >
             <X size={16} />
@@ -560,7 +563,7 @@ export const SupportDetailPanel = memo(function SupportDetailPanel({ supportId, 
                         style={{ backgroundColor: color.hex }}
                         onClick={() => onSignSelect(sign)}
                       />
-                      <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onSignSelect(sign)}>
+                      <div className="min-w-0 flex-1 cursor-pointer" role="button" tabIndex={0} onClick={() => onSignSelect(sign)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSignSelect(sign); }}>
                         <div className="flex items-center justify-between gap-1">
                           <span className="text-xs font-mono font-semibold text-gray-900 truncate">
                             {sign.mutcd_code || '—'}
@@ -577,6 +580,7 @@ export const SupportDetailPanel = memo(function SupportDetailPanel({ supportId, 
                         <button
                           onClick={(e) => { e.stopPropagation(); setConfirmRemoveSignId(sign.sign_id); }}
                           title="Remove sign from this support"
+                          aria-label="Remove sign from this support"
                           className="p-1 rounded hover:bg-gray-200 text-gray-300 hover:text-orange-600 shrink-0"
                         >
                           <Unlink size={12} />
