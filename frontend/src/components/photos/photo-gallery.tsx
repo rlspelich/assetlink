@@ -195,6 +195,7 @@ export function PhotoGallery({ entityType, entityId, compact = true }: PhotoGall
       {viewingPhoto && (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8"
+          role="presentation"
           onClick={() => setViewingPhoto(null)}
         >
           <button
