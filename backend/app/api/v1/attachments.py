@@ -7,6 +7,8 @@ Attachments are polymorphic: they can be linked to any entity type
 
 import uuid
 
+from typing import Union
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import func, select
@@ -47,7 +49,7 @@ async def upload_attachment(
     description: str = Form(None),
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> AttachmentOut:
     """Upload a file and attach it to an entity."""
     # Validate entity type
     if entity_type not in VALID_ENTITY_TYPES:
@@ -121,7 +123,7 @@ async def list_attachments(
     attachment_type: str | None = None,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> AttachmentListOut:
     """List attachments, optionally filtered by entity."""
     query = select(Attachment).where(Attachment.tenant_id == tenant_id)
 
@@ -155,7 +157,7 @@ async def get_attachment(
     attachment_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> Union[AttachmentOut, FileResponse]:
     """Get attachment metadata or serve the file (for local storage)."""
     result = await db.execute(
         select(Attachment).where(
@@ -188,7 +190,7 @@ async def delete_attachment(
     attachment_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete an attachment and its file."""
     result = await db.execute(
         select(Attachment).where(

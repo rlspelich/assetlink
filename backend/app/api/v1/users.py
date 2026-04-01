@@ -18,7 +18,7 @@ async def list_users(
     is_active: bool | None = Query(None, description="Filter by active status"),
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> UserListOut:
     """List users for current tenant, filterable by role and active status."""
     filters = [AppUser.tenant_id == tenant_id]
     if role is not None:
@@ -50,7 +50,7 @@ async def create_user(
     data: UserCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> UserOut:
     """Create a new user for the current tenant."""
     # Check email uniqueness within tenant
     existing = await db.execute(
@@ -100,7 +100,7 @@ async def get_user(
     user_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> UserOut:
     """Get a single user by ID."""
     result = await db.execute(
         select(AppUser).where(
@@ -120,7 +120,7 @@ async def update_user(
     data: UserUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> UserOut:
     """Update a user."""
     result = await db.execute(
         select(AppUser).where(
@@ -180,7 +180,7 @@ async def delete_user(
     user_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> UserOut:
     """Soft-delete a user (set is_active = false)."""
     result = await db.execute(
         select(AppUser).where(
@@ -206,7 +206,7 @@ async def reactivate_user(
     user_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> UserOut:
     """Reactivate a soft-deleted user."""
     result = await db.execute(
         select(AppUser).where(

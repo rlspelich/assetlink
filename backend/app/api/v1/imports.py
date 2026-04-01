@@ -18,7 +18,7 @@ async def import_signs_and_supports(
     supports_file: UploadFile = File(...),
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SignImportOut:
     """Import signs and supports from two separate CSV files.
 
     The supports file is processed first to create SignSupport records.

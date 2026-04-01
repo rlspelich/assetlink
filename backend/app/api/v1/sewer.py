@@ -303,7 +303,7 @@ async def list_manholes(
     status: str | None = None,
     system_type: str | None = None,
     manhole_type_code: str | None = None,
-):
+) -> ManholeListOut:
     """List manholes for the current tenant with optional filters."""
     # Subquery for pipe connection count per manhole
     pipe_count_subq = (
@@ -357,7 +357,7 @@ async def create_manhole(
     data: ManholeCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> ManholeOut:
     """Create a new manhole."""
     geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
 
@@ -436,7 +436,7 @@ async def get_manhole(
     manhole_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> ManholeOut:
     """Get a single manhole by ID, including pipe connections."""
     # Pipe connection count subquery
     pipe_count_subq = (
@@ -482,7 +482,7 @@ async def update_manhole(
     data: ManholeUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> ManholeOut:
     """Update a manhole."""
     result = await db.execute(
         select(Manhole).where(
@@ -533,7 +533,7 @@ async def delete_manhole(
     manhole_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a manhole."""
     result = await db.execute(
         select(Manhole).where(
@@ -578,7 +578,7 @@ async def list_sewer_mains(
     status: str | None = None,
     system_type: str | None = None,
     material_code: str | None = None,
-):
+) -> SewerMainListOut:
     """List sewer mains for the current tenant with optional filters."""
     query = select(SewerMain).where(SewerMain.tenant_id == tenant_id)
 
@@ -614,7 +614,7 @@ async def create_sewer_main(
     data: SewerMainCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SewerMainOut:
     """Create a new sewer main with LineString geometry."""
     from geoalchemy2.elements import WKTElement
 
@@ -668,7 +668,7 @@ async def get_sewer_main(
     sewer_main_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SewerMainOut:
     """Get a single sewer main by ID."""
     result = await db.execute(
         select(SewerMain).where(
@@ -688,7 +688,7 @@ async def update_sewer_main(
     data: SewerMainUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SewerMainOut:
     """Update a sewer main."""
     result = await db.execute(
         select(SewerMain).where(
@@ -729,7 +729,7 @@ async def delete_sewer_main(
     sewer_main_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a sewer main."""
     result = await db.execute(
         select(SewerMain).where(
@@ -756,7 +756,7 @@ async def list_force_mains(
     page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
     status: str | None = None,
     material_code: str | None = None,
-):
+) -> ForceMainListOut:
     """List force mains for the current tenant with optional filters."""
     query = select(ForceMain).where(ForceMain.tenant_id == tenant_id)
 
@@ -790,7 +790,7 @@ async def create_force_main(
     data: ForceMainCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> ForceMainOut:
     """Create a new force main with LineString geometry."""
     from geoalchemy2.elements import WKTElement
 
@@ -831,7 +831,7 @@ async def get_force_main(
     force_main_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> ForceMainOut:
     """Get a single force main by ID."""
     result = await db.execute(
         select(ForceMain).where(
@@ -851,7 +851,7 @@ async def update_force_main(
     data: ForceMainUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> ForceMainOut:
     """Update a force main."""
     result = await db.execute(
         select(ForceMain).where(
@@ -892,7 +892,7 @@ async def delete_force_main(
     force_main_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a force main."""
     result = await db.execute(
         select(ForceMain).where(
@@ -920,7 +920,7 @@ async def list_lift_stations(
     status: str | None = None,
     has_scada: bool | None = None,
     has_backup_power: bool | None = None,
-):
+) -> LiftStationListOut:
     """List lift stations for the current tenant with optional filters."""
     # Subquery for force main count per lift station
     fm_count_subq = (
@@ -976,7 +976,7 @@ async def create_lift_station(
     data: LiftStationCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> LiftStationOut:
     """Create a new lift station."""
     geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
 
@@ -1055,7 +1055,7 @@ async def get_lift_station(
     lift_station_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> LiftStationOut:
     """Get a single lift station by ID."""
     fm_count_subq = (
         select(func.count(ForceMain.force_main_id).label("fm_count"))
@@ -1090,7 +1090,7 @@ async def update_lift_station(
     data: LiftStationUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> LiftStationOut:
     """Update a lift station."""
     result = await db.execute(
         select(LiftStation).where(
@@ -1145,7 +1145,7 @@ async def delete_lift_station(
     lift_station_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a lift station. Fails with 409 if force mains are still connected."""
     result = await db.execute(
         select(LiftStation).where(
@@ -1190,7 +1190,7 @@ async def list_sewer_laterals(
     page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
     status: str | None = None,
     service_type: str | None = None,
-):
+) -> SewerLateralListOut:
     """List sewer laterals for the current tenant with optional filters."""
     query = select(SewerLateral).where(SewerLateral.tenant_id == tenant_id)
 
@@ -1221,7 +1221,7 @@ async def create_sewer_lateral(
     data: SewerLateralCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SewerLateralOut:
     """Create a new sewer lateral with Point or LineString geometry.
 
     Provide either longitude+latitude (Point) or coordinates (LineString), not both.
@@ -1301,7 +1301,7 @@ async def get_sewer_lateral(
     sewer_lateral_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SewerLateralOut:
     """Get a single sewer lateral by ID."""
     result = await db.execute(
         select(SewerLateral).where(
@@ -1322,7 +1322,7 @@ async def update_sewer_lateral(
     data: SewerLateralUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SewerLateralOut:
     """Update a sewer lateral."""
     result = await db.execute(
         select(SewerLateral).where(
@@ -1384,7 +1384,7 @@ async def delete_sewer_lateral(
     sewer_lateral_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a sewer lateral."""
     result = await db.execute(
         select(SewerLateral).where(
@@ -1411,7 +1411,7 @@ async def delete_sewer_lateral(
 )
 async def list_sewer_material_types(
     db: AsyncSession = Depends(get_db),
-):
+) -> list[SewerMaterialTypeOut]:
     """List all active sewer material types. Not tenant-specific."""
     query = (
         select(SewerMaterialType)
@@ -1429,7 +1429,7 @@ async def list_sewer_material_types(
 )
 async def list_sewer_pipe_shapes(
     db: AsyncSession = Depends(get_db),
-):
+) -> list[SewerPipeShapeOut]:
     """List all active sewer pipe shapes. Not tenant-specific."""
     query = (
         select(SewerPipeShape)
@@ -1447,7 +1447,7 @@ async def list_sewer_pipe_shapes(
 )
 async def list_manhole_types(
     db: AsyncSession = Depends(get_db),
-):
+) -> list[ManholeTypeOut]:
     """List all active manhole types. Not tenant-specific."""
     query = (
         select(ManholeType)

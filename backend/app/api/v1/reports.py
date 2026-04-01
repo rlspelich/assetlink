@@ -87,7 +87,7 @@ async def get_work_order_report(
     work_type: str | None = Query(default=None, description="Filter by work type"),
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WorkOrderReportOut:
     """Work order KPI report with breakdowns by priority, type, status, month, and assignee."""
     today = date.today()
     if end_date is None:
@@ -304,7 +304,7 @@ async def get_inspection_report(
     inspection_type: str | None = Query(default=None, description="Filter by inspection type"),
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> InspectionReportOut:
     """Inspection KPI report with condition findings, retro results, and inspector productivity."""
     today = date.today()
     if end_date is None:
@@ -495,7 +495,7 @@ async def get_inventory_report(
     as_of_date: date | None = Query(default=None, description="Snapshot date (default: today)"),
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> InventoryReportOut:
     """Inventory snapshot report with condition, compliance, and replacement forecast."""
     today = date.today()
     if as_of_date is None:
@@ -704,7 +704,7 @@ async def get_crew_productivity_report(
     end_date: date | None = Query(default=None, description="End of date range (default: today)"),
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> CrewProductivityReportOut:
     """Crew productivity report — per-member work order and inspection stats."""
     today = date.today()
     if end_date is None:

@@ -80,7 +80,7 @@ async def email_work_order(
     body: EmailRequest,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> EmailResponse:
     """Send a work order via email. Returns preview HTML when SMTP is not configured."""
     result = await db.execute(
         select(WorkOrder)
@@ -119,7 +119,7 @@ async def email_inspection(
     body: EmailRequest,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> EmailResponse:
     """Send an inspection via email. Returns preview HTML when SMTP is not configured."""
     result = await db.execute(
         select(Inspection)

@@ -611,7 +611,7 @@ async def list_water_mains(
     status: str | None = None,
     material_code: str | None = None,
     pressure_zone_id: uuid.UUID | None = None,
-):
+) -> WaterMainListOut:
     """List water mains for the current tenant with optional filters."""
     query = select(WaterMain).where(WaterMain.tenant_id == tenant_id)
 
@@ -647,7 +647,7 @@ async def create_water_main(
     data: WaterMainCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WaterMainOut:
     """Create a new water main."""
     if len(data.coordinates) < 2:
         raise HTTPException(
@@ -701,7 +701,7 @@ async def get_water_main(
     water_main_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WaterMainOut:
     """Get a single water main by ID."""
     result = await db.execute(
         select(WaterMain).where(
@@ -722,7 +722,7 @@ async def update_water_main(
     data: WaterMainUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WaterMainOut:
     """Update a water main."""
     result = await db.execute(
         select(WaterMain).where(
@@ -768,7 +768,7 @@ async def delete_water_main(
     water_main_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a water main."""
     result = await db.execute(
         select(WaterMain).where(
@@ -797,7 +797,7 @@ async def list_water_valves(
     status: str | None = None,
     valve_type_code: str | None = None,
     is_critical: bool | None = None,
-):
+) -> WaterValveListOut:
     """List water valves for the current tenant with optional filters."""
     query = select(
         WaterValve,
@@ -836,7 +836,7 @@ async def create_water_valve(
     data: WaterValveCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WaterValveOut:
     """Create a new water valve."""
     geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
 
@@ -880,7 +880,7 @@ async def get_water_valve(
     water_valve_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WaterValveOut:
     """Get a single water valve by ID."""
     query = select(
         WaterValve,
@@ -907,7 +907,7 @@ async def update_water_valve(
     data: WaterValveUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WaterValveOut:
     """Update a water valve."""
     result = await db.execute(
         select(WaterValve).where(
@@ -952,7 +952,7 @@ async def delete_water_valve(
     water_valve_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a water valve."""
     result = await db.execute(
         select(WaterValve).where(
@@ -980,7 +980,7 @@ async def list_hydrants(
     page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
     status: str | None = None,
     flow_class_color: str | None = None,
-):
+) -> FireHydrantListOut:
     """List fire hydrants for the current tenant with optional filters."""
     query = select(
         FireHydrant,
@@ -1017,7 +1017,7 @@ async def create_hydrant(
     data: FireHydrantCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> FireHydrantOut:
     """Create a new fire hydrant."""
     geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
 
@@ -1064,7 +1064,7 @@ async def get_hydrant(
     hydrant_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> FireHydrantOut:
     """Get a single fire hydrant by ID."""
     query = select(
         FireHydrant,
@@ -1089,7 +1089,7 @@ async def update_hydrant(
     data: FireHydrantUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> FireHydrantOut:
     """Update a fire hydrant."""
     result = await db.execute(
         select(FireHydrant).where(
@@ -1134,7 +1134,7 @@ async def delete_hydrant(
     hydrant_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a fire hydrant."""
     result = await db.execute(
         select(FireHydrant).where(
@@ -1160,7 +1160,7 @@ async def list_pressure_zones(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
-):
+) -> PressureZoneListOut:
     """List pressure zones for the current tenant."""
     query = select(PressureZone).where(PressureZone.tenant_id == tenant_id)
 
@@ -1191,7 +1191,7 @@ async def create_pressure_zone(
     data: PressureZoneCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> PressureZoneOut:
     """Create a new pressure zone."""
     geom = None
     if data.coordinates:
@@ -1228,7 +1228,7 @@ async def get_pressure_zone(
     pressure_zone_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> PressureZoneOut:
     """Get a single pressure zone by ID."""
     result = await db.execute(
         select(PressureZone).where(
@@ -1255,7 +1255,7 @@ async def get_pressure_zone(
 )
 async def list_water_material_types(
     db: AsyncSession = Depends(get_db),
-):
+) -> list[WaterMaterialTypeOut]:
     """List all active water material types. Not tenant-specific."""
     query = (
         select(WaterMaterialType)
@@ -1273,7 +1273,7 @@ async def list_water_material_types(
 )
 async def list_water_valve_types(
     db: AsyncSession = Depends(get_db),
-):
+) -> list[WaterValveTypeOut]:
     """List all active water valve types. Not tenant-specific."""
     query = (
         select(WaterValveType)

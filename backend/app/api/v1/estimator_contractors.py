@@ -78,7 +78,7 @@ async def get_contractor_profile(
     db: AsyncSession = Depends(get_db),
     min_date: str | None = None,
     max_date: str | None = None,
-):
+) -> ContractorProfileOut:
     """Full contractor profile with aggregated statistics. Optional date range filter."""
     contractor = await _get_contractor(db, contractor_pk)
 
@@ -182,7 +182,7 @@ async def get_bidding_history(
     county: str | None = None,
     district: str | None = None,
     wins_only: bool = False,
-):
+) -> BiddingHistoryOut:
     """Paginated bidding history for a contractor."""
     await _get_contractor(db, contractor_pk)
 
@@ -266,7 +266,7 @@ async def get_geographic_footprint(
     db: AsyncSession = Depends(get_db),
     min_date: str | None = None,
     max_date: str | None = None,
-):
+) -> GeoFootprintOut:
     """Bid and win counts by county and district."""
     await _get_contractor(db, contractor_pk)
 
@@ -319,7 +319,7 @@ async def get_activity_trend(
     db: AsyncSession = Depends(get_db),
     min_date: str | None = None,
     max_date: str | None = None,
-):
+) -> ActivityTrendOut:
     """Bidding volume by year."""
     await _get_contractor(db, contractor_pk)
 
@@ -368,7 +368,7 @@ async def get_price_tendencies(
     db: AsyncSession = Depends(get_db),
     min_date: str | None = None,
     limit: int = Query(30, ge=1, le=100),
-):
+) -> PriceTendencyOut:
     """Average prices by division compared to overall market average."""
     contractor = await _get_contractor(db, contractor_pk)
 
@@ -461,7 +461,7 @@ async def get_competitors(
     contractor_pk: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     limit: int = Query(50, ge=1, le=200),
-):
+) -> list[dict]:
     """Get contractors who have competed against this contractor, ranked by frequency."""
     await _get_contractor(db, contractor_pk)
 
@@ -504,7 +504,7 @@ async def get_head_to_head(
     min_date: str | None = None,
     max_date: str | None = None,
     county: str | None = None,
-):
+) -> HeadToHeadSummary:
     """Side-by-side comparison of two contractors on shared contracts."""
     ca = await _get_contractor(db, contractor_a)
     cb = await _get_contractor(db, contractor_b)
@@ -624,7 +624,7 @@ async def get_head_to_head_items(
     page_size: int = Query(50, ge=1, le=200),
     min_date: str | None = None,
     division: str | None = None,
-):
+) -> HeadToHeadItemsOut:
     """Item-level price comparison across shared contracts."""
     ca = await _get_contractor(db, contractor_a)
     cb = await _get_contractor(db, contractor_b)
@@ -748,7 +748,7 @@ async def get_head_to_head_items(
 async def get_bid_tab(
     contract_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-):
+) -> BidTabOut:
     """Full bid tabulation: every bidder, every line item."""
     # Get contract
     result = await db.execute(
@@ -852,7 +852,7 @@ async def get_category_breakdown(
     contract_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     bid_id: uuid.UUID | None = None,
-):
+) -> CategoryBreakdownOut:
     """Category breakdown of a bid by pay item division. Defaults to low bid."""
     # Get contract
     result = await db.execute(
@@ -932,7 +932,7 @@ async def get_market_analysis(
     min_project_size: float | None = None,
     max_project_size: float | None = None,
     limit: int = Query(50, ge=1, le=200),
-):
+) -> MarketAnalysisOut:
     """
     Market analysis: who are the players in a given geography/time range?
 
@@ -1067,7 +1067,7 @@ async def get_market_analysis(
 async def get_letting_dates(
     db: AsyncSession = Depends(get_db),
     limit: int = Query(100, ge=1, le=500),
-):
+) -> list[dict]:
     """Get distinct letting dates for the letting report picker."""
     result = await db.execute(
         select(
@@ -1090,7 +1090,7 @@ async def get_letting_report(
     db: AsyncSession = Depends(get_db),
     county: str | None = None,
     district: str | None = None,
-):
+) -> LettingReportOut:
     """
     Letting report: all contracts and bidders for a specific letting date.
 
@@ -1199,7 +1199,7 @@ async def search_pay_item_occurrences(
     low_bids_only: bool = False,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-):
+) -> PayItemSearchOut:
     """
     Search every occurrence of a pay item across all bids.
 
@@ -1367,7 +1367,7 @@ async def get_contractor_vs_market(
     district: str | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-):
+) -> dict:
     """
     Compare a contractor's average prices to the market average (all other bidders).
 

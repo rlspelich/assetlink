@@ -57,7 +57,7 @@ async def list_supports(
     page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
     status: str | None = None,
     support_type: str | None = None,
-):
+) -> SignSupportListOut:
     """List sign supports for the current tenant with optional filters."""
     # Subquery for sign count per support
     sign_count_subq = (
@@ -109,7 +109,7 @@ async def create_support(
     data: SignSupportCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SignSupportOut:
     """Create a new sign support."""
     geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
 
@@ -151,7 +151,7 @@ async def get_support(
     support_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SignSupportDetailOut:
     """Get a single sign support by ID, including all attached signs."""
     # Fetch support with coordinates
     query = select(
@@ -204,7 +204,7 @@ async def update_support(
     data: SignSupportUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SignSupportOut:
     """Update a sign support."""
     result = await db.execute(
         select(SignSupport).where(
@@ -255,7 +255,7 @@ async def delete_support(
     support_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a sign support. Fails with 409 if signs are still attached."""
     result = await db.execute(
         select(SignSupport).where(
@@ -290,7 +290,7 @@ async def list_support_signs(
     support_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> list[SignOut]:
     """List all signs attached to a specific support."""
     # Verify support exists and belongs to tenant
     support_result = await db.execute(
@@ -320,7 +320,7 @@ async def list_support_work_orders(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
-):
+) -> WorkOrderListOut:
     """List work orders linked to a specific support via the junction table."""
     # Verify support exists and belongs to tenant
     support_result = await db.execute(
@@ -368,7 +368,7 @@ async def list_support_inspections(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
-):
+) -> InspectionListOut:
     """List inspections linked to a specific support via the junction table."""
     # Verify support exists and belongs to tenant
     support_result = await db.execute(
@@ -414,7 +414,7 @@ async def import_supports_csv(
     file: UploadFile = File(...),
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SignImportOut:
     """Import sign supports from a CSV file. Returns per-row results.
 
     Supports files up to 50 MB. Rows are processed in batches of 500.

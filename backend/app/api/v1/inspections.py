@@ -281,7 +281,7 @@ async def list_inspections(
     status: str | None = None,
     follow_up_required: bool | None = None,
     inspector_id: uuid.UUID | None = None,
-):
+) -> InspectionListOut:
     base_query = select(Inspection).where(Inspection.tenant_id == tenant_id)
 
     if asset_type:
@@ -356,7 +356,7 @@ async def create_inspection(
     data: InspectionCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> InspectionOut:
     geom = None
     if data.longitude is not None and data.latitude is not None:
         geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
@@ -522,7 +522,7 @@ async def get_inspection(
     inspection_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> InspectionOut:
     result = await db.execute(
         select(
             Inspection,
@@ -560,7 +560,7 @@ async def update_inspection(
     data: InspectionUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> InspectionOut:
     result = await db.execute(
         select(Inspection)
         .options(selectinload(Inspection.assets))
@@ -656,7 +656,7 @@ async def delete_inspection(
     inspection_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete an inspection with all linked assets."""
     result = await db.execute(
         select(Inspection).where(
@@ -676,7 +676,7 @@ async def create_work_order_from_inspection(
     inspection_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WorkOrderOut:
     """
     Create a work order pre-filled from an inspection.
 

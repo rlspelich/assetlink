@@ -216,7 +216,7 @@ async def list_work_orders(
     work_type: str | None = None,
     assigned_to: uuid.UUID | None = None,
     asset_type: str | None = None,
-):
+) -> WorkOrderListOut:
     base_query = select(WorkOrder).where(WorkOrder.tenant_id == tenant_id)
 
     if status:
@@ -291,7 +291,7 @@ async def create_work_order(
     data: WorkOrderCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WorkOrderOut:
     geom = None
     if data.longitude is not None and data.latitude is not None:
         geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
@@ -445,7 +445,7 @@ async def get_work_order(
     work_order_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WorkOrderOut:
     result = await db.execute(
         select(
             WorkOrder,
@@ -483,7 +483,7 @@ async def update_work_order(
     data: WorkOrderUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WorkOrderOut:
     result = await db.execute(
         select(WorkOrder)
         .options(selectinload(WorkOrder.assets))
@@ -576,7 +576,7 @@ async def update_work_order_asset(
     data: WorkOrderAssetUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> WorkOrderAssetOut:
     """Update per-asset fields on a work order asset (damage_notes, action_required, resolution, status)."""
     result = await db.execute(
         select(WorkOrderAsset).where(
@@ -606,7 +606,7 @@ async def delete_work_order(
     work_order_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a work order with all linked assets."""
     result = await db.execute(
         select(WorkOrder).where(

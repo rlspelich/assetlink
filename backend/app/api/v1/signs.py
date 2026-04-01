@@ -90,7 +90,7 @@ async def list_signs(
     road_name: str | None = None,
     mutcd_code: str | None = None,
     sign_category: str | None = None,
-):
+) -> SignListOut:
     """List signs for the current tenant with optional filters."""
     query = (
         select(
@@ -136,7 +136,7 @@ async def import_signs_csv(
     file: UploadFile = File(...),
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SignImportOut:
     """Import signs from a CSV file. Returns per-row results.
 
     Supports files up to 50 MB and 20,000+ rows. Rows are processed in batches
@@ -184,7 +184,7 @@ async def create_sign(
     data: SignCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SignOut:
     """Create a new sign."""
     longitude = data.longitude
     latitude = data.latitude
@@ -272,7 +272,7 @@ async def get_sign(
     sign_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SignOut:
     """Get a single sign by ID."""
     query = (
         select(
@@ -300,7 +300,7 @@ async def update_sign(
     data: SignUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> SignOut:
     """Update a sign."""
     result = await db.execute(
         select(Sign).where(Sign.sign_id == sign_id, Sign.tenant_id == tenant_id)
@@ -348,7 +348,7 @@ async def delete_sign(
     sign_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete a sign."""
     result = await db.execute(
         select(Sign).where(Sign.sign_id == sign_id, Sign.tenant_id == tenant_id)
@@ -370,7 +370,7 @@ async def list_sign_work_orders(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
-):
+) -> WorkOrderListOut:
     """List work orders linked to a specific sign via the junction table, ordered by created_at desc."""
     # Verify the sign exists and belongs to this tenant
     sign_result = await db.execute(
@@ -462,7 +462,7 @@ async def list_sign_inspections(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
     page_size: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
-):
+) -> InspectionListOut:
     """List inspections linked to a specific sign via the junction table."""
     # Verify the sign exists and belongs to this tenant
     sign_result = await db.execute(
@@ -551,7 +551,7 @@ async def list_sign_inspections(
 async def list_sign_types(
     db: AsyncSession = Depends(get_db),
     category: str | None = None,
-):
+) -> list[SignTypeOut]:
     """List all MUTCD sign types. Not tenant-specific."""
     query = select(SignType).where(SignType.is_active == True)
     if category:

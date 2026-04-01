@@ -43,7 +43,7 @@ AGE_BUCKETS = [
 async def get_compliance_dashboard(
     tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> ComplianceDashboardOut:
     """
     Return pre-computed compliance dashboard statistics for the current tenant.
 
