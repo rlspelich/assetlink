@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { ChevronLeft, ChevronRight, User } from 'lucide-react';
 import type { WorkOrder } from '../../api/types';
 import { useUsersList } from '../../hooks/use-users';
@@ -26,7 +26,7 @@ interface WorkOrderListPanelProps {
 
 import { formatShortDate as formatDate } from '../../lib/format-utils';
 
-export function WorkOrderListPanel({
+export const WorkOrderListPanel = memo(function WorkOrderListPanel({
   workOrders,
   isLoading,
   selectedWOId,
@@ -140,4 +140,4 @@ export function WorkOrderListPanel({
       )}
     </div>
   );
-}
+});

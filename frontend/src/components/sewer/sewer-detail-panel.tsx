@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   X, MapPin, Calendar, Wrench, Pencil, Trash2, Loader2,
   ClipboardCheck, Gauge, Waves, Droplets, Zap, Info, ArrowDown,
@@ -91,7 +91,7 @@ function BooleanField({ label, value }: { label: string; value: boolean | null |
   );
 }
 
-export function SewerDetailPanel({ assetType, data, onClose, onEdit, onDelete, isDeleting, onCreateWorkOrder, onInspect }: SewerDetailPanelProps) {
+export const SewerDetailPanel = memo(function SewerDetailPanel({ assetType, data, onClose, onEdit, onDelete, isDeleting, onCreateWorkOrder, onInspect }: SewerDetailPanelProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const typeLabel = assetType === 'manholes' ? 'Manhole'
@@ -191,7 +191,7 @@ export function SewerDetailPanel({ assetType, data, onClose, onEdit, onDelete, i
       </div>
     </div>
   );
-}
+});
 
 // --- Helpers to get common fields across types ---
 

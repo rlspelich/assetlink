@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { ChevronLeft, ChevronRight, AlertCircle, User } from 'lucide-react';
 import type { Inspection } from '../../api/types';
 import { useUsersList } from '../../hooks/use-users';
@@ -27,7 +27,7 @@ interface InspectionListPanelProps {
 
 import { formatShortDate as formatDate } from '../../lib/format-utils';
 
-export function InspectionListPanel({
+export const InspectionListPanel = memo(function InspectionListPanel({
   inspections,
   isLoading,
   selectedInspId,
@@ -165,4 +165,4 @@ export function InspectionListPanel({
       )}
     </div>
   );
-}
+});

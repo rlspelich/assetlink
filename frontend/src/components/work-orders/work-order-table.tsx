@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, memo } from 'react';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { WorkOrder } from '../../api/types';
 import {
@@ -36,7 +36,7 @@ const STATUS_ORDER: Record<string, number> = {
   cancelled: 5,
 };
 
-export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrderTableProps) {
+export const WorkOrderTable = memo(function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrderTableProps) {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(0);
@@ -243,4 +243,4 @@ export function WorkOrderTable({ workOrders, selectedWOId, onWOSelect }: WorkOrd
       )}
     </div>
   );
-}
+});

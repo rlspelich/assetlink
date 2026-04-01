@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X, ClipboardCheck, Calendar, Eye, Signpost, Landmark, Wrench,
@@ -69,7 +69,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function InspectionDetailPanel({
+export const InspectionDetailPanel = memo(function InspectionDetailPanel({
   inspection,
   onClose,
   onEdit,
@@ -370,4 +370,4 @@ export function InspectionDetailPanel({
       />
     </div>
   );
-}
+});

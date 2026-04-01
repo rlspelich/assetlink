@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import {
   X, MapPin, Calendar, Wrench, Pencil, Trash2, Loader2,
   ClipboardCheck, Gauge, Droplets, Info, Thermometer, Zap,
@@ -82,7 +82,7 @@ function BooleanField({ label, value }: { label: string; value: boolean | null |
   );
 }
 
-export function WaterDetailPanel({ assetType, data, onClose, onEdit, onDelete, isDeleting, onCreateWorkOrder, onInspect }: WaterDetailPanelProps) {
+export const WaterDetailPanel = memo(function WaterDetailPanel({ assetType, data, onClose, onEdit, onDelete, isDeleting, onCreateWorkOrder, onInspect }: WaterDetailPanelProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const typeLabel = assetType === 'mains' ? 'Water Main'
@@ -183,7 +183,7 @@ export function WaterDetailPanel({ assetType, data, onClose, onEdit, onDelete, i
       </div>
     </div>
   );
-}
+});
 
 // --- Helpers ---
 

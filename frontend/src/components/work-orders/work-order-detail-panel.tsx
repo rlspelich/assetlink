@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { X, Pencil, Trash2, Loader2, Wrench, MapPin, Calendar, DollarSign, FileText, Signpost, Landmark, ChevronDown, ChevronUp, Printer, Mail, User } from 'lucide-react';
 import type { WorkOrder, WorkOrderAsset, WorkOrderAssetUpdate } from '../../api/types';
 import { PhotoGallery } from '../photos/photo-gallery';
@@ -191,7 +191,7 @@ function AssetCard({
   );
 }
 
-export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isDeleting }: WorkOrderDetailPanelProps) {
+export const WorkOrderDetailPanel = memo(function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isDeleting }: WorkOrderDetailPanelProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const statusOpt = getWoStatusOption(workOrder.status);
@@ -429,4 +429,4 @@ export function WorkOrderDetailPanel({ workOrder, onClose, onEdit, onDelete, isD
       />
     </div>
   );
-}
+});

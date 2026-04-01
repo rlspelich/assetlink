@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { X, Landmark, MapPin, Calendar, Trash2, Loader2, ClipboardCheck, Plus, Unlink, Pencil, Save, XCircle } from 'lucide-react';
 import { useSupport, useDeleteSupport, useUpdateSupport } from '../../hooks/use-supports';
 import type { Sign } from '../../api/types';
@@ -90,7 +90,7 @@ function getSignColor(sign: Sign) {
   return UNRATED_COLOR;
 }
 
-export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSelect, onCreateWorkOrder, onInspect, onAddSignToSupport, onRemoveSignFromSupport, onArchiveSupport, onArchiveSupportAndSigns, onDeleteSupportAndSigns }: SupportDetailPanelProps) {
+export const SupportDetailPanel = memo(function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSelect, onCreateWorkOrder, onInspect, onAddSignToSupport, onRemoveSignFromSupport, onArchiveSupport, onArchiveSupportAndSigns, onDeleteSupportAndSigns }: SupportDetailPanelProps) {
   const { data: support, isLoading } = useSupport(supportId);
   const deleteSupport = useDeleteSupport();
   const updateSupport = useUpdateSupport();
@@ -624,4 +624,4 @@ export function SupportDetailPanel({ supportId, clickedSignId, onClose, onSignSe
       </div>
     </div>
   );
-}
+});

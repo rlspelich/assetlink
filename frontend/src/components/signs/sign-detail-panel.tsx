@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, MapPin, Ruler, Calendar, Shield, Wrench, Eye, Pencil, Trash2, Loader2, Landmark, ChevronLeft, ClipboardCheck } from 'lucide-react';
 import type { Sign } from '../../api/types';
@@ -82,7 +82,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function SignDetailPanel({ sign, onClose, onEdit, onDelete, onArchive, isDeleting, isArchiving, onBackToSupport, onCreateWorkOrder, onInspect }: SignDetailPanelProps) {
+export const SignDetailPanel = memo(function SignDetailPanel({ sign, onClose, onEdit, onDelete, onArchive, isDeleting, isArchiving, onBackToSupport, onCreateWorkOrder, onInspect }: SignDetailPanelProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const navigate = useNavigate();
   const { data: woData } = useSignWorkOrders(sign.sign_id);
@@ -454,4 +454,4 @@ export function SignDetailPanel({ sign, onClose, onEdit, onDelete, onArchive, is
       </div>
     </div>
   );
-}
+});

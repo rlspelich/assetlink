@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, memo } from 'react';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import type { Inspection } from '../../api/types';
 import {
@@ -27,7 +27,7 @@ const STATUS_ORDER: Record<string, number> = {
   cancelled: 3,
 };
 
-export function InspectionTable({ inspections, selectedInspId, onInspSelect }: InspectionTableProps) {
+export const InspectionTable = memo(function InspectionTable({ inspections, selectedInspId, onInspSelect }: InspectionTableProps) {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(0);
@@ -238,4 +238,4 @@ export function InspectionTable({ inspections, selectedInspId, onInspSelect }: I
       )}
     </div>
   );
-}
+});
