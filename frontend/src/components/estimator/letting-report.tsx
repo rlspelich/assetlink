@@ -10,11 +10,12 @@ import {
 } from '../../api/estimator';
 import { downloadCSV, downloadTXT, exportCurrency } from '../../utils/export';
 import { LoadingSpinner, ErrorState, EmptyState } from '../ui/states';
+import type { EstimatorNavParams } from '../../routes/estimator-page';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params: any) => void }) {
+export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params: EstimatorNavParams) => void }) {
   const [selectedDate, setSelectedDate] = useState('');
   const [county, setCounty] = useState('');
   const [district, setDistrict] = useState('');
@@ -234,7 +235,7 @@ export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params
   );
 }
 
-function ContractCard({ contract, navigateTo }: { contract: LettingContract; navigateTo: (tab: string, params: any) => void }) {
+function ContractCard({ contract, navigateTo }: { contract: LettingContract; navigateTo: (tab: string, params: EstimatorNavParams) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -294,14 +295,14 @@ function ContractCard({ contract, navigateTo }: { contract: LettingContract; nav
   );
 }
 
-function BidderRow({ bidder, navigateTo }: { bidder: LettingBidder; navigateTo: (tab: string, params: any) => void }) {
+function BidderRow({ bidder, navigateTo }: { bidder: LettingBidder; navigateTo: (tab: string, params: EstimatorNavParams) => void }) {
   return (
     <tr className={`hover:bg-gray-50 ${bidder.is_low ? 'bg-green-50' : ''}`}>
       <td className="px-3 py-2 text-center text-gray-600">{bidder.rank}</td>
       <td className="px-3 py-2 font-medium">
         {bidder.contractor_pk ? (
           <button
-            onClick={() => navigateTo('contractors', { contractorPk: bidder.contractor_pk })}
+            onClick={() => navigateTo('contractors', { contractorPk: bidder.contractor_pk! })}
             className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
           >
             {bidder.contractor_name}

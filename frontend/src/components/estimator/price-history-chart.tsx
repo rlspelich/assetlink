@@ -29,7 +29,7 @@ export function PriceHistoryChart({ dataPoints, stats, unit }: Props) {
     quantity: Number(p.quantity),
   })).filter((d) => !isNaN(d.y) && d.y > 0);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { x: number; y: number; date: string; contract: string; county: string; district: string; quantity: number } }> }) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
     return (

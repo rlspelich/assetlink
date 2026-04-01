@@ -9,11 +9,12 @@ import {
 } from '../../api/estimator';
 import { downloadCSV, exportCurrency } from '../../utils/export';
 import { LoadingSpinner, ErrorState } from '../ui/states';
+import type { EstimatorNavParams } from '../../routes/estimator-page';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-export function BidTabView({ navParams, navigateTo }: { navParams: any; navigateTo?: (tab: string, params: any) => void }) {
+export function BidTabView({ navParams, navigateTo }: { navParams: EstimatorNavParams; navigateTo?: (tab: string, params: EstimatorNavParams) => void }) {
   const [selectedContractId, setSelectedContractId] = useState<string | null>(navParams?.contractId || null);
   const [cameFromTab, setCameFromTab] = useState<string | null>(navParams?.sourceTab || null);
 
@@ -310,7 +311,7 @@ const TAB_LABELS: Record<string, string> = {
   'pi-detail': 'Bid Price Search',
 };
 
-function BidTabDetail({ contractId, onBack, navigateTo, cameFromTab }: { contractId: string; onBack: () => void; navigateTo?: (tab: string, params: any) => void; cameFromTab?: string | null }) {
+function BidTabDetail({ contractId, onBack, navigateTo, cameFromTab }: { contractId: string; onBack: () => void; navigateTo?: (tab: string, params: EstimatorNavParams) => void; cameFromTab?: string | null }) {
   const { data: bidTab, isLoading, isError, refetch } = useQuery({
     queryKey: ['bidTab', contractId],
     queryFn: () => getBidTab(contractId),

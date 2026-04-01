@@ -12,12 +12,13 @@ import {
 } from '../../api/estimator';
 import { downloadCSV, exportCurrency } from '../../utils/export';
 import { LoadingSpinner, ErrorState, EmptyState } from '../ui/states';
+import type { EstimatorNavParams } from '../../routes/estimator-page';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
 export function PayItemDetailSearch({ navigateTo, navParams }: {
-  navigateTo?: (tab: string, params: any) => void;
-  navParams?: any;
+  navigateTo?: (tab: string, params: EstimatorNavParams) => void;
+  navParams?: EstimatorNavParams;
 }) {
   const [code, setCode] = useState(navParams?.payItemCode || '');
   const [description, setDescription] = useState('');
@@ -273,9 +274,8 @@ export function PayItemDetailSearch({ navigateTo, navParams }: {
                   tickFormatter={(v: number) => `$${v.toLocaleString()}`}
                   name="Unit Price"
                 />
-                { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
                 <Tooltip
-                  formatter={(value: any, name: any) => {
+                  formatter={(value: number | string | ReadonlyArray<number | string> | undefined, name: string | number | undefined) => {
                     const v = Number(value);
                     if (name === 'Date') return new Date(v).toLocaleDateString();
                     return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -517,7 +517,7 @@ function TypeAheadField({
 }
 
 
-function OccurrenceRow({ item, navigateTo }: { item: PayItemOccurrence; navigateTo?: (tab: string, params: any) => void }) {
+function OccurrenceRow({ item, navigateTo }: { item: PayItemOccurrence; navigateTo?: (tab: string, params: EstimatorNavParams) => void }) {
   return (
     <tr className="hover:bg-gray-50">
       <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{item.letting_date}</td>

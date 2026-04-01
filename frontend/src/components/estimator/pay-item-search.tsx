@@ -9,6 +9,8 @@ interface Props {
   selectedCode?: string;
 }
 
+let _payItemSearchTimer: ReturnType<typeof setTimeout>;
+
 export function PayItemSearch({ onSelect, selectedCode }: Props) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -18,8 +20,8 @@ export function PayItemSearch({ onSelect, selectedCode }: Props) {
   const handleSearch = (value: string) => {
     setSearch(value);
     setPage(1);
-    clearTimeout((window as any).__payItemSearchTimer);
-    (window as any).__payItemSearchTimer = setTimeout(() => setDebouncedSearch(value), 300);
+    clearTimeout(_payItemSearchTimer);
+    _payItemSearchTimer = setTimeout(() => setDebouncedSearch(value), 300);
   };
 
   const { data, isLoading } = useQuery({

@@ -9,11 +9,12 @@ import {
 } from '../../api/estimator';
 import { downloadCSV, downloadTXT, exportCurrency, exportPct } from '../../utils/export';
 import { LoadingSpinner, ErrorState, EmptyState } from '../ui/states';
+import type { EstimatorNavParams } from '../../routes/estimator-page';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, params: any) => void }) {
+export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, params: EstimatorNavParams) => void }) {
   const [county, setCounty] = useState('');
   const [district, setDistrict] = useState('');
   const [minDate, setMinDate] = useState(`${new Date().getFullYear() - 5}-01-01`);
@@ -183,8 +184,7 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" tickFormatter={(v: number) => fmtCompact.format(v)} tick={{ fontSize: 11 }} />
                       <YAxis type="category" dataKey="name" width={260} tick={{ fontSize: 11 }} />
-                      { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
-                      <Tooltip formatter={(value: any) => fmt.format(Number(value))} />
+                      <Tooltip formatter={(value: number | string | ReadonlyArray<number | string> | undefined) => fmt.format(Number(value))} />
                       <Bar dataKey="total_low" fill="#3b82f6" name="$ Won" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -299,7 +299,7 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
   );
 }
 
-function PlayerRow({ player: p, navigateTo }: { player: MarketPlayer; navigateTo: (tab: string, params: any) => void }) {
+function PlayerRow({ player: p, navigateTo }: { player: MarketPlayer; navigateTo: (tab: string, params: EstimatorNavParams) => void }) {
   const captureColor = p.dollar_capture_pct > 50
     ? 'text-green-600'
     : p.dollar_capture_pct >= 25

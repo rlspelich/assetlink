@@ -17,15 +17,18 @@ import {
 } from '../../api/estimator';
 import { downloadTXT, exportCurrency, exportPct } from '../../utils/export';
 import { LoadingSpinner, InlineLoading, InlineError, ErrorState, EmptyState } from '../ui/states';
+import type { EstimatorNavParams } from '../../routes/estimator-page';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
 type ProfileTab = 'overview' | 'history' | 'geo' | 'activity' | 'prices' | 'vs-market';
 
+let _contractorSearchTimer: ReturnType<typeof setTimeout>;
+
 export function ContractorSearch({ navigateTo, navParams }: {
-  navigateTo: (tab: string, params: any) => void;
-  navParams: any;
+  navigateTo: (tab: string, params: EstimatorNavParams) => void;
+  navParams: EstimatorNavParams;
 }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -44,8 +47,8 @@ export function ContractorSearch({ navigateTo, navParams }: {
   const handleSearch = (value: string) => {
     setSearch(value);
     setPage(1);
-    clearTimeout((window as any).__contractorSearchTimer);
-    (window as any).__contractorSearchTimer = setTimeout(() => setDebouncedSearch(value), 300);
+    clearTimeout(_contractorSearchTimer);
+    _contractorSearchTimer = setTimeout(() => setDebouncedSearch(value), 300);
   };
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -165,7 +168,7 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange, navigateTo }: {
   pk: string;
   activeTab: ProfileTab;
   onTabChange: (t: ProfileTab) => void;
-  navigateTo: (tab: string, params: any) => void;
+  navigateTo: (tab: string, params: EstimatorNavParams) => void;
 }) {
   // Date range filter — defaults to last 5 years
   const defaultMinDate = `${new Date().getFullYear() - 5}-01-01`;
@@ -361,7 +364,7 @@ function OverviewTab({ profile }: { profile: ContractorProfile }) {
 // Bidding History Tab
 // ============================================================
 
-function HistoryTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { min_date?: string; max_date?: string }; navigateTo: (tab: string, params: any) => void }) {
+function HistoryTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { min_date?: string; max_date?: string }; navigateTo: (tab: string, params: EstimatorNavParams) => void }) {
   const [page, setPage] = useState(1);
   const [winsOnly, setWinsOnly] = useState(false);
 
@@ -589,8 +592,7 @@ function ActivityTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: 
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
             <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} domain={[0, 100]} unit="%" />
-            { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
-            <Tooltip formatter={(value: any, name: any) =>
+            <Tooltip formatter={(value: number | string | ReadonlyArray<number | string> | undefined, name: string | number | undefined) =>
               name === 'Win Rate %' ? `${value}%` : value
             } />
             <Bar yAxisId="left" dataKey="bid_count" fill="#3b82f6" name="Bids" radius={[4, 4, 0, 0]} />
@@ -668,8 +670,7 @@ function PricesTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: st
               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${v}%`} />
               <YAxis type="category" dataKey="name" width={220} tick={{ fontSize: 10 }} />
-              { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
-              <Tooltip formatter={(value: any) => `${Number(value) > 0 ? '+' : ''}${value}%`} />
+              <Tooltip formatter={(value: number | string | ReadonlyArray<number | string> | undefined) => `${Number(value) > 0 ? '+' : ''}${value}%`} />
               <Bar dataKey="variance" name="Variance %" radius={[0, 4, 4, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={index} fill={entry.variance < -5 ? '#22c55e' : entry.variance > 5 ? '#ef4444' : '#9ca3af'} />
@@ -728,7 +729,7 @@ function PricesTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: st
 // vs Market Tab
 // ============================================================
 
-function VsMarketTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { min_date?: string; max_date?: string }; navigateTo: (tab: string, params: any) => void }) {
+function VsMarketTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { min_date?: string; max_date?: string }; navigateTo: (tab: string, params: EstimatorNavParams) => void }) {
   const [page, setPage] = useState(1);
 
   const { data, isLoading, isError, refetch } = useQuery({

@@ -11,10 +11,13 @@ import {
 } from '../../api/estimator';
 import { downloadCSV, downloadTXT, exportCurrency } from '../../utils/export';
 import { LoadingSpinner, InlineLoading, InlineError, ErrorState, EmptyState } from '../ui/states';
+import type { EstimatorNavParams } from '../../routes/estimator-page';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: any) => void }) {
+let _contractorPickerTimer: ReturnType<typeof setTimeout>;
+
+export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: EstimatorNavParams) => void }) {
   const [contractorA, setContractorA] = useState<Contractor | null>(null);
   const [contractorB, setContractorB] = useState<Contractor | null>(null);
   const [comparing, setComparing] = useState(false);
@@ -380,8 +383,8 @@ function ContractorPicker({ selected, onSelect, excludePk }: {
 
   const handleSearch = (value: string) => {
     setSearch(value);
-    clearTimeout((window as any).__contractorPickerTimer);
-    (window as any).__contractorPickerTimer = setTimeout(() => setDebouncedSearch(value), 300);
+    clearTimeout(_contractorPickerTimer);
+    _contractorPickerTimer = setTimeout(() => setDebouncedSearch(value), 300);
   };
 
   useEffect(() => {

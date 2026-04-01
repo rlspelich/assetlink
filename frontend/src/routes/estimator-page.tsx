@@ -336,7 +336,7 @@ function EstimateRow({ estimate, onClick }: { estimate: Estimate; onClick: () =>
 }
 
 function NewEstimateForm({ onSubmit, onCancel, isLoading }: {
-  onSubmit: (data: any) => void; onCancel: () => void; isLoading: boolean;
+  onSubmit: (data: { name: string; target_state: string }) => void; onCancel: () => void; isLoading: boolean;
 }) {
   const [name, setName] = useState('');
   const [targetState, setTargetState] = useState('IL');
@@ -429,7 +429,7 @@ function EstimateDetailView({ estimateId, onBack }: { estimateId: string; onBack
   });
 
   const renameMut = useMutation({
-    mutationFn: (name: string) => updateEstimate(estimateId, { name } as any),
+    mutationFn: (name: string) => updateEstimate(estimateId, { name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['estimate', estimateId] });
       queryClient.invalidateQueries({ queryKey: ['estimates'] });
@@ -1006,6 +1006,8 @@ function TotalCard({ label, value, primary }: { label: string; value: number; pr
   );
 }
 
+let _addItemTimer: ReturnType<typeof setTimeout>;
+
 function AddItemForm({ onAdd, onCancel, isLoading }: {
   onAdd: (items: { pay_item_code: string; quantity: number; description?: string; unit?: string }[]) => void;
   onCancel: () => void;
@@ -1023,8 +1025,8 @@ function AddItemForm({ onAdd, onCancel, isLoading }: {
   const handleSearch = (value: string) => {
     setSearch(value);
     setSelectedItem(null);
-    clearTimeout((window as any).__addItemTimer);
-    (window as any).__addItemTimer = setTimeout(() => setDebouncedSearch(value), 300);
+    clearTimeout(_addItemTimer);
+    _addItemTimer = setTimeout(() => setDebouncedSearch(value), 300);
   };
 
   const { data } = useQuery({
