@@ -175,14 +175,14 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
                     <BarChart
                       layout="vertical"
                       data={data.players.slice(0, 10).map((p) => ({
-                        name: p.contractor_name.length > 25 ? p.contractor_name.slice(0, 25) + '...' : p.contractor_name,
+                        name: p.contractor_name.length > 40 ? p.contractor_name.slice(0, 40) + '...' : p.contractor_name,
                         total_low: p.total_low,
                       }))}
                       margin={{ top: 0, right: 20, bottom: 0, left: 10 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" tickFormatter={(v: number) => fmtCompact.format(v)} tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="name" width={180} tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" width={260} tick={{ fontSize: 11 }} />
                       { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
                       <Tooltip formatter={(value: any) => fmt.format(Number(value))} />
                       <Bar dataKey="total_low" fill="#3b82f6" name="$ Won" radius={[0, 4, 4, 0]} />
