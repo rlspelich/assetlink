@@ -10,6 +10,19 @@ export function setTokenGetter(fn: () => Promise<string | null>) {
   _getToken = fn;
 }
 
+/** Build URLSearchParams from an object, skipping undefined/null/empty values. */
+export function buildSearchParams(
+  params: Record<string, string | number | boolean | undefined | null>,
+): URLSearchParams {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') {
+      sp.set(k, String(v));
+    }
+  }
+  return sp;
+}
+
 export const api = ky.create({
   prefixUrl: API_URL,
   hooks: {

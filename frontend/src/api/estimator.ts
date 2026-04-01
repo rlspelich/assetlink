@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, buildSearchParams } from './client';
 
 // --- Types ---
 
@@ -140,11 +140,12 @@ export async function searchPayItems(params: {
   page?: number;
   page_size?: number;
 }): Promise<PayItemListResponse> {
-  const sp = new URLSearchParams();
-  if (params.search) sp.set('search', params.search);
-  if (params.division) sp.set('division', params.division);
-  if (params.page) sp.set('page', String(params.page));
-  sp.set('page_size', String(params.page_size || 25));
+  const sp = buildSearchParams({
+    search: params.search,
+    division: params.division,
+    page: params.page,
+    page_size: params.page_size || 25,
+  });
   return api.get('estimator/pay-items', { searchParams: sp }).json();
 }
 
@@ -155,12 +156,13 @@ export async function getAwardPriceHistory(code: string, params?: {
   max_date?: string;
   limit?: number;
 }): Promise<AwardPriceHistory> {
-  const sp = new URLSearchParams();
-  if (params?.district) sp.set('district', params.district);
-  if (params?.county) sp.set('county', params.county);
-  if (params?.min_date) sp.set('min_date', params.min_date);
-  if (params?.max_date) sp.set('max_date', params.max_date);
-  if (params?.limit) sp.set('limit', String(params.limit));
+  const sp = buildSearchParams({
+    district: params?.district,
+    county: params?.county,
+    min_date: params?.min_date,
+    max_date: params?.max_date,
+    limit: params?.limit,
+  });
   return api.get(`estimator/award-items/${code}/price-history`, { searchParams: sp }).json();
 }
 
@@ -171,12 +173,13 @@ export async function getPriceStats(code: string, params?: {
   target_year?: number;
   target_state?: string;
 }): Promise<PriceStats> {
-  const sp = new URLSearchParams();
-  if (params?.district) sp.set('district', params.district);
-  if (params?.years_back) sp.set('years_back', String(params.years_back));
-  if (params?.adjust_inflation !== undefined) sp.set('adjust_inflation', String(params.adjust_inflation));
-  if (params?.target_year) sp.set('target_year', String(params.target_year));
-  if (params?.target_state) sp.set('target_state', params.target_state);
+  const sp = buildSearchParams({
+    district: params?.district,
+    years_back: params?.years_back,
+    adjust_inflation: params?.adjust_inflation,
+    target_year: params?.target_year,
+    target_state: params?.target_state,
+  });
   return api.get(`estimator/pay-items/${code}/price-stats`, { searchParams: sp }).json();
 }
 
@@ -184,10 +187,11 @@ export async function getConfidence(code: string, unitPrice: number, params?: {
   district?: string;
   years_back?: number;
 }): Promise<Confidence> {
-  const sp = new URLSearchParams();
-  sp.set('unit_price', String(unitPrice));
-  if (params?.district) sp.set('district', params.district);
-  if (params?.years_back) sp.set('years_back', String(params.years_back));
+  const sp = buildSearchParams({
+    unit_price: unitPrice,
+    district: params?.district,
+    years_back: params?.years_back,
+  });
   return api.get(`estimator/pay-items/${code}/confidence`, { searchParams: sp }).json();
 }
 

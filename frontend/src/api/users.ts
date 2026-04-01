@@ -1,13 +1,14 @@
-import { api } from './client';
+import { api, buildSearchParams } from './client';
 import type { User, UserCreate, UserUpdate, UserListResponse } from './types';
 
 export async function listUsers(params?: {
   role?: string;
   is_active?: boolean;
 }): Promise<UserListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.role) searchParams.set('role', params.role);
-  if (params?.is_active !== undefined) searchParams.set('is_active', String(params.is_active));
+  const searchParams = buildSearchParams({
+    role: params?.role,
+    is_active: params?.is_active,
+  });
   return api.get('users', { searchParams }).json();
 }
 

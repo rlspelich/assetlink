@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, buildSearchParams } from './client';
 import type { SignSupport, SignSupportCreate, SignSupportDetail, SignSupportListResponse } from './types';
 
 export async function listSupports(params?: {
@@ -7,11 +7,12 @@ export async function listSupports(params?: {
   status?: string;
   support_type?: string;
 }): Promise<SignSupportListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', String(params.page));
-  if (params?.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params?.status) searchParams.set('status', params.status);
-  if (params?.support_type) searchParams.set('support_type', params.support_type);
+  const searchParams = buildSearchParams({
+    page: params?.page,
+    page_size: params?.page_size,
+    status: params?.status,
+    support_type: params?.support_type,
+  });
   return api.get('supports', { searchParams }).json();
 }
 

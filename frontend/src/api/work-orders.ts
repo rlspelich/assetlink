@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, buildSearchParams } from './client';
 import type {
   WorkOrder,
   WorkOrderCreate,
@@ -17,14 +17,15 @@ export async function listWorkOrders(params?: {
   assigned_to?: string;
   asset_type?: string;
 }): Promise<WorkOrderListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', String(params.page));
-  if (params?.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params?.status) searchParams.set('status', params.status);
-  if (params?.priority) searchParams.set('priority', params.priority);
-  if (params?.work_type) searchParams.set('work_type', params.work_type);
-  if (params?.assigned_to) searchParams.set('assigned_to', params.assigned_to);
-  if (params?.asset_type) searchParams.set('asset_type', params.asset_type);
+  const searchParams = buildSearchParams({
+    page: params?.page,
+    page_size: params?.page_size,
+    status: params?.status,
+    priority: params?.priority,
+    work_type: params?.work_type,
+    assigned_to: params?.assigned_to,
+    asset_type: params?.asset_type,
+  });
   return api.get('work-orders', { searchParams }).json();
 }
 
@@ -59,8 +60,9 @@ export async function listSignWorkOrders(
   signId: string,
   params?: { page?: number; page_size?: number },
 ): Promise<WorkOrderListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', String(params.page));
-  if (params?.page_size) searchParams.set('page_size', String(params.page_size));
+  const searchParams = buildSearchParams({
+    page: params?.page,
+    page_size: params?.page_size,
+  });
   return api.get(`signs/${signId}/work-orders`, { searchParams }).json();
 }

@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, buildSearchParams } from './client';
 import type { Sign, SignCreate, SignListResponse, SignType, SignImportResult } from './types';
 
 export async function listSigns(params?: {
@@ -9,13 +9,14 @@ export async function listSigns(params?: {
   mutcd_code?: string;
   sign_category?: string;
 }): Promise<SignListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', String(params.page));
-  if (params?.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params?.status) searchParams.set('status', params.status);
-  if (params?.road_name) searchParams.set('road_name', params.road_name);
-  if (params?.mutcd_code) searchParams.set('mutcd_code', params.mutcd_code);
-  if (params?.sign_category) searchParams.set('sign_category', params.sign_category);
+  const searchParams = buildSearchParams({
+    page: params?.page,
+    page_size: params?.page_size,
+    status: params?.status,
+    road_name: params?.road_name,
+    mutcd_code: params?.mutcd_code,
+    sign_category: params?.sign_category,
+  });
   return api.get('signs', { searchParams }).json();
 }
 

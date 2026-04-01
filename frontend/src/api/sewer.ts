@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api, buildSearchParams } from './client';
 import type {
   Manhole,
   ManholeCreate,
@@ -31,12 +31,13 @@ export async function listManholes(params?: {
   system_type?: string;
   manhole_type_code?: string;
 }): Promise<ManholeListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', String(params.page));
-  if (params?.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params?.status) searchParams.set('status', params.status);
-  if (params?.system_type) searchParams.set('system_type', params.system_type);
-  if (params?.manhole_type_code) searchParams.set('manhole_type_code', params.manhole_type_code);
+  const searchParams = buildSearchParams({
+    page: params?.page,
+    page_size: params?.page_size,
+    status: params?.status,
+    system_type: params?.system_type,
+    manhole_type_code: params?.manhole_type_code,
+  });
   return api.get('manholes', { searchParams }).json();
 }
 
@@ -67,12 +68,13 @@ export async function listSewerMains(params?: {
   system_type?: string;
   material_code?: string;
 }): Promise<SewerMainListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', String(params.page));
-  if (params?.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params?.status) searchParams.set('status', params.status);
-  if (params?.system_type) searchParams.set('system_type', params.system_type);
-  if (params?.material_code) searchParams.set('material_code', params.material_code);
+  const searchParams = buildSearchParams({
+    page: params?.page,
+    page_size: params?.page_size,
+    status: params?.status,
+    system_type: params?.system_type,
+    material_code: params?.material_code,
+  });
   return api.get('sewer-mains', { searchParams }).json();
 }
 
@@ -102,11 +104,12 @@ export async function listForceMains(params?: {
   status?: string;
   material_code?: string;
 }): Promise<ForceMainListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', String(params.page));
-  if (params?.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params?.status) searchParams.set('status', params.status);
-  if (params?.material_code) searchParams.set('material_code', params.material_code);
+  const searchParams = buildSearchParams({
+    page: params?.page,
+    page_size: params?.page_size,
+    status: params?.status,
+    material_code: params?.material_code,
+  });
   return api.get('force-mains', { searchParams }).json();
 }
 
@@ -135,10 +138,11 @@ export async function listLiftStations(params?: {
   page_size?: number;
   status?: string;
 }): Promise<LiftStationListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', String(params.page));
-  if (params?.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params?.status) searchParams.set('status', params.status);
+  const searchParams = buildSearchParams({
+    page: params?.page,
+    page_size: params?.page_size,
+    status: params?.status,
+  });
   return api.get('lift-stations', { searchParams }).json();
 }
 
@@ -168,11 +172,12 @@ export async function listSewerLaterals(params?: {
   status?: string;
   service_type?: string;
 }): Promise<SewerLateralListResponse> {
-  const searchParams = new URLSearchParams();
-  if (params?.page) searchParams.set('page', String(params.page));
-  if (params?.page_size) searchParams.set('page_size', String(params.page_size));
-  if (params?.status) searchParams.set('status', params.status);
-  if (params?.service_type) searchParams.set('service_type', params.service_type);
+  const searchParams = buildSearchParams({
+    page: params?.page,
+    page_size: params?.page_size,
+    status: params?.status,
+    service_type: params?.service_type,
+  });
   return api.get('sewer-laterals', { searchParams }).json();
 }
 
