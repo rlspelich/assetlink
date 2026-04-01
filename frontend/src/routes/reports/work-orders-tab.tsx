@@ -300,6 +300,7 @@ function WorkOrderStatusList({ startDate, endDate }: DateRangeProps) {
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
+                  aria-label="Previous page"
                   className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft size={14} />
@@ -308,6 +309,7 @@ function WorkOrderStatusList({ startDate, endDate }: DateRangeProps) {
                 <button
                   onClick={() => setPage((p) => Math.min(woTotalPages - 1, p + 1))}
                   disabled={page >= woTotalPages - 1}
+                  aria-label="Next page"
                   className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <ChevronRight size={14} />

@@ -226,6 +226,7 @@ export const WorkOrderTable = memo(function WorkOrderTable({ workOrders, selecte
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
+              aria-label="Previous page"
               className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft size={14} />
@@ -234,6 +235,7 @@ export const WorkOrderTable = memo(function WorkOrderTable({ workOrders, selecte
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
+              aria-label="Next page"
               className="p-1 rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronRight size={14} />
