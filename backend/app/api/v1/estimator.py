@@ -13,7 +13,9 @@ import time
 import uuid
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import func, select, desc
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -51,7 +53,7 @@ router = APIRouter()
 
 
 @router.get("/contracts/filter-options")
-async def get_contract_filter_options(db: AsyncSession = Depends(get_db)):
+async def get_contract_filter_options(db: AsyncSession = Depends(get_db)) -> dict:
     """Get distinct counties, districts, county-district mappings, and date range."""
 
     # County-district pairs (for dependent dropdowns)
@@ -106,7 +108,7 @@ async def list_contracts(
     min_date: str | None = None,
     max_date: str | None = None,
     municipality: str | None = None,
-):
+) -> ContractListOut:
     """List contracts with optional filters. Reference data — no tenant filter."""
     from datetime import date as dt
 
@@ -186,7 +188,7 @@ async def list_contracts(
 async def get_contract(
     contract_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-):
+) -> ContractDetailOut:
     """Get contract detail with all bids. Reference data — no tenant filter."""
     result = await db.execute(
         select(Contract)
@@ -257,7 +259,7 @@ async def get_contract(
 async def get_bid(
     bid_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-):
+) -> BidDetailOut:
     """Get bid detail with all line items. Reference data — no tenant filter."""
     result = await db.execute(
         select(Bid)
@@ -314,7 +316,7 @@ async def list_contractors(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     search: str | None = None,
-):
+) -> ContractorListOut:
     """List contractors with search. Reference data — no tenant filter."""
     query = select(Contractor)
 
@@ -383,7 +385,7 @@ async def list_pay_items(
     search: str | None = None,
     agency: str = "IDOT",
     division: str | None = None,
-):
+) -> PayItemListOut:
     """Search the pay item catalog."""
     query = select(PayItem).where(PayItem.agency == agency)
 
@@ -416,7 +418,7 @@ async def get_price_history(
     code: str,
     db: AsyncSession = Depends(get_db),
     agency: str = "IDOT",
-):
+) -> PriceHistoryOut:
     """Get price history for a pay item across all contracts. Reference data."""
     # Get pay item info
     pay_item = await db.execute(
@@ -483,7 +485,7 @@ async def get_price_history(
 async def import_idot_bidtabs(
     files: list[UploadFile] = File(...),
     db: AsyncSession = Depends(get_db),
-):
+) -> BidTabImportOut:
     """Upload and import one or more IDOT bid tab text files (reference data)."""
     from app.services.estimator.parsers.idot_bidtabs import parse_idot_file
     from app.services.estimator.import_service import import_idot_bidtab
@@ -513,7 +515,7 @@ async def import_idot_bidtabs(
 
             totals.warnings.extend(result.get("warnings", []))
 
-        except Exception as e:
+        except (ValueError, KeyError, UnicodeDecodeError, SQLAlchemyError, OSError) as e:
             totals.errors.append(f"{upload.filename}: {e}")
             totals.files_skipped += 1
 
@@ -525,7 +527,7 @@ async def import_idot_bidtabs(
 async def import_idot_awards_endpoint(
     files: list[UploadFile] = File(...),
     db: AsyncSession = Depends(get_db),
-):
+) -> BidTabImportOut:
     """Upload and import one or more IDOT award CSV files (reference data, no tenant)."""
     from app.services.estimator.parsers.idot_awards import parse_idot_awards_file
     from app.services.estimator.import_service import import_idot_awards
@@ -550,7 +552,7 @@ async def import_idot_awards_endpoint(
 
             totals.warnings.extend(result.get("warnings", []))
 
-        except Exception as e:
+        except (ValueError, KeyError, UnicodeDecodeError, SQLAlchemyError, OSError) as e:
             totals.errors.append(f"{upload.filename}: {e}")
             totals.files_skipped += 1
 
@@ -562,7 +564,7 @@ async def import_idot_awards_endpoint(
 async def import_istha_bidtabs_endpoint(
     files: list[UploadFile] = File(...),
     db: AsyncSession = Depends(get_db),
-):
+) -> BidTabImportOut:
     """Upload and import one or more ISTHA bid tab CSV files (reference data)."""
     from app.services.estimator.parsers.istha_bidtabs import parse_istha_file
     from app.services.estimator.import_service import import_istha_bidtabs
@@ -591,7 +593,7 @@ async def import_istha_bidtabs_endpoint(
 
             totals.warnings.extend(result.get("warnings", []))
 
-        except Exception as e:
+        except (ValueError, KeyError, UnicodeDecodeError, SQLAlchemyError, OSError) as e:
             totals.errors.append(f"{upload.filename}: {e}")
             totals.files_skipped += 1
 
@@ -618,7 +620,7 @@ async def get_award_price_history(
     district: str | None = None, county: str | None = None,
     min_date: str | None = None, max_date: str | None = None,
     limit: int = Query(2000, ge=1, le=10000),
-):
+) -> AwardPriceHistoryOut:
     """Get price history for a pay item from the shared award data (1.4M rows)."""
     from datetime import date as dt
     query = select(AwardItemModel).where(
@@ -651,7 +653,7 @@ async def get_price_stats(
     code: str, db: AsyncSession = Depends(get_db),
     district: str | None = None, years_back: int = Query(10, ge=1, le=25),
     adjust_inflation: bool = True, target_year: int | None = None, target_state: str = "IL",
-):
+) -> PriceStatsOut:
     """Get weighted price statistics for a pay item (powers the estimate builder)."""
     from app.services.estimator.pricing_engine import compute_price_stats
     stats = await compute_price_stats(db, code, district=district, years_back=years_back,
@@ -664,7 +666,7 @@ async def get_confidence(
     code: str, unit_price: float = Query(..., gt=0), db: AsyncSession = Depends(get_db),
     district: str | None = None, years_back: int = Query(10, ge=1, le=25),
     adjust_inflation: bool = True, target_year: int | None = None,
-):
+) -> ConfidenceOut:
     """Score a proposed unit price against historical distribution."""
     from decimal import Decimal as Dec
     from app.services.estimator.pricing_engine import compute_confidence
@@ -678,7 +680,7 @@ async def get_confidence(
 async def list_estimates_endpoint(
     tenant_id: uuid.UUID = Depends(get_current_tenant), db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200),
-):
+) -> EstimateListOut:
     """List all estimates for the current tenant."""
     from app.services.estimator.estimate_service import list_estimates as _list
     estimates, total = await _list(db, tenant_id, page, page_size)
@@ -690,7 +692,7 @@ async def list_estimates_endpoint(
 async def create_estimate_endpoint(
     data: EstimateCreate, tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> EstimateOut:
     """Create a new estimate."""
     from app.services.estimator.estimate_service import create_estimate as _create
     estimate = await _create(db, tenant_id, name=data.name, description=data.description,
@@ -703,7 +705,7 @@ async def create_estimate_endpoint(
 async def get_estimate_endpoint(
     estimate_id: uuid.UUID, tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> EstimateDetailOut:
     """Get an estimate with all its items."""
     from app.services.estimator.estimate_service import get_estimate as _get
     estimate = await _get(db, tenant_id, estimate_id)
@@ -717,7 +719,7 @@ async def get_estimate_endpoint(
 async def update_estimate_endpoint(
     estimate_id: uuid.UUID, data: EstimateUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant), db: AsyncSession = Depends(get_db),
-):
+) -> EstimateOut:
     """Update estimate metadata."""
     from app.services.estimator.estimate_service import get_estimate as _get
     estimate = await _get(db, tenant_id, estimate_id)
@@ -732,7 +734,7 @@ async def update_estimate_endpoint(
 async def delete_estimate_endpoint(
     estimate_id: uuid.UUID, tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Delete an estimate and all its items."""
     from app.services.estimator.estimate_service import get_estimate as _get
     estimate = await _get(db, tenant_id, estimate_id)
@@ -744,7 +746,7 @@ async def delete_estimate_endpoint(
 async def duplicate_estimate_endpoint(
     estimate_id: uuid.UUID, tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> EstimateOut:
     """Duplicate an estimate with all its items."""
     from app.services.estimator.estimate_service import get_estimate as _get, duplicate_estimate as _dup
     estimate = await _get(db, tenant_id, estimate_id)
@@ -756,7 +758,7 @@ async def duplicate_estimate_endpoint(
 async def recalculate_estimate_endpoint(
     estimate_id: uuid.UUID, tenant_id: uuid.UUID = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-):
+) -> EstimateDetailOut:
     """Re-run the pricing engine on all items in an estimate."""
     from app.services.estimator.estimate_service import get_estimate as _get, recalculate_estimate as _recalc
     estimate = await _get(db, tenant_id, estimate_id)
@@ -771,7 +773,7 @@ async def recalculate_estimate_endpoint(
 async def add_estimate_items(
     estimate_id: uuid.UUID, items: list[EstimateItemCreate],
     tenant_id: uuid.UUID = Depends(get_current_tenant), db: AsyncSession = Depends(get_db),
-):
+) -> list[EstimateItemOut]:
     """Add items to an estimate (auto-priced from historical data)."""
     from app.services.estimator.estimate_service import get_estimate as _get, add_items_to_estimate
     estimate = await _get(db, tenant_id, estimate_id)
@@ -784,7 +786,7 @@ async def add_estimate_items(
 async def update_estimate_item(
     estimate_id: uuid.UUID, item_id: uuid.UUID, data: EstimateItemUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant), db: AsyncSession = Depends(get_db),
-):
+) -> EstimateItemOut:
     """Update an estimate item (quantity, price override, etc.)."""
     from app.models.estimate import EstimateItem
     result = await db.execute(select(EstimateItem).where(
@@ -812,7 +814,7 @@ async def update_estimate_item(
 async def delete_estimate_item(
     estimate_id: uuid.UUID, item_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant), db: AsyncSession = Depends(get_db),
-):
+) -> None:
     """Remove an item from an estimate."""
     from app.models.estimate import EstimateItem
     result = await db.execute(select(EstimateItem).where(
@@ -827,7 +829,7 @@ async def delete_estimate_item(
 
 
 @router.post("/cost-indices/seed", response_model=SeedResultOut)
-async def seed_cost_indices_endpoint(db: AsyncSession = Depends(get_db)):
+async def seed_cost_indices_endpoint(db: AsyncSession = Depends(get_db)) -> SeedResultOut:
     """Seed cost index data from bundled CSV files."""
     from app.services.estimator.inflation_service import seed_cost_indices as _si, seed_index_mappings as _sm
     idx = await _si(db); maps = await _sm(db)
@@ -836,7 +838,7 @@ async def seed_cost_indices_endpoint(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/regional-factors/seed", response_model=SeedResultOut)
-async def seed_regional_factors_endpoint(db: AsyncSession = Depends(get_db)):
+async def seed_regional_factors_endpoint(db: AsyncSession = Depends(get_db)) -> SeedResultOut:
     """Seed regional cost factors from bundled CSV."""
     from app.services.estimator.regional_service import seed_regional_factors as _seed
     r = await _seed(db)
@@ -845,7 +847,7 @@ async def seed_regional_factors_endpoint(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/regional-factors", response_model=list[RegionalFactorOut])
-async def get_regional_factors(db: AsyncSession = Depends(get_db)):
+async def get_regional_factors(db: AsyncSession = Depends(get_db)) -> list[RegionalFactorOut]:
     """Get all state-level regional cost factors."""
     from app.services.estimator.regional_service import get_all_regional_factors as _get
     return [RegionalFactorOut.model_validate(f) for f in await _get(db)]
@@ -863,7 +865,7 @@ async def bulk_import_estimate_items(
     db: AsyncSession = Depends(get_db),
     text_data: str | None = Body(None, description="Pasted tab/comma-separated item data"),
     file: UploadFile | None = File(None, description="CSV file upload"),
-):
+) -> list[EstimateItemOut]:
     """
     Bulk import items into an estimate from pasted text or CSV upload.
 
@@ -947,7 +949,7 @@ async def get_engineers_estimate_report(
     db: AsyncSession = Depends(get_db),
     format: str = Query("txt", description="Report format: txt or csv"),
     contingency_pct: float = Query(0, ge=0, le=50, description="Contingency percentage to add"),
-):
+) -> PlainTextResponse:
     """
     Generate an Engineer's Estimate report.
 
