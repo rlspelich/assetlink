@@ -35,6 +35,9 @@ export function useCreateSupport() {
   return useMutation({
     mutationFn: (data: SignSupportCreate) => supportsApi.createSupport(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: supportKeys.lists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create support:', error.message);
+    },
   });
 }
 
@@ -47,6 +50,9 @@ export function useUpdateSupport() {
       qc.invalidateQueries({ queryKey: supportKeys.lists() });
       qc.invalidateQueries({ queryKey: supportKeys.detail(variables.id) });
     },
+    onError: (error: Error) => {
+      console.error('Failed to update support:', error.message);
+    },
   });
 }
 
@@ -55,5 +61,8 @@ export function useDeleteSupport() {
   return useMutation({
     mutationFn: (id: string) => supportsApi.deleteSupport(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: supportKeys.lists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete support:', error.message);
+    },
   });
 }

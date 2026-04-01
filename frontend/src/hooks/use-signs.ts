@@ -38,6 +38,9 @@ export function useCreateSign() {
   return useMutation({
     mutationFn: (data: SignCreate) => signsApi.createSign(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: signKeys.lists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create sign:', error.message);
+    },
   });
 }
 
@@ -47,6 +50,9 @@ export function useUpdateSign() {
     mutationFn: ({ id, data }: { id: string; data: Partial<SignCreate> }) =>
       signsApi.updateSign(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: signKeys.lists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update sign:', error.message);
+    },
   });
 }
 
@@ -55,6 +61,9 @@ export function useDeleteSign() {
   return useMutation({
     mutationFn: (id: string) => signsApi.deleteSign(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: signKeys.lists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete sign:', error.message);
+    },
   });
 }
 
@@ -71,6 +80,9 @@ export function useImportSignsCsv() {
   return useMutation({
     mutationFn: (file: File) => signsApi.importSignsCsv(file),
     onSuccess: () => qc.invalidateQueries({ queryKey: signKeys.lists() }),
+    onError: (error: Error) => {
+      console.error('Failed to import signs CSV:', error.message);
+    },
   });
 }
 
@@ -79,6 +91,9 @@ export function useImportSupportsCsv() {
   return useMutation({
     mutationFn: (file: File) => signsApi.importSupportsCsv(file),
     onSuccess: () => qc.invalidateQueries({ queryKey: signKeys.lists() }),
+    onError: (error: Error) => {
+      console.error('Failed to import supports CSV:', error.message);
+    },
   });
 }
 
@@ -88,5 +103,8 @@ export function useImportSignsAndSupportsCsv() {
     mutationFn: ({ signsFile, supportsFile }: { signsFile: File; supportsFile: File }) =>
       signsApi.importSignsAndSupportsCsv(signsFile, supportsFile),
     onSuccess: () => qc.invalidateQueries({ queryKey: signKeys.lists() }),
+    onError: (error: Error) => {
+      console.error('Failed to import signs and supports CSV:', error.message);
+    },
   });
 }

@@ -408,7 +408,7 @@ export function InspectionsPage() {
                   <button onClick={() => setCreationMode('select-sign')} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors">Select Existing Sign</button>
                   <button onClick={() => setCreationMode('drop-pin')} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors">Drop Location Pin</button>
                   <button onClick={handleSelectionSkip} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors">Skip</button>
-                  <button onClick={handleSelectionCancel} className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-colors"><X size={14} /></button>
+                  <button onClick={handleSelectionCancel} aria-label="Cancel selection" className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-colors"><X size={14} /></button>
                 </div>
               </div>
             )}
@@ -417,7 +417,7 @@ export function InspectionsPage() {
                 <div className="bg-blue-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                   <span>Click a sign on the map to attach it to the inspection</span>
-                  <button onClick={handleSelectionCancel} className="p-1 hover:bg-white/20 rounded transition-colors"><X size={14} /></button>
+                  <button onClick={handleSelectionCancel} aria-label="Cancel selection" className="p-1 hover:bg-white/20 rounded transition-colors"><X size={14} /></button>
                 </div>
               </div>
             )}
@@ -426,7 +426,7 @@ export function InspectionsPage() {
                 <div className="bg-green-600 text-white rounded-lg shadow-lg px-4 py-2.5 flex items-center gap-3 text-xs pointer-events-auto">
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                   <span>Click the map to set the inspection location</span>
-                  <button onClick={handleSelectionCancel} className="p-1 hover:bg-white/20 rounded transition-colors"><X size={14} /></button>
+                  <button onClick={handleSelectionCancel} aria-label="Cancel selection" className="p-1 hover:bg-white/20 rounded transition-colors"><X size={14} /></button>
                 </div>
               </div>
             )}

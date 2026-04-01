@@ -414,6 +414,7 @@ export function WorkOrdersPage() {
                   </button>
                   <button
                     onClick={handleSelectionCancel}
+                    aria-label="Cancel selection"
                     className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600 transition-colors"
                   >
                     <X size={14} />
@@ -430,6 +431,7 @@ export function WorkOrdersPage() {
                   <span>Click a sign on the map to attach it to the work order</span>
                   <button
                     onClick={handleSelectionCancel}
+                    aria-label="Cancel selection"
                     className="p-1 hover:bg-white/20 rounded transition-colors"
                   >
                     <X size={14} />
@@ -446,6 +448,7 @@ export function WorkOrdersPage() {
                   <span>Click the map to set the work order location</span>
                   <button
                     onClick={handleSelectionCancel}
+                    aria-label="Cancel selection"
                     className="p-1 hover:bg-white/20 rounded transition-colors"
                   >
                     <X size={14} />

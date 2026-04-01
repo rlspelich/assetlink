@@ -44,6 +44,9 @@ export function useCreateInspection() {
       qc.invalidateQueries({ queryKey: [...inspectionKeys.all, 'sign'] });
       qc.invalidateQueries({ queryKey: [...inspectionKeys.all, 'support'] });
     },
+    onError: (error: Error) => {
+      console.error('Failed to create inspection:', error.message);
+    },
   });
 }
 
@@ -56,6 +59,9 @@ export function useUpdateInspection() {
       qc.invalidateQueries({ queryKey: inspectionKeys.lists() });
       qc.invalidateQueries({ queryKey: inspectionKeys.detail(variables.id) });
     },
+    onError: (error: Error) => {
+      console.error('Failed to update inspection:', error.message);
+    },
   });
 }
 
@@ -67,6 +73,9 @@ export function useDeleteInspection() {
       qc.invalidateQueries({ queryKey: inspectionKeys.lists() });
       qc.invalidateQueries({ queryKey: [...inspectionKeys.all, 'sign'] });
       qc.invalidateQueries({ queryKey: [...inspectionKeys.all, 'support'] });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to delete inspection:', error.message);
     },
   });
 }
@@ -95,6 +104,9 @@ export function useCreateWorkOrderFromInspection() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: inspectionKeys.lists() });
       qc.invalidateQueries({ queryKey: workOrderKeys.lists() });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to create work order from inspection:', error.message);
     },
   });
 }

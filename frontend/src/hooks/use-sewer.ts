@@ -77,6 +77,9 @@ export function useCreateManhole() {
   return useMutation({
     mutationFn: (data: ManholeCreate) => sewerApi.createManhole(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.manholeLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create manhole:', error.message);
+    },
   });
 }
 
@@ -86,6 +89,9 @@ export function useUpdateManhole() {
     mutationFn: ({ id, data }: { id: string; data: Partial<ManholeCreate> }) =>
       sewerApi.updateManhole(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.manholeLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update manhole:', error.message);
+    },
   });
 }
 
@@ -94,6 +100,9 @@ export function useDeleteManhole() {
   return useMutation({
     mutationFn: (id: string) => sewerApi.deleteManhole(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.manholeLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete manhole:', error.message);
+    },
   });
 }
 
@@ -127,6 +136,9 @@ export function useCreateSewerMain() {
   return useMutation({
     mutationFn: (data: SewerMainCreate) => sewerApi.createSewerMain(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.sewerMainLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create sewer main:', error.message);
+    },
   });
 }
 
@@ -136,6 +148,9 @@ export function useUpdateSewerMain() {
     mutationFn: ({ id, data }: { id: string; data: Partial<SewerMainCreate> }) =>
       sewerApi.updateSewerMain(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.sewerMainLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update sewer main:', error.message);
+    },
   });
 }
 
@@ -144,6 +159,9 @@ export function useDeleteSewerMain() {
   return useMutation({
     mutationFn: (id: string) => sewerApi.deleteSewerMain(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.sewerMainLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete sewer main:', error.message);
+    },
   });
 }
 
@@ -176,6 +194,9 @@ export function useCreateForceMain() {
   return useMutation({
     mutationFn: (data: ForceMainCreate) => sewerApi.createForceMain(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.forceMainLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create force main:', error.message);
+    },
   });
 }
 
@@ -185,6 +206,9 @@ export function useUpdateForceMain() {
     mutationFn: ({ id, data }: { id: string; data: Partial<ForceMainCreate> }) =>
       sewerApi.updateForceMain(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.forceMainLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update force main:', error.message);
+    },
   });
 }
 
@@ -193,6 +217,9 @@ export function useDeleteForceMain() {
   return useMutation({
     mutationFn: (id: string) => sewerApi.deleteForceMain(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.forceMainLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete force main:', error.message);
+    },
   });
 }
 
@@ -224,6 +251,9 @@ export function useCreateLiftStation() {
   return useMutation({
     mutationFn: (data: LiftStationCreate) => sewerApi.createLiftStation(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.liftStationLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to create lift station:', error.message);
+    },
   });
 }
 
@@ -233,6 +263,9 @@ export function useUpdateLiftStation() {
     mutationFn: ({ id, data }: { id: string; data: Partial<LiftStationCreate> }) =>
       sewerApi.updateLiftStation(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.liftStationLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to update lift station:', error.message);
+    },
   });
 }
 
@@ -241,6 +274,9 @@ export function useDeleteLiftStation() {
   return useMutation({
     mutationFn: (id: string) => sewerApi.deleteLiftStation(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: sewerKeys.liftStationLists() }),
+    onError: (error: Error) => {
+      console.error('Failed to delete lift station:', error.message);
+    },
   });
 }
 

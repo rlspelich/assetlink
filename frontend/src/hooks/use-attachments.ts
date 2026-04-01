@@ -29,6 +29,9 @@ export function useUploadAttachment() {
         queryKey: ['attachments', variables.entityType, variables.entityId],
       });
     },
+    onError: (error: Error) => {
+      console.error('Failed to upload attachment:', error.message);
+    },
   });
 }
 
@@ -39,6 +42,9 @@ export function useDeleteAttachment() {
     mutationFn: deleteAttachment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attachments'] });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to delete attachment:', error.message);
     },
   });
 }

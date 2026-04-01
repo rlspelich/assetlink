@@ -32,6 +32,9 @@ export function useCreateUser() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: userKeys.lists() });
     },
+    onError: (error: Error) => {
+      console.error('Failed to create user:', error.message);
+    },
   });
 }
 
@@ -44,6 +47,9 @@ export function useUpdateUser() {
       qc.invalidateQueries({ queryKey: userKeys.lists() });
       qc.invalidateQueries({ queryKey: userKeys.detail(variables.id) });
     },
+    onError: (error: Error) => {
+      console.error('Failed to update user:', error.message);
+    },
   });
 }
 
@@ -54,6 +60,9 @@ export function useDeleteUser() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: userKeys.lists() });
     },
+    onError: (error: Error) => {
+      console.error('Failed to delete user:', error.message);
+    },
   });
 }
 
@@ -63,6 +72,9 @@ export function useReactivateUser() {
     mutationFn: (id: string) => usersApi.reactivateUser(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to reactivate user:', error.message);
     },
   });
 }

@@ -43,6 +43,9 @@ export function useCreateWorkOrder() {
       // Also invalidate sign work orders since a new WO may be linked to a sign
       qc.invalidateQueries({ queryKey: [...workOrderKeys.all, 'sign'] });
     },
+    onError: (error: Error) => {
+      console.error('Failed to create work order:', error.message);
+    },
   });
 }
 
@@ -55,6 +58,9 @@ export function useUpdateWorkOrder() {
       qc.invalidateQueries({ queryKey: workOrderKeys.lists() });
       qc.invalidateQueries({ queryKey: workOrderKeys.detail(variables.id) });
     },
+    onError: (error: Error) => {
+      console.error('Failed to update work order:', error.message);
+    },
   });
 }
 
@@ -65,6 +71,9 @@ export function useDeleteWorkOrder() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: workOrderKeys.lists() });
       qc.invalidateQueries({ queryKey: [...workOrderKeys.all, 'sign'] });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to delete work order:', error.message);
     },
   });
 }
@@ -77,6 +86,9 @@ export function useUpdateWorkOrderAsset() {
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: workOrderKeys.detail(variables.woId) });
       qc.invalidateQueries({ queryKey: workOrderKeys.lists() });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to update work order asset:', error.message);
     },
   });
 }
