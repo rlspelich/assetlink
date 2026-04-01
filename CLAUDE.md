@@ -1,7 +1,7 @@
 # CLAUDE.md — AssetLink Platform
 
-> Last updated: 2026-03-20
-> Status: Phase 1 — Project scaffolding and Signs MVP
+> Last updated: 2026-04-01
+> Status: Phase 2 complete — Signs, Estimator, Water, Sewer all live
 
 ---
 
@@ -51,8 +51,8 @@ tenant_type: "contractor"     modules_enabled: ["estimator", "signs"]  ← does 
 |--------|--------|-------------|-------------|
 | **Signs** | **Phase 1 — Complete** | Municipalities | Sign inventory, MUTCD compliance, condition tracking |
 | **Estimator** | **Phase 1b — Complete** | Contractors | 1.4M awarded prices, inflation-adjusted estimates, confidence scoring, 50-state regional factors |
-| Water | Phase 2 | Municipalities | Pipes, valves, hydrants, service connections |
-| Sewer | Phase 2 | Municipalities | Gravity mains, manholes, lift stations, NASSCO PACP/MACP |
+| **Water** | **Phase 2 — Complete** | Municipalities | Pipes, valves, hydrants, service connections, pressure zones, fittings |
+| **Sewer** | **Phase 2 — Complete** | Municipalities | Gravity mains, force mains, manholes, lift stations, laterals, fittings |
 | Roads | Future | Municipalities | Pavement management |
 
 ### Core Platform (Shared Across All Modules)
@@ -107,14 +107,20 @@ assetlink/
 │   │   │   ├── work_orders.py
 │   │   │   ├── inspections.py
 │   │   │   ├── imports.py
-│   │   │   └── users.py
+│   │   │   ├── users.py
+│   │   │   ├── water.py
+│   │   │   ├── sewer.py
+│   │   │   ├── estimator.py
+│   │   │   └── estimator_contractors.py
 │   │   ├── models/              # SQLAlchemy models
 │   │   │   ├── base.py          # Base model, shared columns
 │   │   │   ├── tenant.py
 │   │   │   ├── user.py
 │   │   │   ├── sign.py
 │   │   │   ├── work_order.py
-│   │   │   └── inspection.py
+│   │   │   ├── inspection.py
+│   │   │   ├── water.py
+│   │   │   └── sewer.py
 │   │   ├── schemas/             # Pydantic request/response
 │   │   ├── services/            # Business logic
 │   │   │   ├── spatial.py       # PostGIS operations
@@ -144,7 +150,7 @@ assetlink/
 
 ---
 
-## Database Schema — Core Tables (Phase 1)
+## Database Schema
 
 ### Design Principles
 - **snake_case** everywhere — no camelCase, no prefixes
@@ -155,7 +161,7 @@ assetlink/
 - **Constraints enforced at DB level** — not just application layer
 - **JSONB for flexible fields** — not TEXT1-TEXT20 like Cityworks
 
-### Tables
+### Core Tables
 
 | Table | Purpose |
 |-------|---------|
@@ -169,6 +175,34 @@ assetlink/
 | `attachment` | Photos/documents linked to any entity |
 | `comment` | Notes/comments on work orders and inspections |
 | `notification` | User notifications |
+
+### Water Tables
+
+| Table | Purpose |
+|-------|---------|
+| `water_main` | Water distribution pipes (LineString geometry) |
+| `water_valve` | Valves on water mains (Point geometry) |
+| `fire_hydrant` | Fire hydrants (Point geometry) |
+| `water_service` | Service connections from main to property (LineString geometry) |
+| `water_fitting` | Fittings/connectors on water mains (Point geometry) |
+| `pressure_zone` | Pressure zones (Polygon geometry) |
+| `water_material_type` | Reference: pipe material lookup |
+| `water_valve_type` | Reference: valve type lookup |
+
+### Sewer Tables
+
+| Table | Purpose |
+|-------|---------|
+| `sewer_main` | Gravity sewer mains (LineString geometry) |
+| `force_main` | Pressurized force mains (LineString geometry) |
+| `manhole` | Manholes/access points (Point geometry) |
+| `lift_station` | Lift/pump stations (Point geometry) |
+| `sewer_lateral` | Service laterals from main to property (LineString geometry) |
+| `sewer_fitting` | Fittings/connectors on sewer mains (Point geometry) |
+| `manhole_pipe` | Junction: manhole-to-pipe connections |
+| `sewer_material_type` | Reference: pipe material lookup |
+| `sewer_pipe_shape` | Reference: pipe cross-section shapes |
+| `manhole_type` | Reference: manhole type lookup |
 
 ---
 
@@ -214,6 +248,37 @@ GET    /api/v1/attachments/{id}
 
 Lookups
 GET    /api/v1/sign-types               # MUTCD lookup table
+
+Water
+GET    /api/v1/water/mains              # List/filter water mains
+POST   /api/v1/water/mains              # Create water main
+GET    /api/v1/water/mains/{id}         # Get water main detail
+PUT    /api/v1/water/mains/{id}         # Update water main
+DELETE /api/v1/water/mains/{id}         # Delete water main
+GET    /api/v1/water/valves             # List/filter valves
+POST   /api/v1/water/valves             # Create valve
+GET    /api/v1/water/hydrants           # List/filter hydrants
+POST   /api/v1/water/hydrants           # Create hydrant
+GET    /api/v1/water/services           # List/filter service connections
+GET    /api/v1/water/fittings           # List/filter fittings
+GET    /api/v1/water/pressure-zones     # List/filter pressure zones
+GET    /api/v1/water/material-types     # Reference lookup
+GET    /api/v1/water/valve-types        # Reference lookup
+
+Sewer
+GET    /api/v1/sewer/mains             # List/filter sewer mains
+POST   /api/v1/sewer/mains             # Create sewer main
+GET    /api/v1/sewer/manholes           # List/filter manholes
+POST   /api/v1/sewer/manholes           # Create manhole
+GET    /api/v1/sewer/force-mains        # List/filter force mains
+POST   /api/v1/sewer/force-mains        # Create force main
+GET    /api/v1/sewer/lift-stations      # List/filter lift stations
+POST   /api/v1/sewer/lift-stations      # Create lift station
+GET    /api/v1/sewer/laterals           # List/filter laterals
+GET    /api/v1/sewer/fittings           # List/filter fittings
+GET    /api/v1/sewer/material-types     # Reference lookup
+GET    /api/v1/sewer/pipe-shapes        # Reference lookup
+GET    /api/v1/sewer/manhole-types      # Reference lookup
 ```
 
 ---
@@ -275,7 +340,7 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 
 ## Development Roadmap
 
-### Phase 1 — Foundation + Signs MVP (Current)
+### Phase 1 — Foundation + Signs MVP (Complete)
 **Goal:** Deployable sign inventory with map, work orders, CSV import. One pilot municipality live.
 
 - [x] Concept doc and competitive analysis
@@ -397,12 +462,19 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 
 **Current state (2026-03-31):** Viewport meta tag exists. Dashboard/reports have basic responsive grids. Everything else is desktop-only — sidebar hover-expands (no touch), signs page uses fixed-width panels (`w-72`, `w-80`), estimator has `w-[420px]` fixed panels and 8 horizontal tabs.
 
-### Phase 2 — Water & Sewer
-- Water pipe, valve, hydrant models and API
-- Sewer pipe, manhole, lift station models and API
-- Shapefile/GeoJSON import with smart field mapping
-- NASSCO PACP/MACP condition coding
-- Enhanced reporting
+### Phase 2 — Water & Sewer (Complete)
+- [x] Water models: WaterMain, WaterValve, FireHydrant, WaterService, WaterFitting, PressureZone + reference tables (WaterMaterialType, WaterValveType)
+- [x] Sewer models: SewerMain, ForceMain, Manhole, LiftStation, SewerLateral, SewerFitting + reference tables (SewerMaterialType, SewerPipeShape, ManholeType) + ManholePipe junction
+- [x] Full CRUD API endpoints for all water and sewer asset types under `/api/v1/water/` and `/api/v1/sewer/`
+- [x] Pydantic schemas for all asset types with geometry handling (Point, LineString, Polygon)
+- [x] Alembic migration for all water/sewer tables with indices and constraints
+- [x] React frontend pages: water-page.tsx, sewer-page.tsx with GIS-centric layout
+- [x] Frontend components: detail panels, form panels, map components for water and sewer
+- [x] React Query hooks and API client layer (use-water.ts, use-sewer.ts, api/water.ts, api/sewer.ts)
+- [x] Integration tests: water (1,322 lines), sewer (1,125 lines)
+- [ ] Shapefile/GeoJSON import with smart field mapping
+- [ ] NASSCO PACP/MACP condition coding
+- [ ] Enhanced reporting
 
 ### Phase 3 — Scale & Compliance
 - Capital planning module
@@ -551,3 +623,14 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - **Created Alembic migration** for estimate, estimate_item, regional_factor tables + composite index on award_item(pay_item_code, letting_date).
 - **Data in PostgreSQL:** 1,385,747 award rows, 36,102 unique pay items, 21,029 contracts, 24 years (2003–2026).
 - **Remaining for Phase 1b:** Add new API endpoints (estimate CRUD, price stats, confidence, seed endpoints), integration tests, React frontend for estimator.
+
+### 2026-04-01 — Phase 2 Complete: Water & Sewer Modules
+- **Built 6 Water SQLAlchemy models:** WaterMain (LineString), WaterValve (Point), FireHydrant (Point), WaterService (LineString), WaterFitting (Point), PressureZone (Polygon) + 2 reference tables (WaterMaterialType, WaterValveType). Total: 412 lines.
+- **Built 6 Sewer SQLAlchemy models:** SewerMain (LineString), ForceMain (LineString), Manhole (Point), LiftStation (Point), SewerLateral (LineString), SewerFitting (Point) + 3 reference tables (SewerMaterialType, SewerPipeShape, ManholeType) + ManholePipe junction table. Total: 509 lines.
+- **Full CRUD API routes:** water.py (1,284 lines) and sewer.py (1,458 lines) with endpoints for all asset types, reference lookups, tenant-scoped queries.
+- **Pydantic schemas:** water.py (614 lines) and sewer.py (722 lines) with geometry serialization for Point, LineString, and Polygon types.
+- **Alembic migration:** Single comprehensive migration for all water/sewer tables with proper indices and constraints.
+- **React frontend:** water-page.tsx (745 lines) and sewer-page.tsx (698 lines) with GIS-centric three-panel layout. Detail panels, form panels, and map components for both modules.
+- **React Query hooks and API layer:** use-water.ts (368 lines), use-sewer.ts (322 lines), api/water.ts (239 lines), api/sewer.ts (209 lines).
+- **Integration tests:** test_water.py (1,322 lines) and test_sewer.py (1,125 lines) with real PostGIS database.
+- **Phase 2 complete.** Remaining future work: Shapefile/GeoJSON import, NASSCO PACP/MACP condition coding, enhanced reporting.
