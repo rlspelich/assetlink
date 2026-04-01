@@ -339,8 +339,8 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: E
                   <div className="flex items-center justify-between px-3 py-2 border-t text-xs text-gray-500">
                     <span>{items.total.toLocaleString()} items — Page {itemPage} of {itemTotalPages}</span>
                     <div className="flex gap-1">
-                      <button disabled={itemPage <= 1} onClick={() => setItemPage(itemPage - 1)} className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"><ChevronLeft size={14} /></button>
-                      <button disabled={itemPage >= itemTotalPages} onClick={() => setItemPage(itemPage + 1)} className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"><ChevronRight size={14} /></button>
+                      <button disabled={itemPage <= 1} onClick={() => setItemPage(itemPage - 1)} aria-label="Previous page" className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"><ChevronLeft size={14} /></button>
+                      <button disabled={itemPage >= itemTotalPages} onClick={() => setItemPage(itemPage + 1)} aria-label="Next page" className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"><ChevronRight size={14} /></button>
                     </div>
                   </div>
                 )}

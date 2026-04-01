@@ -110,6 +110,7 @@ export function ContractorSearch({ navigateTo, navParams }: {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(page - 1)}
+                aria-label="Previous page"
                 className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"
               >
                 <ChevronLeft size={14} />
@@ -117,6 +118,7 @@ export function ContractorSearch({ navigateTo, navParams }: {
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(page + 1)}
+                aria-label="Next page"
                 className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"
               >
                 <ChevronRight size={14} />
