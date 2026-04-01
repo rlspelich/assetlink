@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ErrorBoundary } from './components/ui/error-boundary';
 import { AppShell } from './components/layout/app-shell';
 import { SignsPage } from './routes/signs-page';
 import { WorkOrdersPage } from './routes/work-orders-page';
@@ -30,11 +31,17 @@ const queryClient = new QueryClient({
       staleTime: 30_000,
       refetchOnWindowFocus: false,
     },
+    mutations: {
+      onError: (error) => {
+        console.error('[Mutation error]', error);
+      },
+    },
   },
 });
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
@@ -57,5 +64,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

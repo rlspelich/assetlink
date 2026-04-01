@@ -28,5 +28,21 @@ export const api = ky.create({
         }
       },
     ],
+    afterResponse: [
+      async (_request, _options, response) => {
+        if (!response.ok) {
+          let detail = response.statusText;
+          try {
+            const body = await response.json();
+            if (body && typeof body === 'object' && 'detail' in body) {
+              detail = (body as { detail: string }).detail;
+            }
+          } catch {
+            // body not JSON, use statusText
+          }
+          console.error(`[API ${response.status}] ${_request.url}: ${detail}`);
+        }
+      },
+    ],
   },
 });
