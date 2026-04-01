@@ -4,6 +4,7 @@ import { Plus, X, Map as MapIcon, ShieldCheck } from 'lucide-react';
 import { useSignsList, useSign, useCreateSign, useUpdateSign, useDeleteSign } from '../hooks/use-signs';
 import { useUpdateSupport, useDeleteSupport } from '../hooks/use-supports';
 import { AssetMap } from '../components/map/asset-map';
+import { AddressSearch } from '../components/shared/address-search';
 import { SignListPanel } from '../components/signs/sign-list-panel';
 import { SignDetailPanel } from '../components/signs/sign-detail-panel';
 import { SignFormPanel } from '../components/signs/sign-form-panel';
@@ -26,6 +27,7 @@ export function SignsPage() {
   const [mode, setMode] = useState<PageMode>('view');
   const [visibleSignCount, setVisibleSignCount] = useState<number | null>(null);
   const [placementCoords, setPlacementCoords] = useState<{ lng: number; lat: number } | null>(null);
+  const [flyToCoords, setFlyToCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Support-centric view state
@@ -375,6 +377,7 @@ export function SignsPage() {
           {visibleSignCount != null && visibleSignCount < filteredSigns.length && (
             <span className="text-xs text-gray-500">{visibleSignCount.toLocaleString()} in view</span>
           )}
+          <AddressSearch onSelect={(lng, lat) => setFlyToCoords({ lng, lat })} placeholder="Go to address..." className="w-48" />
           {mode === 'view' && (
             <button
               onClick={handleStartAdd}
@@ -417,6 +420,7 @@ export function SignsPage() {
           placementMode={isPlacementMode}
           placementCoords={placementCoords}
           onPlacementClick={handlePlacementClick}
+          flyToCoords={flyToCoords}
         />
 
 

@@ -17,6 +17,7 @@ interface WorkOrderMapProps {
   onSignSelect?: (sign: Sign) => void;
   onLocationSelect?: (lng: number, lat: number) => void;
   selectionCoords?: { lng: number; lat: number } | null;
+  flyToCoords?: { lng: number; lat: number } | null;
 }
 
 const INITIAL_VIEW = {
@@ -51,9 +52,16 @@ export function WorkOrderMap({
   onSignSelect,
   onLocationSelect,
   selectionCoords,
+  flyToCoords,
 }: WorkOrderMapProps) {
   const mapRef = useRef<MapRef>(null);
   const hasFittedBounds = useRef(false);
+
+  // Fly to coordinates from address search
+  useEffect(() => {
+    if (!flyToCoords || !mapRef.current) return;
+    mapRef.current.flyTo({ center: [flyToCoords.lng, flyToCoords.lat], zoom: 17, duration: 1200 });
+  }, [flyToCoords]);
   const [popupWO, setPopupWO] = useState<WorkOrder | null>(null);
 
   const highlightedSet = useMemo(() => new Set(highlightedSignIds), [highlightedSignIds]);

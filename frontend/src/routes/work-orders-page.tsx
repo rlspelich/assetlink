@@ -12,6 +12,7 @@ import { WorkOrderDetailPanel } from '../components/work-orders/work-order-detai
 import { WorkOrderForm } from '../components/work-orders/work-order-form';
 import { WorkOrderListPanel } from '../components/work-orders/work-order-list-panel';
 import { WorkOrderMap } from '../components/map/work-order-map';
+import { AddressSearch } from '../components/shared/address-search';
 import { WorkOrderTable } from '../components/work-orders/work-order-table';
 import { ViewModeToggle, type ViewMode } from '../components/shared/view-mode-toggle';
 import type { Sign, WorkOrder, WorkOrderCreate, WorkOrderUpdate } from '../api/types';
@@ -39,6 +40,7 @@ export function WorkOrdersPage() {
   const [workTypeFilter, setWorkTypeFilter] = useState('');
   const [assignedToFilter, setAssignedToFilter] = useState(routeState?.filterAssignedTo || '');
   const [searchQuery, setSearchQuery] = useState('');
+  const [flyToCoords, setFlyToCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -334,7 +336,8 @@ export function WorkOrdersPage() {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Right: Create button */}
+      {/* Right: Address search + Create button */}
+      <AddressSearch onSelect={(lng, lat) => setFlyToCoords({ lng, lat })} placeholder="Go to address..." className="w-48" />
       <button
         onClick={handleCreate}
         className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
@@ -383,6 +386,7 @@ export function WorkOrdersPage() {
               onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
               onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
               selectionCoords={selectionCoords}
+              flyToCoords={flyToCoords}
             />
 
             {/* Choosing mode — pick what to do */}
@@ -507,7 +511,13 @@ export function WorkOrdersPage() {
                   onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
                   onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
                   selectionCoords={selectionCoords}
+                  flyToCoords={flyToCoords}
                 />
+                {!creationMode && (
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 w-72">
+                    <AddressSearch onSelect={(lng, lat) => setFlyToCoords({ lng, lat })} placeholder="Go to address..." />
+                  </div>
+                )}
               </div>
 
               {/* Divider */}

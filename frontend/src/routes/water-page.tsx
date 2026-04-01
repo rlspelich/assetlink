@@ -28,6 +28,7 @@ import {
   useDeletePressureZone,
 } from '../hooks/use-water';
 import { WaterMap } from '../components/water/water-map';
+import { AddressSearch } from '../components/shared/address-search';
 import { WaterDetailPanel } from '../components/water/water-detail-panel';
 import { WaterFormPanel } from '../components/water/water-form-panel';
 import type { WaterMain, WaterValve, FireHydrant, WaterService, WaterFitting, PressureZone } from '../api/types';
@@ -96,6 +97,7 @@ export function WaterPage() {
   const [selectedAsset, setSelectedAsset] = useState<{ type: string; id: string; data: unknown } | null>(null);
   const [mode, setMode] = useState<PageMode>('view');
   const [searchQuery, setSearchQuery] = useState('');
+  const [flyToCoords, setFlyToCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [placementCoords, setPlacementCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [drawnCoordinates, setDrawnCoordinates] = useState<number[][] | null>(null);
@@ -459,6 +461,7 @@ export function WaterPage() {
           <span className="text-xs text-gray-500">
             {waterMains.length} mains &middot; {waterValves.length} valves &middot; {hydrants.length} hydrants &middot; {waterServices.length} svc &middot; {waterFittings.length} fit &middot; {pressureZones.length} zones
           </span>
+          <AddressSearch onSelect={(lng, lat) => setFlyToCoords({ lng, lat })} placeholder="Go to address..." className="w-48" />
           {mode === 'view' && (
             <button
               onClick={handleStartAdd}
@@ -557,8 +560,8 @@ export function WaterPage() {
           activeTab={activeTab}
           onMapClick={isPlacementMode && isPointTab(activeTab) ? handlePlacementClick : undefined}
           onLineDrawn={isPlacementMode && !isPointTab(activeTab) ? handleLineDrawn : undefined}
+          flyToCoords={flyToCoords}
         />
-
 
         {/* Placement mode banner */}
         {isPlacementMode && (

@@ -13,6 +13,7 @@ interface AssetMapProps {
   placementMode?: boolean;
   placementCoords?: { lng: number; lat: number } | null;
   onPlacementClick?: (lng: number, lat: number) => void;
+  flyToCoords?: { lng: number; lat: number } | null;
 }
 
 const INITIAL_VIEW = {
@@ -68,10 +69,17 @@ export function AssetMap({
   placementMode = false,
   placementCoords,
   onPlacementClick,
+  flyToCoords,
 }: AssetMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [popupSign, setPopupSign] = useState<Sign | null>(null);
   const hasFittedBounds = useRef(false);
+
+  // Fly to coordinates from address search
+  useEffect(() => {
+    if (!flyToCoords || !mapRef.current) return;
+    mapRef.current.flyTo({ center: [flyToCoords.lng, flyToCoords.lat], zoom: 17, duration: 1200 });
+  }, [flyToCoords]);
 
   const geojson = useMemo(() => ({
     type: 'FeatureCollection' as const,

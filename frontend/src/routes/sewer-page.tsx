@@ -24,6 +24,7 @@ import {
   useDeleteSewerLateral,
 } from '../hooks/use-sewer';
 import { SewerMap } from '../components/sewer/sewer-map';
+import { AddressSearch } from '../components/shared/address-search';
 import { SewerDetailPanel } from '../components/sewer/sewer-detail-panel';
 import { SewerFormPanel } from '../components/sewer/sewer-form-panel';
 import type { Manhole, SewerMain, ForceMain, LiftStation, SewerLateral } from '../api/types';
@@ -91,6 +92,7 @@ export function SewerPage() {
   const [selectedAsset, setSelectedAsset] = useState<{ type: string; id: string; data: unknown } | null>(null);
   const [mode, setMode] = useState<PageMode>('view');
   const [searchQuery, setSearchQuery] = useState('');
+  const [flyToCoords, setFlyToCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [systemTypeFilter, setSystemTypeFilter] = useState('');
   const [placementCoords, setPlacementCoords] = useState<{ lng: number; lat: number } | null>(null);
@@ -426,6 +428,7 @@ export function SewerPage() {
           <span className="text-xs text-gray-500">
             {manholes.length} MH &middot; {sewerMains.length} mains &middot; {forceMains.length} FM &middot; {liftStations.length} LS &middot; {laterals.length} lat
           </span>
+          <AddressSearch onSelect={(lng, lat) => setFlyToCoords({ lng, lat })} placeholder="Go to address..." className="w-48" />
           {mode === 'view' && (
             <button
               onClick={handleStartAdd}
@@ -532,8 +535,8 @@ export function SewerPage() {
           activeTab={activeTab}
           onMapClick={isPlacementMode && isPointTab(activeTab) ? handlePlacementClick : undefined}
           onLineDrawn={isPlacementMode && !isPointTab(activeTab) ? handleLineDrawn : undefined}
+          flyToCoords={flyToCoords}
         />
-
 
         {/* Placement mode banner */}
         {isPlacementMode && (

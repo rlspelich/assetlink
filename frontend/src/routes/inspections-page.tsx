@@ -13,6 +13,7 @@ import { InspectionDetailPanel } from '../components/inspections/inspection-deta
 import { InspectionForm, type InspectionAssetContext } from '../components/inspections/inspection-form';
 import { InspectionListPanel } from '../components/inspections/inspection-list-panel';
 import { InspectionMap } from '../components/map/inspection-map';
+import { AddressSearch } from '../components/shared/address-search';
 import { InspectionTable } from '../components/inspections/inspection-table';
 import { ViewModeToggle, type ViewMode } from '../components/shared/view-mode-toggle';
 import type { Sign, Inspection, InspectionCreate, InspectionUpdate } from '../api/types';
@@ -36,6 +37,7 @@ export function InspectionsPage() {
   const [followUpFilter, setFollowUpFilter] = useState('');
   const [inspectorFilter, setInspectorFilter] = useState(routeState?.filterInspector || '');
   const [searchQuery, setSearchQuery] = useState('');
+  const [flyToCoords, setFlyToCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null);
   const [selectedInspectionId, setSelectedInspectionId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -345,7 +347,8 @@ export function InspectionsPage() {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Right: Create button */}
+      {/* Right: Address search + Create button */}
+      <AddressSearch onSelect={(lng, lat) => setFlyToCoords({ lng, lat })} placeholder="Go to address..." className="w-48" />
       <button
         onClick={handleCreate}
         className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
@@ -394,6 +397,7 @@ export function InspectionsPage() {
               onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
               onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
               selectionCoords={selectionCoords}
+              flyToCoords={flyToCoords}
             />
 
             {/* Choosing mode */}
@@ -494,6 +498,7 @@ export function InspectionsPage() {
                   onSignSelect={handleSignSelect}
                   onLocationSelect={handleLocationSelect}
                   selectionCoords={selectionCoords}
+                  flyToCoords={flyToCoords}
                 />
 
                 {/* Asset selection mode banner (split view) */}

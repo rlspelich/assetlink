@@ -22,6 +22,7 @@ interface WaterMapProps {
   activeTab: string;
   onMapClick?: (lngLat: { lng: number; lat: number }) => void;
   onLineDrawn?: (coordinates: number[][]) => void;
+  flyToCoords?: { lng: number; lat: number } | null;
 }
 
 const INITIAL_VIEW = {
@@ -43,9 +44,16 @@ export function WaterMap({
   activeTab,
   onMapClick,
   onLineDrawn,
+  flyToCoords,
 }: WaterMapProps) {
   const mapRef = useRef<MapRef>(null);
   const hasFittedBounds = useRef(false);
+
+  // Fly to coordinates from address search
+  useEffect(() => {
+    if (!flyToCoords || !mapRef.current) return;
+    mapRef.current.flyTo({ center: [flyToCoords.lng, flyToCoords.lat], zoom: 17, duration: 1200 });
+  }, [flyToCoords]);
   const [lineDrawPoints, setLineDrawPoints] = useState<number[][]>([]);
 
   const isPlacementMode = mode === 'add-placing';

@@ -16,6 +16,7 @@ interface InspectionMapProps {
   onSignSelect?: (sign: Sign) => void;
   onLocationSelect?: (lng: number, lat: number) => void;
   selectionCoords?: { lng: number; lat: number } | null;
+  flyToCoords?: { lng: number; lat: number } | null;
 }
 
 const INITIAL_VIEW = {
@@ -48,9 +49,16 @@ export function InspectionMap({
   onSignSelect,
   onLocationSelect,
   selectionCoords,
+  flyToCoords,
 }: InspectionMapProps) {
   const mapRef = useRef<MapRef>(null);
   const hasFittedBounds = useRef(false);
+
+  // Fly to coordinates from address search
+  useEffect(() => {
+    if (!flyToCoords || !mapRef.current) return;
+    mapRef.current.flyTo({ center: [flyToCoords.lng, flyToCoords.lat], zoom: 17, duration: 1200 });
+  }, [flyToCoords]);
   const [popupInsp, setPopupInsp] = useState<Inspection | null>(null);
 
   const highlightedSet = useMemo(() => new Set(highlightedSignIds), [highlightedSignIds]);
