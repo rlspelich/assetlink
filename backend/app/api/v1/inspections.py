@@ -21,6 +21,7 @@ from app.schemas.inspection import (
     InspectionOut,
     InspectionUpdate,
 )
+from app.db.spatial import lon_lat_columns, make_point
 from app.schemas.work_order import WorkOrderOut
 from app.schemas.work_order_asset import WorkOrderAssetOut
 
@@ -151,8 +152,7 @@ async def _resolve_fallback_coords_for_inspections(
     subq = (
         select(
             InspectionAsset.inspection_id,
-            func.ST_X(Sign.geometry).label("lon"),
-            func.ST_Y(Sign.geometry).label("lat"),
+            *lon_lat_columns(Sign.geometry),
         )
         .join(Sign, Sign.sign_id == InspectionAsset.asset_id)
         .where(
@@ -302,8 +302,7 @@ async def list_inspections(
     query = (
         select(
             Inspection,
-            func.ST_X(Inspection.geometry).label("lon"),
-            func.ST_Y(Inspection.geometry).label("lat"),
+            *lon_lat_columns(Inspection.geometry),
         )
         .where(Inspection.tenant_id == tenant_id)
     )
@@ -359,7 +358,7 @@ async def create_inspection(
 ) -> InspectionOut:
     geom = None
     if data.longitude is not None and data.latitude is not None:
-        geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
+        geom = make_point(data.longitude, data.latitude)
 
     # If support_id is provided, look up support geometry for inspection location
     support_signs: list[Sign] = []
@@ -368,8 +367,7 @@ async def create_inspection(
         support_result = await db.execute(
             select(
                 SignSupport,
-                func.ST_X(SignSupport.geometry).label("lon"),
-                func.ST_Y(SignSupport.geometry).label("lat"),
+                *lon_lat_columns(SignSupport.geometry),
             ).where(
                 SignSupport.support_id == data.support_id,
                 SignSupport.tenant_id == tenant_id,
@@ -381,9 +379,7 @@ async def create_inspection(
         support_obj = support_row.SignSupport
         # Use support geometry if inspection geometry not provided
         if geom is None:
-            geom = func.ST_SetSRID(
-                func.ST_MakePoint(support_row.lon, support_row.lat), 4326
-            )
+            geom = make_point(support_row.lon, support_row.lat)
         # Fetch all signs on this support
         signs_result = await db.execute(
             select(Sign).where(
@@ -494,8 +490,7 @@ async def create_inspection(
     result = await db.execute(
         select(
             Inspection,
-            func.ST_X(Inspection.geometry).label("lon"),
-            func.ST_Y(Inspection.geometry).label("lat"),
+            *lon_lat_columns(Inspection.geometry),
         )
         .options(selectinload(Inspection.assets))
         .where(Inspection.inspection_id == inspection.inspection_id)
@@ -526,8 +521,7 @@ async def get_inspection(
     result = await db.execute(
         select(
             Inspection,
-            func.ST_X(Inspection.geometry).label("lon"),
-            func.ST_Y(Inspection.geometry).label("lat"),
+            *lon_lat_columns(Inspection.geometry),
         )
         .options(selectinload(Inspection.assets))
         .where(
@@ -628,8 +622,7 @@ async def update_inspection(
     result = await db.execute(
         select(
             Inspection,
-            func.ST_X(Inspection.geometry).label("lon"),
-            func.ST_Y(Inspection.geometry).label("lat"),
+            *lon_lat_columns(Inspection.geometry),
         )
         .options(selectinload(Inspection.assets))
         .where(Inspection.inspection_id == insp_id)
@@ -811,8 +804,7 @@ async def create_work_order_from_inspection(
     result = await db.execute(
         select(
             WorkOrder,
-            func.ST_X(WorkOrder.geometry).label("lon"),
-            func.ST_Y(WorkOrder.geometry).label("lat"),
+            *lon_lat_columns(WorkOrder.geometry),
         )
         .options(selectinload(WorkOrder.assets))
         .where(WorkOrder.work_order_id == wo.work_order_id)

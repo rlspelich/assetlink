@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
+from app.db.spatial import lon_lat_columns, make_point
 from app.models.sewer import Manhole, ManholePipe
 from app.schemas.sewer import (
     ManholeCreate,
@@ -48,8 +49,7 @@ async def list_manholes(
     query = (
         select(
             Manhole,
-            func.ST_X(Manhole.geometry).label("lon"),
-            func.ST_Y(Manhole.geometry).label("lat"),
+            *lon_lat_columns(Manhole.geometry),
             func.coalesce(pipe_count_subq.c.pipe_count, 0).label("pipe_count"),
         )
         .outerjoin(pipe_count_subq, Manhole.manhole_id == pipe_count_subq.c.manhole_id)
@@ -88,7 +88,7 @@ async def create_manhole(
     db: AsyncSession = Depends(get_db),
 ) -> ManholeOut:
     """Create a new manhole."""
-    geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
+    geom = make_point(data.longitude, data.latitude)
 
     manhole = Manhole(
         tenant_id=tenant_id,
@@ -176,8 +176,7 @@ async def get_manhole(
 
     query = select(
         Manhole,
-        func.ST_X(Manhole.geometry).label("lon"),
-        func.ST_Y(Manhole.geometry).label("lat"),
+        *lon_lat_columns(Manhole.geometry),
         func.coalesce(pipe_count_subq, 0).label("pipe_count"),
     ).where(Manhole.manhole_id == manhole_id, Manhole.tenant_id == tenant_id)
 
@@ -228,7 +227,7 @@ async def update_manhole(
     if "longitude" in update_data and "latitude" in update_data:
         lon = update_data.pop("longitude")
         lat = update_data.pop("latitude")
-        manhole.geometry = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        manhole.geometry = make_point(lon, lat)
     else:
         update_data.pop("longitude", None)
         update_data.pop("latitude", None)
@@ -247,8 +246,7 @@ async def update_manhole(
 
     query = select(
         Manhole,
-        func.ST_X(Manhole.geometry).label("lon"),
-        func.ST_Y(Manhole.geometry).label("lat"),
+        *lon_lat_columns(Manhole.geometry),
         func.coalesce(pipe_count_subq, 0).label("pipe_count"),
     ).where(Manhole.manhole_id == manhole_id)
     result = await db.execute(query)

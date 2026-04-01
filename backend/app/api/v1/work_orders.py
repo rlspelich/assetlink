@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
+from app.db.spatial import lon_lat_columns, make_point
 from app.models.sign import Sign, SignSupport, SignType
 from app.models.work_order import WorkOrder
 from app.models.work_order_asset import WorkOrderAsset
@@ -189,8 +190,7 @@ async def _resolve_fallback_coords_for_work_orders(
     subq = (
         select(
             WorkOrderAsset.work_order_id,
-            func.ST_X(Sign.geometry).label("lon"),
-            func.ST_Y(Sign.geometry).label("lat"),
+            *lon_lat_columns(Sign.geometry),
         )
         .join(Sign, Sign.sign_id == WorkOrderAsset.asset_id)
         .where(
@@ -237,8 +237,7 @@ async def list_work_orders(
     query = (
         select(
             WorkOrder,
-            func.ST_X(WorkOrder.geometry).label("lon"),
-            func.ST_Y(WorkOrder.geometry).label("lat"),
+            *lon_lat_columns(WorkOrder.geometry),
         )
         .where(WorkOrder.tenant_id == tenant_id)
     )
@@ -294,7 +293,7 @@ async def create_work_order(
 ) -> WorkOrderOut:
     geom = None
     if data.longitude is not None and data.latitude is not None:
-        geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
+        geom = make_point(data.longitude, data.latitude)
 
     # If support_id is provided, look up support geometry for WO location
     support_signs: list[Sign] = []
@@ -303,8 +302,7 @@ async def create_work_order(
         support_result = await db.execute(
             select(
                 SignSupport,
-                func.ST_X(SignSupport.geometry).label("lon"),
-                func.ST_Y(SignSupport.geometry).label("lat"),
+                *lon_lat_columns(SignSupport.geometry),
             ).where(
                 SignSupport.support_id == data.support_id,
                 SignSupport.tenant_id == tenant_id,
@@ -316,9 +314,7 @@ async def create_work_order(
         support_obj = support_row.SignSupport
         # Use support geometry if WO geometry not provided
         if geom is None:
-            geom = func.ST_SetSRID(
-                func.ST_MakePoint(support_row.lon, support_row.lat), 4326
-            )
+            geom = make_point(support_row.lon, support_row.lat)
         # Fetch all signs on this support
         signs_result = await db.execute(
             select(Sign).where(
@@ -417,8 +413,7 @@ async def create_work_order(
     result = await db.execute(
         select(
             WorkOrder,
-            func.ST_X(WorkOrder.geometry).label("lon"),
-            func.ST_Y(WorkOrder.geometry).label("lat"),
+            *lon_lat_columns(WorkOrder.geometry),
         )
         .options(selectinload(WorkOrder.assets))
         .where(WorkOrder.work_order_id == wo.work_order_id)
@@ -449,8 +444,7 @@ async def get_work_order(
     result = await db.execute(
         select(
             WorkOrder,
-            func.ST_X(WorkOrder.geometry).label("lon"),
-            func.ST_Y(WorkOrder.geometry).label("lat"),
+            *lon_lat_columns(WorkOrder.geometry),
         )
         .options(selectinload(WorkOrder.assets))
         .where(
@@ -546,8 +540,7 @@ async def update_work_order(
     result = await db.execute(
         select(
             WorkOrder,
-            func.ST_X(WorkOrder.geometry).label("lon"),
-            func.ST_Y(WorkOrder.geometry).label("lat"),
+            *lon_lat_columns(WorkOrder.geometry),
         )
         .options(selectinload(WorkOrder.assets))
         .where(WorkOrder.work_order_id == wo_id)

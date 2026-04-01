@@ -22,6 +22,7 @@ from app.schemas.support import (
     SignSupportOut,
     SignSupportUpdate,
 )
+from app.db.spatial import lon_lat_columns, make_point
 from app.services.import_service import import_supports_from_csv
 
 router = APIRouter()
@@ -73,8 +74,7 @@ async def list_supports(
     query = (
         select(
             SignSupport,
-            func.ST_X(SignSupport.geometry).label("lon"),
-            func.ST_Y(SignSupport.geometry).label("lat"),
+            *lon_lat_columns(SignSupport.geometry),
             func.coalesce(sign_count_subq.c.sign_count, 0).label("sign_count"),
         )
         .outerjoin(sign_count_subq, SignSupport.support_id == sign_count_subq.c.support_id)
@@ -111,7 +111,7 @@ async def create_support(
     db: AsyncSession = Depends(get_db),
 ) -> SignSupportOut:
     """Create a new sign support."""
-    geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
+    geom = make_point(data.longitude, data.latitude)
 
     support = SignSupport(
         tenant_id=tenant_id,
@@ -156,8 +156,7 @@ async def get_support(
     # Fetch support with coordinates
     query = select(
         SignSupport,
-        func.ST_X(SignSupport.geometry).label("lon"),
-        func.ST_Y(SignSupport.geometry).label("lat"),
+        *lon_lat_columns(SignSupport.geometry),
     ).where(SignSupport.support_id == support_id, SignSupport.tenant_id == tenant_id)
 
     result = await db.execute(query)
@@ -170,8 +169,7 @@ async def get_support(
     # Fetch attached signs
     signs_query = select(
         Sign,
-        func.ST_X(Sign.geometry).label("lon"),
-        func.ST_Y(Sign.geometry).label("lat"),
+        *lon_lat_columns(Sign.geometry),
     ).where(Sign.support_id == support_id, Sign.tenant_id == tenant_id)
 
     signs_result = await db.execute(signs_query)
@@ -221,7 +219,7 @@ async def update_support(
     if "longitude" in update_data and "latitude" in update_data:
         lon = update_data.pop("longitude")
         lat = update_data.pop("latitude")
-        support.geometry = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        support.geometry = make_point(lon, lat)
     else:
         update_data.pop("longitude", None)
         update_data.pop("latitude", None)
@@ -240,8 +238,7 @@ async def update_support(
 
     query = select(
         SignSupport,
-        func.ST_X(SignSupport.geometry).label("lon"),
-        func.ST_Y(SignSupport.geometry).label("lat"),
+        *lon_lat_columns(SignSupport.geometry),
         func.coalesce(sign_count_subq, 0).label("sign_count"),
     ).where(SignSupport.support_id == support_id)
     result = await db.execute(query)
@@ -303,8 +300,7 @@ async def list_support_signs(
 
     query = select(
         Sign,
-        func.ST_X(Sign.geometry).label("lon"),
-        func.ST_Y(Sign.geometry).label("lat"),
+        *lon_lat_columns(Sign.geometry),
     ).where(Sign.support_id == support_id, Sign.tenant_id == tenant_id)
 
     result = await db.execute(query)

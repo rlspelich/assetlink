@@ -1,13 +1,13 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from geoalchemy2.functions import ST_AsText, ST_MakePoint, ST_SetSRID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.core.tenant import get_current_tenant
+from app.db.spatial import lon_lat_columns, make_point
 from app.db.session import get_db
 from app.models.inspection import Inspection
 from app.models.inspection_asset import InspectionAsset
@@ -95,8 +95,7 @@ async def list_signs(
     query = (
         select(
             Sign,
-            func.ST_X(Sign.geometry).label("lon"),
-            func.ST_Y(Sign.geometry).label("lat"),
+            *lon_lat_columns(Sign.geometry),
             SignSupport.support_type.label("support_type"),
             SignSupport.status.label("support_status"),
         )
@@ -201,8 +200,7 @@ async def create_sign(
         support_result = await db.execute(
             select(
                 SignSupport,
-                func.ST_X(SignSupport.geometry).label("lon"),
-                func.ST_Y(SignSupport.geometry).label("lat"),
+                *lon_lat_columns(SignSupport.geometry),
             ).where(
                 SignSupport.support_id == data.support_id,
                 SignSupport.tenant_id == tenant_id,
@@ -224,7 +222,7 @@ async def create_sign(
             detail="longitude and latitude are required when no support_id is provided",
         )
 
-    geom = func.ST_SetSRID(func.ST_MakePoint(longitude, latitude), 4326)
+    geom = make_point(longitude, latitude)
 
     sign = Sign(
         tenant_id=tenant_id,
@@ -282,8 +280,7 @@ async def get_sign(
     query = (
         select(
             Sign,
-            func.ST_X(Sign.geometry).label("lon"),
-            func.ST_Y(Sign.geometry).label("lat"),
+            *lon_lat_columns(Sign.geometry),
             SignSupport.support_type.label("support_type"),
             SignSupport.status.label("support_status"),
         )
@@ -320,7 +317,7 @@ async def update_sign(
     if "longitude" in update_data and "latitude" in update_data:
         lon = update_data.pop("longitude")
         lat = update_data.pop("latitude")
-        sign.geometry = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        sign.geometry = make_point(lon, lat)
     else:
         update_data.pop("longitude", None)
         update_data.pop("latitude", None)
@@ -334,8 +331,7 @@ async def update_sign(
     query = (
         select(
             Sign,
-            func.ST_X(Sign.geometry).label("lon"),
-            func.ST_Y(Sign.geometry).label("lat"),
+            *lon_lat_columns(Sign.geometry),
             SignSupport.support_type.label("support_type"),
             SignSupport.status.label("support_status"),
         )
@@ -417,8 +413,7 @@ async def list_sign_work_orders(
     query = (
         select(
             WorkOrder,
-            func.ST_X(WorkOrder.geometry).label("lon"),
-            func.ST_Y(WorkOrder.geometry).label("lat"),
+            *lon_lat_columns(WorkOrder.geometry),
         )
         .where(
             WorkOrder.work_order_id.in_(select(combined_wo_ids)),
@@ -509,8 +504,7 @@ async def list_sign_inspections(
     query = (
         select(
             Inspection,
-            func.ST_X(Inspection.geometry).label("lon"),
-            func.ST_Y(Inspection.geometry).label("lat"),
+            *lon_lat_columns(Inspection.geometry),
         )
         .where(
             Inspection.inspection_id.in_(select(combined_insp_ids)),

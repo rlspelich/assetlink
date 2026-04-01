@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
+from app.db.spatial import lon_lat_columns
 from app.models.sign import Sign, SignSupport
 from app.schemas.dashboard import (
     AgeBucket,
@@ -285,8 +286,7 @@ async def get_compliance_dashboard(
             Sign.sheeting_type,
             Sign.last_inspected_date,
             Sign.replacement_cost_estimate,
-            func.ST_X(Sign.geometry).label("longitude"),
-            func.ST_Y(Sign.geometry).label("latitude"),
+            *lon_lat_columns(Sign.geometry),
             priority_score.label("priority_score"),
         )
         .where(Sign.tenant_id == tenant_id)

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
+from app.db.spatial import lon_lat_columns, make_point
 from app.models.water import WaterValve
 
 from .helpers import (
@@ -35,8 +36,7 @@ async def list_water_valves(
     """List water valves for the current tenant with optional filters."""
     query = select(
         WaterValve,
-        func.ST_X(WaterValve.geometry).label("lon"),
-        func.ST_Y(WaterValve.geometry).label("lat"),
+        *lon_lat_columns(WaterValve.geometry),
     ).where(WaterValve.tenant_id == tenant_id)
 
     if status:
@@ -72,7 +72,7 @@ async def create_water_valve(
     db: AsyncSession = Depends(get_db),
 ) -> WaterValveOut:
     """Create a new water valve."""
-    geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
+    geom = make_point(data.longitude, data.latitude)
 
     valve = WaterValve(
         tenant_id=tenant_id,
@@ -118,8 +118,7 @@ async def get_water_valve(
     """Get a single water valve by ID."""
     query = select(
         WaterValve,
-        func.ST_X(WaterValve.geometry).label("lon"),
-        func.ST_Y(WaterValve.geometry).label("lat"),
+        *lon_lat_columns(WaterValve.geometry),
     ).where(
         WaterValve.water_valve_id == water_valve_id,
         WaterValve.tenant_id == tenant_id,
@@ -159,7 +158,7 @@ async def update_water_valve(
     if "longitude" in update_data and "latitude" in update_data:
         lon = update_data.pop("longitude")
         lat = update_data.pop("latitude")
-        valve.geometry = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        valve.geometry = make_point(lon, lat)
     else:
         update_data.pop("longitude", None)
         update_data.pop("latitude", None)
@@ -172,8 +171,7 @@ async def update_water_valve(
     # Re-fetch with coordinates
     query = select(
         WaterValve,
-        func.ST_X(WaterValve.geometry).label("lon"),
-        func.ST_Y(WaterValve.geometry).label("lat"),
+        *lon_lat_columns(WaterValve.geometry),
     ).where(WaterValve.water_valve_id == water_valve_id)
     result = await db.execute(query)
     row = result.first()

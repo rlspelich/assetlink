@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
+from app.db.spatial import make_point
 from app.models.sewer import SewerLateral
 from app.schemas.sewer import (
     SewerLateralCreate,
@@ -78,7 +79,7 @@ async def create_sewer_lateral(
         wkt = _coords_to_linestring_wkt(data.coordinates)
         geom = WKTElement(wkt, srid=4326)
     elif data.longitude is not None and data.latitude is not None:
-        geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
+        geom = make_point(data.longitude, data.latitude)
     else:
         raise HTTPException(
             status_code=400,
@@ -199,7 +200,7 @@ async def update_sewer_lateral(
     elif has_point:
         lon = update_data.pop("longitude")
         lat = update_data.pop("latitude")
-        lateral.geometry = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        lateral.geometry = make_point(lon, lat)
     else:
         update_data.pop("longitude", None)
         update_data.pop("latitude", None)

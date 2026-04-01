@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
+from app.db.spatial import lon_lat_columns, make_point
 from app.models.water import FireHydrant
 
 from .helpers import (
@@ -34,8 +35,7 @@ async def list_hydrants(
     """List fire hydrants for the current tenant with optional filters."""
     query = select(
         FireHydrant,
-        func.ST_X(FireHydrant.geometry).label("lon"),
-        func.ST_Y(FireHydrant.geometry).label("lat"),
+        *lon_lat_columns(FireHydrant.geometry),
     ).where(FireHydrant.tenant_id == tenant_id)
 
     if status:
@@ -69,7 +69,7 @@ async def create_hydrant(
     db: AsyncSession = Depends(get_db),
 ) -> FireHydrantOut:
     """Create a new fire hydrant."""
-    geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
+    geom = make_point(data.longitude, data.latitude)
 
     hydrant = FireHydrant(
         tenant_id=tenant_id,
@@ -118,8 +118,7 @@ async def get_hydrant(
     """Get a single fire hydrant by ID."""
     query = select(
         FireHydrant,
-        func.ST_X(FireHydrant.geometry).label("lon"),
-        func.ST_Y(FireHydrant.geometry).label("lat"),
+        *lon_lat_columns(FireHydrant.geometry),
     ).where(
         FireHydrant.hydrant_id == hydrant_id,
         FireHydrant.tenant_id == tenant_id,
@@ -157,7 +156,7 @@ async def update_hydrant(
     if "longitude" in update_data and "latitude" in update_data:
         lon = update_data.pop("longitude")
         lat = update_data.pop("latitude")
-        hydrant.geometry = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        hydrant.geometry = make_point(lon, lat)
     else:
         update_data.pop("longitude", None)
         update_data.pop("latitude", None)
@@ -170,8 +169,7 @@ async def update_hydrant(
     # Re-fetch with coordinates
     query = select(
         FireHydrant,
-        func.ST_X(FireHydrant.geometry).label("lon"),
-        func.ST_Y(FireHydrant.geometry).label("lat"),
+        *lon_lat_columns(FireHydrant.geometry),
     ).where(FireHydrant.hydrant_id == hydrant_id)
     result = await db.execute(query)
     row = result.first()

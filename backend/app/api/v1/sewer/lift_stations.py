@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
+from app.db.spatial import lon_lat_columns, make_point
 from app.models.sewer import ForceMain, LiftStation
 from app.schemas.sewer import (
     LiftStationCreate,
@@ -47,8 +48,7 @@ async def list_lift_stations(
     query = (
         select(
             LiftStation,
-            func.ST_X(LiftStation.geometry).label("lon"),
-            func.ST_Y(LiftStation.geometry).label("lat"),
+            *lon_lat_columns(LiftStation.geometry),
             func.coalesce(fm_count_subq.c.fm_count, 0).label("fm_count"),
         )
         .outerjoin(fm_count_subq, LiftStation.lift_station_id == fm_count_subq.c.lift_station_id)
@@ -89,7 +89,7 @@ async def create_lift_station(
     db: AsyncSession = Depends(get_db),
 ) -> LiftStationOut:
     """Create a new lift station."""
-    geom = func.ST_SetSRID(func.ST_MakePoint(data.longitude, data.latitude), 4326)
+    geom = make_point(data.longitude, data.latitude)
 
     lift_station = LiftStation(
         tenant_id=tenant_id,
@@ -179,8 +179,7 @@ async def get_lift_station(
 
     query = select(
         LiftStation,
-        func.ST_X(LiftStation.geometry).label("lon"),
-        func.ST_Y(LiftStation.geometry).label("lat"),
+        *lon_lat_columns(LiftStation.geometry),
         func.coalesce(fm_count_subq, 0).label("fm_count"),
     ).where(
         LiftStation.lift_station_id == lift_station_id,
@@ -219,7 +218,7 @@ async def update_lift_station(
     if "longitude" in update_data and "latitude" in update_data:
         lon = update_data.pop("longitude")
         lat = update_data.pop("latitude")
-        lift_station.geometry = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
+        lift_station.geometry = make_point(lon, lat)
     else:
         update_data.pop("longitude", None)
         update_data.pop("latitude", None)
@@ -241,8 +240,7 @@ async def update_lift_station(
 
     query = select(
         LiftStation,
-        func.ST_X(LiftStation.geometry).label("lon"),
-        func.ST_Y(LiftStation.geometry).label("lat"),
+        *lon_lat_columns(LiftStation.geometry),
         func.coalesce(fm_count_subq, 0).label("fm_count"),
     ).where(LiftStation.lift_station_id == lift_station_id)
     result = await db.execute(query)
