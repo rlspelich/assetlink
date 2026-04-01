@@ -9,7 +9,7 @@ import {
   type LettingBidder,
 } from '../../api/estimator';
 import { downloadCSV, downloadTXT, exportCurrency } from '../../utils/export';
-import { LoadingSpinner, ErrorState } from '../ui/states';
+import { LoadingSpinner, ErrorState, EmptyState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
@@ -214,7 +214,12 @@ export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params
 
             {/* Contract cards */}
             {report.contracts.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center text-gray-400">No contracts found.</div>
+              <div className="bg-white rounded-lg shadow">
+                <EmptyState
+                  title="No contracts found"
+                  message="No contracts match the selected letting date and filters — try a different date or clear county/district filters"
+                />
+              </div>
             ) : (
               <div className="space-y-2">
                 {report.contracts.map((contract) => (

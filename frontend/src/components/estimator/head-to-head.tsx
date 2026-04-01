@@ -10,7 +10,7 @@ import {
   type Contractor,
 } from '../../api/estimator';
 import { downloadCSV, downloadTXT, exportCurrency } from '../../utils/export';
-import { LoadingSpinner, InlineLoading, InlineError, ErrorState } from '../ui/states';
+import { LoadingSpinner, InlineLoading, InlineError, ErrorState, EmptyState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
@@ -26,12 +26,14 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: a
     queryKey: ['headToHead', contractorA?.contractor_pk, contractorB?.contractor_pk],
     queryFn: () => getHeadToHead(contractorA!.contractor_pk, contractorB!.contractor_pk),
     enabled: false,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: items, isLoading: itemsLoading, isError: itemsError, refetch: refetchItems } = useQuery({
     queryKey: ['headToHeadItems', contractorA?.contractor_pk, contractorB?.contractor_pk, itemPage],
     queryFn: () => getHeadToHeadItems(contractorA!.contractor_pk, contractorB!.contractor_pk, { page: itemPage, page_size: 25 }),
     enabled: comparing && !!contractorA && !!contractorB,
+    staleTime: 5 * 60 * 1000,
   });
 
   const handleCompare = () => {
@@ -141,7 +143,10 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: a
               <h3 className="text-sm font-medium text-gray-700">Contract Comparison</h3>
             </div>
             {h2h.contracts.length === 0 ? (
-              <div className="p-4 text-sm text-gray-400">No shared contracts found.</div>
+              <EmptyState
+                title="No shared contracts"
+                message="These contractors haven't bid on the same contracts"
+              />
             ) : (
               <div className="overflow-auto">
                 <table className="w-full text-sm">
@@ -277,7 +282,10 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: a
             ) : itemsError ? (
               <InlineError message="Failed to load items" onRetry={() => refetchItems()} />
             ) : !items || items.items.length === 0 ? (
-              <div className="p-4 text-sm text-gray-400">No shared pay items found.</div>
+              <EmptyState
+                title="No shared pay items"
+                message="No common pay items found between these contractors"
+              />
             ) : (
               <>
                 <div className="overflow-auto">
@@ -340,9 +348,11 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: a
       )}
 
       {!comparing && !h2hLoading && (
-        <div className="flex items-center justify-center p-12 text-gray-400 text-sm">
-          Select two contractors and click Compare to see head-to-head analysis
-        </div>
+        <EmptyState
+          icon={<GitCompareArrows size={40} className="text-gray-300" />}
+          title="Head-to-Head Comparison"
+          message="Select two contractors above and click Compare to see how they stack up against each other"
+        />
       )}
     </div>
   );

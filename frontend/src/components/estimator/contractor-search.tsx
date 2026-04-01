@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Trophy, TrendingUp, MapPin, DollarSign, BarChart3, ChevronLeft, ChevronRight, GitCompareArrows, Download } from 'lucide-react';
+import { Search, Trophy, TrendingUp, MapPin, DollarSign, BarChart3, ChevronLeft, ChevronRight, GitCompareArrows, Download, Users } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   ComposedChart, Line, Cell,
@@ -16,7 +16,7 @@ import {
   type ContractorProfile,
 } from '../../api/estimator';
 import { downloadTXT, exportCurrency, exportPct } from '../../utils/export';
-import { LoadingSpinner, InlineLoading, InlineError, ErrorState } from '../ui/states';
+import { LoadingSpinner, InlineLoading, InlineError, ErrorState, EmptyState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
@@ -81,7 +81,10 @@ export function ContractorSearch({ navigateTo, navParams }: {
           {isLoading && <InlineLoading />}
           {isError && <InlineError message="Failed to load contractors" onRetry={() => refetch()} />}
           {data && data.contractors.length === 0 && (
-            <div className="p-4 text-sm text-gray-400">No contractors found.</div>
+            <EmptyState
+              title="No contractors found"
+              message="Try a different name or clear the search to browse all contractors"
+            />
           )}
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase sticky top-0">
@@ -141,9 +144,11 @@ export function ContractorSearch({ navigateTo, navParams }: {
       {/* Right panel — contractor profile */}
       <div className="flex-1 overflow-auto bg-gray-50">
         {!selectedPk ? (
-          <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-            Select a contractor to view their profile
-          </div>
+          <EmptyState
+            icon={<Users size={40} className="text-gray-300" />}
+            title="Select a contractor"
+            message="Choose a contractor from the list to view their profile, bidding history, and price analysis"
+          />
         ) : (
           <ContractorProfilePanel pk={selectedPk} activeTab={profileTab} onTabChange={setProfileTab} navigateTo={navigateTo} />
         )}
@@ -171,6 +176,7 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange, navigateTo }: {
   const { data: profile, isLoading, isError, refetch } = useQuery({
     queryKey: ['contractorProfile', pk, minDate, maxDate],
     queryFn: () => getContractorProfile(pk, dateParams),
+    staleTime: 5 * 60 * 1000,
   });
 
   if (isLoading || !profile) {
@@ -385,7 +391,10 @@ function HistoryTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: { 
       ) : isError ? (
         <InlineError message="Failed to load history" onRetry={() => refetch()} />
       ) : !data || data.entries.length === 0 ? (
-        <div className="p-4 text-sm text-gray-400">No bidding history found.</div>
+        <EmptyState
+          title="No bidding history"
+          message="No bids found for this contractor in the selected date range"
+        />
       ) : (
         <>
           <div className="overflow-auto">
@@ -461,6 +470,7 @@ function GeoTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: strin
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['geoFootprint', pk, dateParams],
     queryFn: () => getGeoFootprint(pk, dateParams),
+    staleTime: 5 * 60 * 1000,
   });
 
   if (isLoading) return <LoadingSpinner />;
@@ -508,7 +518,7 @@ function GeoTable({ title, entries }: { title: string; entries: { name: string; 
         <h3 className="text-sm font-medium text-gray-700">{title}</h3>
       </div>
       {entries.length === 0 ? (
-        <div className="p-4 text-sm text-gray-400">No data.</div>
+        <EmptyState title="No data" message="No geographic data available for this date range" />
       ) : (
         <div className="overflow-auto max-h-[400px]">
           <table className="w-full text-sm">
@@ -547,11 +557,17 @@ function ActivityTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['activityTrend', pk, dateParams],
     queryFn: () => getActivityTrend(pk, dateParams),
+    staleTime: 5 * 60 * 1000,
   });
 
   if (isLoading) return <LoadingSpinner />;
   if (isError) return <ErrorState title="Failed to load activity data" onRetry={() => refetch()} />;
-  if (!data || data.trend.length === 0) return <div className="p-4 text-sm text-gray-400">No activity data.</div>;
+  if (!data || data.trend.length === 0) return (
+    <EmptyState
+      title="No activity data"
+      message="No bidding activity found for this contractor in the selected date range"
+    />
+  );
 
   const chartData = data.trend.map((t) => ({
     year: String(t.year),
@@ -622,11 +638,18 @@ function PricesTab({ pk, dateParams }: { pk: string; dateParams: { min_date?: st
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['priceTendencies', pk, dateParams],
     queryFn: () => getPriceTendencies(pk, dateParams),
+    staleTime: 5 * 60 * 1000,
   });
 
   if (isLoading) return <LoadingSpinner />;
   if (isError) return <ErrorState title="Failed to load price data" onRetry={() => refetch()} />;
-  if (!data || data.tendencies.length === 0) return <div className="p-4 text-sm text-gray-400">No price tendency data.</div>;
+  if (!data || data.tendencies.length === 0) return (
+    <EmptyState
+      icon={<DollarSign size={40} className="text-gray-300" />}
+      title="No price tendency data"
+      message="Not enough bid data to calculate price tendencies — try expanding the date range or selecting a contractor with more bids"
+    />
+  );
 
   const chartData = data.tendencies.slice(0, 15).map((t) => ({
     name: t.division.length > 30 ? t.division.slice(0, 30) + '...' : t.division,
@@ -711,13 +734,19 @@ function VsMarketTab({ pk, dateParams, navigateTo }: { pk: string; dateParams: {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['vsMarket', pk, page, dateParams],
     queryFn: () => getContractorVsMarket(pk, { page, page_size: 50, ...dateParams }),
+    staleTime: 5 * 60 * 1000,
   });
 
   const totalPages = data ? Math.ceil(data.total / 50) : 0;
 
   if (isLoading) return <LoadingSpinner />;
   if (isError) return <ErrorState title="Failed to load market comparison" onRetry={() => refetch()} />;
-  if (!data || data.items.length === 0) return <div className="p-4 text-sm text-gray-400">No item-level comparison data.</div>;
+  if (!data || data.items.length === 0) return (
+    <EmptyState
+      title="No item-level comparison data"
+      message="Not enough shared pay items to compare against the market — try expanding the date range"
+    />
+  );
 
   return (
     <div className="bg-white rounded-lg shadow">

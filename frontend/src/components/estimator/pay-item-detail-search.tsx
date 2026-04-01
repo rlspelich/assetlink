@@ -11,7 +11,7 @@ import {
   type PayItemSearchStats,
 } from '../../api/estimator';
 import { downloadCSV, exportCurrency } from '../../utils/export';
-import { LoadingSpinner, ErrorState } from '../ui/states';
+import { LoadingSpinner, ErrorState, EmptyState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
@@ -341,7 +341,12 @@ export function PayItemDetailSearch({ navigateTo, navParams }: {
               <tbody className="divide-y divide-gray-100">
                 {data.results.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-3 py-8 text-center text-gray-400">No results found.</td>
+                    <td colSpan={11} className="py-2">
+                      <EmptyState
+                        title="No results found"
+                        message="No bid occurrences match your filters — try a different pay item, contractor, county, or date range"
+                      />
+                    </td>
                   </tr>
                 ) : (
                   data.results.map((r) => (

@@ -8,7 +8,7 @@ import {
   type MarketPlayer,
 } from '../../api/estimator';
 import { downloadCSV, downloadTXT, exportCurrency, exportPct } from '../../utils/export';
-import { LoadingSpinner, ErrorState } from '../ui/states';
+import { LoadingSpinner, ErrorState, EmptyState } from '../ui/states';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
@@ -39,6 +39,7 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
       limit: 100,
     }),
     enabled: Object.keys(searchParams).length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   const handleSearch = () => {
@@ -262,7 +263,10 @@ export function MarketAnalysis({ navigateTo }: { navigateTo: (tab: string, param
                 </div>
               </div>
               {data.players.length === 0 ? (
-                <div className="p-8 text-center text-gray-400 text-sm">No players found for these filters.</div>
+                <EmptyState
+                  title="No market players found"
+                  message="No bidders matched these filters — try broadening the date range, removing county/district filters, or adjusting the project size range"
+                />
               ) : (
                 <div className="overflow-auto">
                   <table className="w-full text-sm">

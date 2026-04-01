@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { searchPayItems, type PayItem } from '../../api/estimator';
+import { InlineLoading, EmptyState } from '../ui/states';
 
 interface Props {
   onSelect: (item: PayItem) => void;
@@ -51,14 +52,17 @@ export function PayItemSearch({ onSelect, selectedCode }: Props) {
       {/* Results table */}
       <div className="flex-1 overflow-auto">
         {isLoading && debouncedSearch.length >= 2 && (
-          <div className="p-4 text-sm text-gray-500">Searching...</div>
+          <InlineLoading message="Searching pay items..." />
         )}
         {!debouncedSearch || debouncedSearch.length < 2 ? (
           <div className="p-4 text-sm text-gray-400">
             Type at least 2 characters to search pay items
           </div>
         ) : data?.pay_items.length === 0 ? (
-          <div className="p-4 text-sm text-gray-500">No pay items found</div>
+          <EmptyState
+            title="No pay items found"
+            message="Try a different search term, code, or description keyword"
+          />
         ) : (
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-gray-50 border-b">

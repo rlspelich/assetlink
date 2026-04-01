@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart3 } from 'lucide-react';
 import { getAwardPriceHistory, getPriceStats, type PayItem } from '../../api/estimator';
 import { PriceHistoryChart } from './price-history-chart';
+import { InlineLoading } from '../ui/states';
 import type { PricingOptions } from '../../routes/estimator-page';
 
 interface Props {
@@ -52,7 +53,6 @@ export function PriceHistoryPanel({ payItem, options }: Props) {
   }
 
   const isLoading = historyLoading || statsLoading;
-
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
@@ -77,7 +77,7 @@ export function PriceHistoryPanel({ payItem, options }: Props) {
       </div>
 
       {isLoading ? (
-        <div className="p-8 text-center text-sm text-gray-400">Loading price data...</div>
+        <InlineLoading message="Loading price data..." />
       ) : (
         <>
           {/* Stats cards */}
