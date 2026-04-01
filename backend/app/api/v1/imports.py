@@ -27,11 +27,16 @@ async def import_signs_and_supports(
 
     Both files support up to 50 MB. The entire import is atomic.
     """
-    # Validate file extensions
+    # Validate file extensions and MIME types
+    _CSV_TYPES = ("text/csv", "text/plain", "application/csv", "application/vnd.ms-excel", "application/octet-stream")
     if not signs_file.filename or not signs_file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Signs file must be a .csv")
+    if signs_file.content_type and signs_file.content_type not in _CSV_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid signs file type: {signs_file.content_type}. Expected CSV.")
     if not supports_file.filename or not supports_file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Supports file must be a .csv")
+    if supports_file.content_type and supports_file.content_type not in _CSV_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid supports file type: {supports_file.content_type}. Expected CSV.")
 
     # Read both files
     signs_content = await signs_file.read()

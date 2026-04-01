@@ -145,6 +145,11 @@ async def import_signs_csv(
     """
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="File must be a .csv")
+    if file.content_type and file.content_type not in (
+        "text/csv", "text/plain", "application/csv",
+        "application/vnd.ms-excel", "application/octet-stream",
+    ):
+        raise HTTPException(status_code=400, detail=f"Invalid file type: {file.content_type}. Expected CSV.")
 
     content = await file.read()
     max_size = settings.max_import_file_size

@@ -1,13 +1,17 @@
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.v1 import attachments, dashboard, email, estimator, estimator_contractors, imports, reports, signs, supports, work_orders, inspections, users, water, sewer
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -38,6 +42,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
+    logger.error("Database error on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "A database error occurred. Please try again."})
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error("Unhandled error on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "An unexpected error occurred."})
+
 
 # API routes
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
