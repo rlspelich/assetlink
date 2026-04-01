@@ -376,6 +376,27 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 | estimate_item | tenant-scoped | Line items with auto-priced unit costs |
 | regional_factor | **reference** (shared) | State-level cost multipliers (51 entries) |
 
+### Phase 1c — Responsive / Mobile & Tablet Support
+**Goal:** Make the app usable on tablets (field crews) and functional on phones (quick status checks). Desktop remains the primary experience.
+
+**Tier 1 — Tablet-usable (do first):**
+- [ ] Collapsible sidebar with hamburger button (hidden on `lg:` and above, drawer overlay on mobile)
+- [ ] Signs page: stack three-panel layout vertically on `< lg`, one panel at a time with back/forward
+- [ ] Estimator tabs: horizontal scroll with overflow fade indicators on narrow screens
+- [ ] Touch-friendly tap targets (min 44px on all interactive elements)
+
+**Tier 2 — Phone-functional:**
+- [ ] WO / inspection list views: single-column card layout on `< md`
+- [ ] Map: full-screen with bottom sheet for detail on mobile
+- [ ] Dashboard and Reports already mostly work (grids collapse) — verify and fix gaps
+
+**Tier 3 — Polish:**
+- [ ] Responsive data tables (card view on mobile, or horizontal scroll with sticky first column)
+- [ ] Estimator: simplified mobile view for price lookup only (skip power-user features)
+- [ ] PWA manifest for "add to home screen" on crew tablets
+
+**Current state (2026-03-31):** Viewport meta tag exists. Dashboard/reports have basic responsive grids. Everything else is desktop-only — sidebar hover-expands (no touch), signs page uses fixed-width panels (`w-72`, `w-80`), estimator has `w-[420px]` fixed panels and 8 horizontal tabs.
+
 ### Phase 2 — Water & Sewer
 - Water pipe, valve, hydrant models and API
 - Sewer pipe, manhole, lift station models and API

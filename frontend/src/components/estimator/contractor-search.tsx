@@ -67,7 +67,7 @@ export function ContractorSearch({ navigateTo, navParams }: {
               placeholder="Search contractors by name..."
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-9 w-full pl-9 pr-3 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           {data && (
@@ -228,14 +228,14 @@ function ContractorProfilePanel({ pk, activeTab, onTabChange, navigateTo }: {
           type="date"
           value={minDate}
           onChange={(e) => setMinDate(e.target.value)}
-          className="px-2 py-2 text-xs border rounded-md"
+          className="h-9 px-2 text-sm border rounded-md"
         />
         <span className="text-xs text-gray-400">to</span>
         <input
           type="date"
           value={maxDate}
           onChange={(e) => setMaxDate(e.target.value)}
-          className="px-2 py-2 text-xs border rounded-md"
+          className="h-9 px-2 text-sm border rounded-md"
           placeholder="Present"
         />
         <button

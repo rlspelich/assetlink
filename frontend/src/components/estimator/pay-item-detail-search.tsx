@@ -150,7 +150,7 @@ export function PayItemDetailSearch({ navigateTo, navParams }: {
                   setDistrict('');
                 }
               }}
-              className="w-full px-2 py-2 text-sm border rounded-md bg-white"
+              className="h-9 w-full px-2 text-sm border rounded-md bg-white"
             >
               <option value="">All Counties</option>
               {(district && filterOpts?.district_to_counties?.[district]
@@ -170,7 +170,7 @@ export function PayItemDetailSearch({ navigateTo, navParams }: {
                   setCounty('');
                 }
               }}
-              className="w-full px-2 py-2 text-sm border rounded-md bg-white"
+              className="h-9 w-full px-2 text-sm border rounded-md bg-white"
             >
               <option value="">All</option>
               {(county && filterOpts?.county_to_districts?.[county]
@@ -181,19 +181,19 @@ export function PayItemDetailSearch({ navigateTo, navParams }: {
           </div>
           <div className="w-32">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">From</label>
-            <input type="date" value={minDate} onChange={(e) => setMinDate(e.target.value)} className="w-full px-2 py-2 text-sm border rounded-md" />
+            <input type="date" value={minDate} onChange={(e) => setMinDate(e.target.value)} className="h-9 w-full px-2 text-sm border rounded-md" />
           </div>
           <div className="w-32">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">To</label>
-            <input type="date" value={maxDate} onChange={(e) => setMaxDate(e.target.value)} className="w-full px-2 py-2 text-sm border rounded-md" />
+            <input type="date" value={maxDate} onChange={(e) => setMaxDate(e.target.value)} className="h-9 w-full px-2 text-sm border rounded-md" />
           </div>
           <div className="w-20">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">Min Qty</label>
-            <input type="number" value={minQty} onChange={(e) => setMinQty(e.target.value)} className="w-full px-2 py-2 text-sm border rounded-md" />
+            <input type="number" value={minQty} onChange={(e) => setMinQty(e.target.value)} className="h-9 w-full px-2 text-sm border rounded-md" />
           </div>
           <div className="w-20">
             <label className="block text-[10px] font-medium text-gray-500 mb-1">Max Qty</label>
-            <input type="number" value={maxQty} onChange={(e) => setMaxQty(e.target.value)} className="w-full px-2 py-2 text-sm border rounded-md" />
+            <input type="number" value={maxQty} onChange={(e) => setMaxQty(e.target.value)} className="h-9 w-full px-2 text-sm border rounded-md" />
           </div>
           <label className="flex items-center gap-1.5 pb-1">
             <input type="checkbox" checked={lowOnly} onChange={(e) => setLowOnly(e.target.checked)} className="rounded" />
@@ -202,7 +202,7 @@ export function PayItemDetailSearch({ navigateTo, navParams }: {
           <button
             onClick={handleSearch}
             disabled={isFetching}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
+            className="h-9 px-4 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
           >
             {isFetching ? 'Searching...' : 'Search'}
           </button>
@@ -480,7 +480,7 @@ function TypeAheadField({
             onKeyDown(e);
           }}
           placeholder={placeholder}
-          className={`px-2 py-2 text-sm border rounded-md ${width} ${inputVal ? 'pr-6' : ''}`}
+          className={`h-9 px-2 text-sm border rounded-md ${width} ${inputVal ? 'pr-6' : ''}`}
         />
         {inputVal && (
           <button

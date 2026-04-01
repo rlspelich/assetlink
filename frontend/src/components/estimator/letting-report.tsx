@@ -56,7 +56,7 @@ export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params
             <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-2 py-2 text-sm border rounded-md w-56"
+              className="h-9 px-2 text-sm border rounded-md w-56"
             >
               <option value="">Select a letting date...</option>
               {dates?.map((d) => (
@@ -78,7 +78,7 @@ export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params
                   setDistrict('');
                 }
               }}
-              className="px-2 py-2 text-sm border rounded-md w-40 bg-white"
+              className="h-9 px-2 text-sm border rounded-md w-40 bg-white"
             >
               <option value="">All Counties</option>
               {(district && filterOpts?.district_to_counties?.[district]
@@ -99,7 +99,7 @@ export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params
                   setCounty('');
                 }
               }}
-              className="px-2 py-2 text-sm border rounded-md w-36 bg-white"
+              className="h-9 px-2 text-sm border rounded-md w-36 bg-white"
             >
               <option value="">All Districts</option>
               {(county && filterOpts?.county_to_districts?.[county]
@@ -111,7 +111,7 @@ export function LettingReport({ navigateTo }: { navigateTo: (tab: string, params
           <button
             onClick={handleSearch}
             disabled={!selectedDate || isFetching}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="h-9 px-4 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
             {isFetching ? 'Loading...' : 'Search'}
           </button>

@@ -150,14 +150,14 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
             placeholder="Search by contract number, county, or municipality..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-3 h-9 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div className="flex gap-2">
           <select
             value={county}
             onChange={(e) => handleCountyChange(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 h-9 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Counties</option>
             {availableCounties.map((c) => (
@@ -167,7 +167,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
           <select
             value={district}
             onChange={(e) => handleDistrictChange(e.target.value)}
-            className="w-32 px-3 py-2 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-32 px-3 h-9 text-sm border rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Districts</option>
             {availableDistricts.map((d) => (
@@ -184,7 +184,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
               min={filterOpts?.min_date || undefined}
               max={maxDate || filterOpts?.max_date || undefined}
               onChange={(e) => setMinDate(e.target.value)}
-              className="flex-1 px-2 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-2 h-9 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex-1 flex items-center gap-1.5">
@@ -195,7 +195,7 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
               min={minDate || filterOpts?.min_date || undefined}
               max={filterOpts?.max_date || undefined}
               onChange={(e) => setMaxDate(e.target.value)}
-              className="flex-1 px-2 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-2 h-9 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <input
@@ -203,13 +203,13 @@ function ContractList({ onSelect, initialCounty }: { onSelect: (id: string) => v
             placeholder="Municipality..."
             value={municipality}
             onChange={(e) => setMunicipality(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 h-9 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={executeSearch}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-9 px-4 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             Search
           </button>

@@ -81,7 +81,7 @@ export function HeadToHead({ navigateTo }: { navigateTo: (tab: string, params: a
             <button
               disabled={!canCompare}
               onClick={handleCompare}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-9 px-4 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Compare
             </button>
@@ -404,7 +404,7 @@ function ContractorPicker({ selected, onSelect, excludePk }: {
           value={open ? search : (selected ? selected.name : '')}
           onChange={(e) => handleSearch(e.target.value)}
           onFocus={() => { setOpen(true); setSearch(''); }}
-          className={`w-full pl-8 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full pl-8 pr-3 h-9 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             selected ? 'font-medium' : ''
           }`}
         />
@@ -479,7 +479,7 @@ function CompetitorPicker({ contractorAPk, selected, onSelect }: {
           value={open ? search : (selected ? selected.name : '')}
           onChange={(e) => setSearch(e.target.value)}
           onFocus={() => { setOpen(true); setSearch(''); }}
-          className={`w-full pl-8 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`w-full pl-8 pr-3 h-9 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             selected ? 'font-medium' : ''
           }`}
         />

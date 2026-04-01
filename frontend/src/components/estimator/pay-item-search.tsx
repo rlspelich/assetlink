@@ -39,7 +39,7 @@ export function PayItemSearch({ onSelect, selectedCode }: Props) {
             placeholder="Search pay items by code or description..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-9 w-full pl-9 pr-3 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         {data && (

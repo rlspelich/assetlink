@@ -98,13 +98,19 @@ export function EstimatorPage() {
         />
       </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-hidden">
+      {/* Tab content — heavy tabs use hidden/visible to preserve state across switches */}
+      <div className="flex-1 overflow-hidden relative">
         {activeTab === 'pay-items' && <PayItemsTab />}
         {activeTab === 'estimates' && <EstimatesTab />}
-        {activeTab === 'contractors' && <ContractorSearch navigateTo={navigateTo} navParams={activeTab === 'contractors' ? navParams : {}} />}
-        {activeTab === 'head-to-head' && <HeadToHead navigateTo={navigateTo} />}
-        {activeTab === 'bid-tabs' && <BidTabView navParams={activeTab === 'bid-tabs' ? navParams : {}} navigateTo={navigateTo} />}
+        <div className={`absolute inset-0 ${activeTab === 'contractors' ? '' : 'invisible pointer-events-none'}`}>
+          <ContractorSearch navigateTo={navigateTo} navParams={activeTab === 'contractors' ? navParams : {}} />
+        </div>
+        <div className={`absolute inset-0 ${activeTab === 'head-to-head' ? '' : 'invisible pointer-events-none'}`}>
+          <HeadToHead navigateTo={navigateTo} />
+        </div>
+        <div className={`absolute inset-0 ${activeTab === 'bid-tabs' ? '' : 'invisible pointer-events-none'}`}>
+          <BidTabView navParams={activeTab === 'bid-tabs' ? navParams : {}} navigateTo={navigateTo} />
+        </div>
         {activeTab === 'market-analysis' && <MarketAnalysis navigateTo={navigateTo} />}
         {activeTab === 'letting-report' && <LettingReport navigateTo={navigateTo} />}
         {activeTab === 'pi-detail' && <PayItemDetailSearch navigateTo={navigateTo} navParams={activeTab === 'pi-detail' ? navParams : {}} />}
@@ -194,7 +200,7 @@ function PayItemsTab() {
           <select
             value={options.targetState}
             onChange={(e) => setOptions({ ...options, targetState: e.target.value })}
-            className="px-2 py-2 border rounded text-xs"
+            className="h-9 px-2 border rounded text-sm"
           >
             {US_STATES.map((s) => (
               <option key={s.code} value={s.code}>
