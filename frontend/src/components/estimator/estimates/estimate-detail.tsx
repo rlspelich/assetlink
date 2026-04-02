@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Copy, RefreshCw, Download, Upload, FileText, ChevronDown } from 'lucide-react';
-import { ConfidenceBadge } from '../confidence-badge';
 import { US_STATES, CONTINGENCY_PHASES } from '../estimator-constants';
 import { EditableItemRow } from './editable-item-row';
 import { AddItemForm } from './add-item-form';
