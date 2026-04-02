@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Plus, Search, Filter, ChevronDown, X } from 'lucide-react';
 import {
@@ -12,7 +12,7 @@ import { useSignsList } from '../hooks/use-signs';
 import { InspectionDetailPanel } from '../components/inspections/inspection-detail-panel';
 import { InspectionForm, type InspectionAssetContext } from '../components/inspections/inspection-form';
 import { InspectionListPanel } from '../components/inspections/inspection-list-panel';
-import { InspectionMap } from '../components/map/inspection-map';
+const InspectionMap = lazy(() => import('../components/map/inspection-map').then(m => ({ default: m.InspectionMap })));
 import { AddressSearch } from '../components/shared/address-search';
 import { InspectionTable } from '../components/inspections/inspection-table';
 import { ViewModeToggle, type ViewMode } from '../components/shared/view-mode-toggle';
@@ -386,19 +386,21 @@ export function InspectionsPage() {
 
           {/* Center: Map */}
           <div className="flex-1 relative">
-            <InspectionMap
-              signs={signs}
-              inspections={filteredInspections}
-              selectedInspId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedInspection?.inspection_id ?? null)}
-              onInspClick={handleInspSelect}
-              onDeselect={handleMapDeselect}
-              highlightedSignIds={highlightedSignIds}
-              assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
-              onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
-              onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
-              selectionCoords={selectionCoords}
-              flyToCoords={flyToCoords}
-            />
+            <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}>
+              <InspectionMap
+                signs={signs}
+                inspections={filteredInspections}
+                selectedInspId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedInspection?.inspection_id ?? null)}
+                onInspClick={handleInspSelect}
+                onDeselect={handleMapDeselect}
+                highlightedSignIds={highlightedSignIds}
+                assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
+                onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
+                onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
+                selectionCoords={selectionCoords}
+                flyToCoords={flyToCoords}
+              />
+            </Suspense>
 
             {/* Choosing mode */}
             {creationMode === 'choosing' && (

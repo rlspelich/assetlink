@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Plus, Search, Filter, ChevronDown, X } from 'lucide-react';
 import {
@@ -11,7 +11,7 @@ import { useSignsList } from '../hooks/use-signs';
 import { WorkOrderDetailPanel } from '../components/work-orders/work-order-detail-panel';
 import { WorkOrderForm } from '../components/work-orders/work-order-form';
 import { WorkOrderListPanel } from '../components/work-orders/work-order-list-panel';
-import { WorkOrderMap } from '../components/map/work-order-map';
+const WorkOrderMap = lazy(() => import('../components/map/work-order-map').then(m => ({ default: m.WorkOrderMap })));
 import { AddressSearch } from '../components/shared/address-search';
 import { WorkOrderTable } from '../components/work-orders/work-order-table';
 import { ViewModeToggle, type ViewMode } from '../components/shared/view-mode-toggle';
@@ -375,19 +375,21 @@ export function WorkOrdersPage() {
 
           {/* Center: Map */}
           <div className="flex-1 relative">
-            <WorkOrderMap
-              signs={signs}
-              workOrders={filteredWOs}
-              selectedWOId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedWO?.work_order_id ?? null)}
-              onWOClick={creationMode === 'select-sign' ? undefined : handleWOSelect}
-              onDeselect={handleMapDeselect}
-              highlightedSignIds={highlightedSignIds}
-              assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
-              onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
-              onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
-              selectionCoords={selectionCoords}
-              flyToCoords={flyToCoords}
-            />
+            <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}>
+              <WorkOrderMap
+                signs={signs}
+                workOrders={filteredWOs}
+                selectedWOId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedWO?.work_order_id ?? null)}
+                onWOClick={creationMode === 'select-sign' ? undefined : handleWOSelect}
+                onDeselect={handleMapDeselect}
+                highlightedSignIds={highlightedSignIds}
+                assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
+                onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
+                onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
+                selectionCoords={selectionCoords}
+                flyToCoords={flyToCoords}
+              />
+            </Suspense>
 
             {/* Choosing mode — pick what to do */}
             {creationMode === 'choosing' && (
@@ -503,19 +505,21 @@ export function WorkOrdersPage() {
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Map — 60% */}
               <div className="relative" style={{ flex: '0 0 60%' }}>
-                <WorkOrderMap
-                  signs={signs}
-                  workOrders={filteredWOs}
-                  selectedWOId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedWO?.work_order_id ?? null)}
-                  onWOClick={creationMode === 'select-sign' ? undefined : handleWOSelect}
-                  onDeselect={handleMapDeselect}
-                  highlightedSignIds={highlightedSignIds}
-                  assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
-                  onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
-                  onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
-                  selectionCoords={selectionCoords}
-                  flyToCoords={flyToCoords}
-                />
+                <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}>
+                  <WorkOrderMap
+                    signs={signs}
+                    workOrders={filteredWOs}
+                    selectedWOId={(creationMode === 'choosing' || creationMode === 'select-sign' || creationMode === 'drop-pin') ? null : (selectedWO?.work_order_id ?? null)}
+                    onWOClick={creationMode === 'select-sign' ? undefined : handleWOSelect}
+                    onDeselect={handleMapDeselect}
+                    highlightedSignIds={highlightedSignIds}
+                    assetSelectionMode={creationMode === 'select-sign' || creationMode === 'drop-pin'}
+                    onSignSelect={creationMode === 'select-sign' ? handleSignSelect : undefined}
+                    onLocationSelect={creationMode === 'drop-pin' ? handleLocationSelect : undefined}
+                    selectionCoords={selectionCoords}
+                    flyToCoords={flyToCoords}
+                  />
+                </Suspense>
                 {!creationMode && (
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 w-72">
                     <AddressSearch onSelect={(lng, lat) => setFlyToCoords({ lng, lat })} placeholder="Go to address..." />

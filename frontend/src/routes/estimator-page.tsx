@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Search, Calculator, Users, GitCompareArrows, Table, TrendingUp, Calendar, FileSearch } from 'lucide-react';
 import { PayItemSearch } from '../components/estimator/pay-item-search';
-import { PriceHistoryPanel } from '../components/estimator/price-history-panel';
-import { ContractorSearch } from '../components/estimator/contractor-search';
-import { HeadToHead } from '../components/estimator/head-to-head';
 import { BidTabView } from '../components/estimator/bid-tab-view';
-import { MarketAnalysis } from '../components/estimator/market-analysis';
 import { LettingReport } from '../components/estimator/letting-report';
-import { PayItemDetailSearch } from '../components/estimator/pay-item-detail-search';
 import { EstimatesTab } from '../components/estimator/estimates/estimates-tab';
+
+// Lazy-load recharts-heavy components
+const PriceHistoryPanel = lazy(() => import('../components/estimator/price-history-panel').then(m => ({ default: m.PriceHistoryPanel })));
+const ContractorSearch = lazy(() => import('../components/estimator/contractor-search').then(m => ({ default: m.ContractorSearch })));
+const HeadToHead = lazy(() => import('../components/estimator/head-to-head').then(m => ({ default: m.HeadToHead })));
+const MarketAnalysis = lazy(() => import('../components/estimator/market-analysis').then(m => ({ default: m.MarketAnalysis })));
+const PayItemDetailSearch = lazy(() => import('../components/estimator/pay-item-detail-search').then(m => ({ default: m.PayItemDetailSearch })));
 import { US_STATES } from '../components/estimator/estimator-constants';
 import type { Tab, EstimatorNavParams, PricingOptions } from '../components/estimator/estimator-constants';
 import type { PayItem } from '../api/estimator';
@@ -85,17 +87,21 @@ export function EstimatorPage() {
         {activeTab === 'pay-items' && <PayItemsTab />}
         {activeTab === 'estimates' && <EstimatesTab />}
         <div className={`absolute inset-0 ${activeTab === 'contractors' ? '' : 'invisible pointer-events-none'}`}>
-          <ContractorSearch navigateTo={navigateTo} navParams={activeTab === 'contractors' ? navParams : {}} />
+          <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}>
+            <ContractorSearch navigateTo={navigateTo} navParams={activeTab === 'contractors' ? navParams : {}} />
+          </Suspense>
         </div>
         <div className={`absolute inset-0 ${activeTab === 'head-to-head' ? '' : 'invisible pointer-events-none'}`}>
-          <HeadToHead navigateTo={navigateTo} />
+          <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}>
+            <HeadToHead navigateTo={navigateTo} />
+          </Suspense>
         </div>
         <div className={`absolute inset-0 ${activeTab === 'bid-tabs' ? '' : 'invisible pointer-events-none'}`}>
           <BidTabView navParams={activeTab === 'bid-tabs' ? navParams : {}} navigateTo={navigateTo} />
         </div>
-        {activeTab === 'market-analysis' && <MarketAnalysis navigateTo={navigateTo} />}
+        {activeTab === 'market-analysis' && <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}><MarketAnalysis navigateTo={navigateTo} /></Suspense>}
         {activeTab === 'letting-report' && <LettingReport navigateTo={navigateTo} />}
-        {activeTab === 'pi-detail' && <PayItemDetailSearch navigateTo={navigateTo} navParams={activeTab === 'pi-detail' ? navParams : {}} />}
+        {activeTab === 'pi-detail' && <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}><PayItemDetailSearch navigateTo={navigateTo} navParams={activeTab === 'pi-detail' ? navParams : {}} /></Suspense>}
       </div>
     </div>
   );
@@ -167,7 +173,9 @@ function PayItemsTab() {
           />
         </div>
         <div className="flex-1 overflow-y-auto">
-          <PriceHistoryPanel payItem={selectedItem} options={options} />
+          <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}>
+            <PriceHistoryPanel payItem={selectedItem} options={options} />
+          </Suspense>
         </div>
       </div>
     </div>

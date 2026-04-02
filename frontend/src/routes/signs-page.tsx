@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, X, Map as MapIcon, ShieldCheck } from 'lucide-react';
 import { useSignsList, useSign, useCreateSign, useUpdateSign, useDeleteSign } from '../hooks/use-signs';
 import { useUpdateSupport, useDeleteSupport } from '../hooks/use-supports';
-import { AssetMap } from '../components/map/asset-map';
+const AssetMap = lazy(() => import('../components/map/asset-map').then(m => ({ default: m.AssetMap })));
 import { AddressSearch } from '../components/shared/address-search';
 import { SignListPanel } from '../components/signs/sign-list-panel';
 import { SignDetailPanel } from '../components/signs/sign-detail-panel';
@@ -412,16 +412,18 @@ export function SignsPage() {
 
       {/* Center: Map */}
       <div className="flex-1 relative">
-        <AssetMap
-          signs={filteredSigns}
-          selectedSignId={selectedSign?.sign_id ?? clickedSignId}
-          onSignClick={handleSignSelect}
-          onVisibleCountChange={setVisibleSignCount}
-          placementMode={isPlacementMode}
-          placementCoords={placementCoords}
-          onPlacementClick={handlePlacementClick}
-          flyToCoords={flyToCoords}
-        />
+        <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}>
+          <AssetMap
+            signs={filteredSigns}
+            selectedSignId={selectedSign?.sign_id ?? clickedSignId}
+            onSignClick={handleSignSelect}
+            onVisibleCountChange={setVisibleSignCount}
+            placementMode={isPlacementMode}
+            placementCoords={placementCoords}
+            onPlacementClick={handlePlacementClick}
+            flyToCoords={flyToCoords}
+          />
+        </Suspense>
 
 
         {/* Placement mode banner */}

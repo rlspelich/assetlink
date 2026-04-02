@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, X, Search } from 'lucide-react';
 import {
@@ -23,7 +23,7 @@ import {
   useUpdateSewerLateral,
   useDeleteSewerLateral,
 } from '../hooks/use-sewer';
-import { SewerMap } from '../components/sewer/sewer-map';
+const SewerMap = lazy(() => import('../components/sewer/sewer-map').then(m => ({ default: m.SewerMap })));
 import { AddressSearch } from '../components/shared/address-search';
 import { SewerDetailPanel } from '../components/sewer/sewer-detail-panel';
 import { SewerFormPanel } from '../components/sewer/sewer-form-panel';
@@ -523,6 +523,7 @@ export function SewerPage() {
 
       {/* Center: Map */}
       <div className="flex-1 relative">
+        <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}>
         <SewerMap
           manholes={manholes}
           sewerMains={sewerMains}
@@ -537,6 +538,7 @@ export function SewerPage() {
           onLineDrawn={isPlacementMode && !isPointTab(activeTab) ? handleLineDrawn : undefined}
           flyToCoords={flyToCoords}
         />
+        </Suspense>
 
         {/* Placement mode banner */}
         {isPlacementMode && (

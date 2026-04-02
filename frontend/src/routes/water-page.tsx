@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, X, Search } from 'lucide-react';
 import {
@@ -27,7 +27,7 @@ import {
   useUpdatePressureZone,
   useDeletePressureZone,
 } from '../hooks/use-water';
-import { WaterMap } from '../components/water/water-map';
+const WaterMap = lazy(() => import('../components/water/water-map').then(m => ({ default: m.WaterMap })));
 import { AddressSearch } from '../components/shared/address-search';
 import { WaterDetailPanel } from '../components/water/water-detail-panel';
 import { WaterFormPanel } from '../components/water/water-form-panel';
@@ -547,6 +547,7 @@ export function WaterPage() {
 
       {/* Center: Map */}
       <div className="flex-1 relative">
+        <Suspense fallback={<div className="flex-1 bg-gray-100 animate-pulse" />}>
         <WaterMap
           waterMains={waterMains}
           waterValves={waterValves}
@@ -562,6 +563,7 @@ export function WaterPage() {
           onLineDrawn={isPlacementMode && !isPointTab(activeTab) ? handleLineDrawn : undefined}
           flyToCoords={flyToCoords}
         />
+        </Suspense>
 
         {/* Placement mode banner */}
         {isPlacementMode && (
