@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit import audit_log
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
 from app.models.user import AppUser
@@ -92,6 +93,7 @@ async def create_user(
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    audit_log("create", "user", entity_id=user.user_id, tenant_id=tenant_id, details=f"role={data.role} email={data.email}")
     return UserOut.model_validate(user)
 
 
@@ -133,6 +135,7 @@ async def update_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    old_role = user.role
 
     # Check email uniqueness if email is being changed
     if "email" in update_data and update_data["email"] != user.email:
@@ -172,6 +175,8 @@ async def update_user(
 
     await db.commit()
     await db.refresh(user)
+    if "role" in update_data and update_data["role"] != old_role:
+        audit_log("role_change", "user", entity_id=user_id, tenant_id=tenant_id, details=f"{old_role}->{user.role}")
     return UserOut.model_validate(user)
 
 
@@ -198,6 +203,7 @@ async def delete_user(
     user.is_active = False
     await db.commit()
     await db.refresh(user)
+    audit_log("delete", "user", entity_id=user_id, tenant_id=tenant_id, details=f"soft_delete email={user.email}")
     return UserOut.model_validate(user)
 
 

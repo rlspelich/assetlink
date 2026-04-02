@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.audit import audit_log
 from app.core.tenant import get_current_tenant
 from app.db.session import get_db
 from app.schemas.sign import SignImportOut
@@ -51,6 +52,11 @@ async def import_signs_and_supports(
 
     result = await import_signs_and_supports_two_files(
         signs_content, supports_content, tenant_id, db
+    )
+
+    audit_log(
+        "import", "signs_and_supports", tenant_id=tenant_id,
+        details=f"signs_file={signs_file.filename} supports_file={supports_file.filename} rows={result.total_rows} created={result.created} skipped={result.skipped}",
     )
 
     return SignImportOut(

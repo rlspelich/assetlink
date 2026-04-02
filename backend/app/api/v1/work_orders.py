@@ -2,15 +2,17 @@ import uuid
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.core.audit import audit_log
 from app.core.tenant import get_current_tenant
+from app.db.pagination import paginate
 from app.db.session import get_db
 from app.db.spatial import lon_lat_columns, make_point
-from app.models.sign import Sign, SignSupport, SignType
+from app.models.sign import Sign, SignSupport
 from app.models.work_order import WorkOrder
 from app.models.work_order_asset import WorkOrderAsset
 from app.schemas.work_order import (
@@ -20,6 +22,7 @@ from app.schemas.work_order import (
     WorkOrderUpdate,
 )
 from app.schemas.work_order_asset import WorkOrderAssetOut, WorkOrderAssetUpdate
+from app.services.converters import populate_wo_asset_labels, woa_to_out, wo_to_out
 
 router = APIRouter()
 
@@ -52,126 +55,6 @@ async def _generate_work_order_number(
         seq = 1
 
     return f"{prefix}{seq:03d}"
-
-
-async def _populate_asset_labels(
-    woa_list: list[WorkOrderAsset], db: AsyncSession
-) -> dict[uuid.UUID, str]:
-    """
-    Build asset_label for each WorkOrderAsset.
-
-    Signs: "R1-1 — Stop Sign" (mutcd_code — sign_type description)
-    Supports: "U Channel Support" (support_type formatted)
-    """
-    labels: dict[uuid.UUID, str] = {}
-    if not woa_list:
-        return labels
-
-    sign_ids = [woa.asset_id for woa in woa_list if woa.asset_type == "sign"]
-    support_ids = [woa.asset_id for woa in woa_list if woa.asset_type == "sign_support"]
-
-    # Fetch sign labels
-    if sign_ids:
-        result = await db.execute(
-            select(Sign.sign_id, Sign.mutcd_code, SignType.description)
-            .outerjoin(SignType, Sign.mutcd_code == SignType.mutcd_code)
-            .where(Sign.sign_id.in_(sign_ids))
-        )
-        for row in result.all():
-            if row.mutcd_code and row.description:
-                labels[row.sign_id] = f"{row.mutcd_code} \u2014 {row.description}"
-            elif row.mutcd_code:
-                labels[row.sign_id] = row.mutcd_code
-            else:
-                labels[row.sign_id] = "Sign (no MUTCD code)"
-
-    # Fetch support labels
-    if support_ids:
-        result = await db.execute(
-            select(SignSupport.support_id, SignSupport.support_type)
-            .where(SignSupport.support_id.in_(support_ids))
-        )
-        for row in result.all():
-            # Format: "U Channel Support" from "u_channel"
-            label = row.support_type.replace("_", " ").title() + " Support"
-            labels[row.support_id] = label
-
-    return labels
-
-
-def _woa_to_out(woa: WorkOrderAsset, label: str | None = None) -> WorkOrderAssetOut:
-    """Convert a WorkOrderAsset ORM object to the response schema."""
-    return WorkOrderAssetOut(
-        work_order_asset_id=woa.work_order_asset_id,
-        work_order_id=woa.work_order_id,
-        tenant_id=woa.tenant_id,
-        asset_type=woa.asset_type,
-        asset_id=woa.asset_id,
-        damage_notes=woa.damage_notes,
-        action_required=woa.action_required,
-        resolution=woa.resolution,
-        status=woa.status,
-        asset_label=label,
-        created_at=woa.created_at,
-        updated_at=woa.updated_at,
-    )
-
-
-async def _wo_to_out(
-    wo: WorkOrder,
-    db: AsyncSession,
-    lon: float | None = None,
-    lat: float | None = None,
-) -> WorkOrderOut:
-    """Convert a WorkOrder ORM object to WorkOrderOut, including asset labels."""
-    assets_out = []
-    if wo.assets:
-        labels = await _populate_asset_labels(wo.assets, db)
-        assets_out = [
-            _woa_to_out(woa, labels.get(woa.asset_id))
-            for woa in wo.assets
-        ]
-
-    return WorkOrderOut(
-        work_order_id=wo.work_order_id,
-        tenant_id=wo.tenant_id,
-        work_order_number=wo.work_order_number,
-        asset_type=wo.asset_type,
-        asset_id=wo.asset_id,
-        sign_id=wo.sign_id,
-        description=wo.description,
-        work_type=wo.work_type,
-        priority=wo.priority,
-        status=wo.status,
-        category=wo.category,
-        resolution=wo.resolution,
-        assigned_to=wo.assigned_to,
-        supervisor_id=wo.supervisor_id,
-        requested_by=wo.requested_by,
-        due_date=wo.due_date,
-        projected_start_date=wo.projected_start_date,
-        projected_finish_date=wo.projected_finish_date,
-        actual_start_date=wo.actual_start_date,
-        actual_finish_date=wo.actual_finish_date,
-        completed_date=wo.completed_date,
-        closed_date=wo.closed_date,
-        address=wo.address,
-        location_notes=wo.location_notes,
-        longitude=lon,
-        latitude=lat,
-        labor_hours=wo.labor_hours,
-        labor_cost=wo.labor_cost,
-        material_cost=wo.material_cost,
-        equipment_cost=wo.equipment_cost,
-        total_cost=wo.total_cost,
-        instructions=wo.instructions,
-        notes=wo.notes,
-        materials_used=wo.materials_used,
-        custom_fields=wo.custom_fields,
-        assets=assets_out,
-        created_at=wo.created_at,
-        updated_at=wo.updated_at,
-    )
 
 
 async def _resolve_fallback_coords_for_work_orders(
@@ -217,31 +100,15 @@ async def list_work_orders(
     assigned_to: uuid.UUID | None = None,
     asset_type: str | None = None,
 ) -> WorkOrderListOut:
-    base_query = select(WorkOrder).where(WorkOrder.tenant_id == tenant_id)
-
-    if status:
-        base_query = base_query.where(WorkOrder.status == status)
-    if priority:
-        base_query = base_query.where(WorkOrder.priority == priority)
-    if work_type:
-        base_query = base_query.where(WorkOrder.work_type == work_type)
-    if assigned_to:
-        base_query = base_query.where(WorkOrder.assigned_to == assigned_to)
-    if asset_type:
-        base_query = base_query.where(WorkOrder.asset_type == asset_type)
-
-    count_query = select(func.count()).select_from(base_query.subquery())
-    total = (await db.execute(count_query)).scalar_one()
-
-    offset = (page - 1) * page_size
     query = (
         select(
             WorkOrder,
             *lon_lat_columns(WorkOrder.geometry),
         )
         .where(WorkOrder.tenant_id == tenant_id)
+        .options(selectinload(WorkOrder.assets))
     )
-    # Re-apply filters on the coordinate query
+
     if status:
         query = query.where(WorkOrder.status == status)
     if priority:
@@ -253,14 +120,10 @@ async def list_work_orders(
     if asset_type:
         query = query.where(WorkOrder.asset_type == asset_type)
 
-    query = (
-        query.options(selectinload(WorkOrder.assets))
-        .offset(offset)
-        .limit(page_size)
-        .order_by(WorkOrder.created_at.desc())
+    rows, total = await paginate(
+        db, query, page=page, page_size=page_size,
+        order_by=WorkOrder.created_at.desc(),
     )
-    result = await db.execute(query)
-    rows = result.all()
 
     # Batch-resolve fallback coordinates for WOs without geometry
     wo_ids_needing_fallback = [
@@ -278,7 +141,7 @@ async def list_work_orders(
             fb = fallback_coords.get(row.WorkOrder.work_order_id)
             if fb:
                 lon, lat = fb
-        work_orders.append(await _wo_to_out(row.WorkOrder, db, lon=lon, lat=lat))
+        work_orders.append(await wo_to_out(row.WorkOrder, db, lon=lon, lat=lat))
 
     return WorkOrderListOut(
         work_orders=work_orders, total=total, page=page, page_size=page_size
@@ -432,7 +295,7 @@ async def create_work_order(
         if fb:
             lon, lat = fb
 
-    return await _wo_to_out(wo, db, lon=lon, lat=lat)
+    return await wo_to_out(wo, db, lon=lon, lat=lat)
 
 
 @router.get("/{work_order_id}", response_model=WorkOrderOut)
@@ -468,7 +331,7 @@ async def get_work_order(
         if fb:
             lon, lat = fb
 
-    return await _wo_to_out(wo, db, lon=lon, lat=lat)
+    return await wo_to_out(wo, db, lon=lon, lat=lat)
 
 
 @router.put("/{work_order_id}", response_model=WorkOrderOut)
@@ -559,7 +422,7 @@ async def update_work_order(
         if fb:
             lon, lat = fb
 
-    return await _wo_to_out(wo, db, lon=lon, lat=lat)
+    return await wo_to_out(wo, db, lon=lon, lat=lat)
 
 
 @router.put("/{work_order_id}/assets/{work_order_asset_id}", response_model=WorkOrderAssetOut)
@@ -590,8 +453,8 @@ async def update_work_order_asset(
     await db.refresh(woa)
 
     # Get label
-    labels = await _populate_asset_labels([woa], db)
-    return _woa_to_out(woa, labels.get(woa.asset_id))
+    labels = await populate_wo_asset_labels([woa], db)
+    return woa_to_out(woa, labels.get(woa.asset_id))
 
 
 @router.delete("/{work_order_id}", status_code=204)
@@ -612,3 +475,4 @@ async def delete_work_order(
         raise HTTPException(status_code=404, detail="Work order not found")
 
     await db.delete(wo)
+    audit_log("delete", "work_order", entity_id=work_order_id, tenant_id=tenant_id)

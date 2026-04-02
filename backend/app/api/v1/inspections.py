@@ -2,20 +2,20 @@ import uuid
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.core.tenant import get_current_tenant
+from app.db.pagination import paginate
 from app.db.session import get_db
 from app.models.inspection import Inspection
 from app.models.inspection_asset import InspectionAsset
-from app.models.sign import Sign, SignSupport, SignType
+from app.models.sign import Sign, SignSupport
 from app.models.work_order import WorkOrder
 from app.models.work_order_asset import WorkOrderAsset
 from app.schemas.inspection import (
-    InspectionAssetOut,
     InspectionCreate,
     InspectionListOut,
     InspectionOut,
@@ -23,119 +23,9 @@ from app.schemas.inspection import (
 )
 from app.db.spatial import lon_lat_columns, make_point
 from app.schemas.work_order import WorkOrderOut
-from app.schemas.work_order_asset import WorkOrderAssetOut
+from app.services.converters import inspection_to_out, wo_to_out
 
 router = APIRouter()
-
-
-# --- Helper functions ---
-
-
-async def _populate_asset_labels(
-    ia_list: list[InspectionAsset], db: AsyncSession
-) -> dict[uuid.UUID, str]:
-    """
-    Build asset_label for each InspectionAsset.
-
-    Signs: "R1-1 — Stop Sign" (mutcd_code — sign_type description)
-    Supports: "U Channel Support" (support_type formatted)
-    """
-    labels: dict[uuid.UUID, str] = {}
-    if not ia_list:
-        return labels
-
-    sign_ids = [ia.asset_id for ia in ia_list if ia.asset_type == "sign"]
-    support_ids = [ia.asset_id for ia in ia_list if ia.asset_type == "sign_support"]
-
-    if sign_ids:
-        result = await db.execute(
-            select(Sign.sign_id, Sign.mutcd_code, SignType.description)
-            .outerjoin(SignType, Sign.mutcd_code == SignType.mutcd_code)
-            .where(Sign.sign_id.in_(sign_ids))
-        )
-        for row in result.all():
-            if row.mutcd_code and row.description:
-                labels[row.sign_id] = f"{row.mutcd_code} \u2014 {row.description}"
-            elif row.mutcd_code:
-                labels[row.sign_id] = row.mutcd_code
-            else:
-                labels[row.sign_id] = "Sign (no MUTCD code)"
-
-    if support_ids:
-        result = await db.execute(
-            select(SignSupport.support_id, SignSupport.support_type)
-            .where(SignSupport.support_id.in_(support_ids))
-        )
-        for row in result.all():
-            label = row.support_type.replace("_", " ").title() + " Support"
-            labels[row.support_id] = label
-
-    return labels
-
-
-def _ia_to_out(ia: InspectionAsset, label: str | None = None) -> InspectionAssetOut:
-    """Convert an InspectionAsset ORM object to the response schema."""
-    return InspectionAssetOut(
-        inspection_asset_id=ia.inspection_asset_id,
-        inspection_id=ia.inspection_id,
-        tenant_id=ia.tenant_id,
-        asset_type=ia.asset_type,
-        asset_id=ia.asset_id,
-        condition_rating=ia.condition_rating,
-        findings=ia.findings,
-        defects=ia.defects,
-        retroreflectivity_value=float(ia.retroreflectivity_value) if ia.retroreflectivity_value is not None else None,
-        passes_minimum_retro=ia.passes_minimum_retro,
-        action_recommended=ia.action_recommended,
-        status=ia.status,
-        asset_label=label,
-        created_at=ia.created_at,
-        updated_at=ia.updated_at,
-    )
-
-
-async def _inspection_to_out(
-    insp: Inspection,
-    db: AsyncSession,
-    lon: float | None = None,
-    lat: float | None = None,
-) -> InspectionOut:
-    """Convert an Inspection ORM object to InspectionOut, including asset labels."""
-    assets_out = []
-    if insp.assets:
-        labels = await _populate_asset_labels(insp.assets, db)
-        assets_out = [
-            _ia_to_out(ia, labels.get(ia.asset_id))
-            for ia in insp.assets
-        ]
-
-    return InspectionOut(
-        inspection_id=insp.inspection_id,
-        tenant_id=insp.tenant_id,
-        asset_type=insp.asset_type,
-        asset_id=insp.asset_id,
-        sign_id=insp.sign_id,
-        work_order_id=insp.work_order_id,
-        inspection_type=insp.inspection_type,
-        inspection_date=insp.inspection_date,
-        inspector_id=insp.inspector_id,
-        status=insp.status,
-        condition_rating=insp.condition_rating,
-        findings=insp.findings,
-        defects=insp.defects,
-        recommendations=insp.recommendations,
-        repairs_made=insp.repairs_made,
-        retroreflectivity_value=float(insp.retroreflectivity_value) if insp.retroreflectivity_value is not None else None,
-        passes_minimum_retro=insp.passes_minimum_retro,
-        follow_up_required=insp.follow_up_required,
-        follow_up_work_order_id=insp.follow_up_work_order_id,
-        custom_fields=insp.custom_fields,
-        longitude=lon,
-        latitude=lat,
-        assets=assets_out,
-        created_at=insp.created_at,
-        updated_at=insp.updated_at,
-    )
 
 
 async def _resolve_fallback_coords_for_inspections(
@@ -282,31 +172,15 @@ async def list_inspections(
     follow_up_required: bool | None = None,
     inspector_id: uuid.UUID | None = None,
 ) -> InspectionListOut:
-    base_query = select(Inspection).where(Inspection.tenant_id == tenant_id)
-
-    if asset_type:
-        base_query = base_query.where(Inspection.asset_type == asset_type)
-    if inspection_type:
-        base_query = base_query.where(Inspection.inspection_type == inspection_type)
-    if status:
-        base_query = base_query.where(Inspection.status == status)
-    if follow_up_required is not None:
-        base_query = base_query.where(Inspection.follow_up_required == follow_up_required)
-    if inspector_id:
-        base_query = base_query.where(Inspection.inspector_id == inspector_id)
-
-    count_query = select(func.count()).select_from(base_query.subquery())
-    total = (await db.execute(count_query)).scalar_one()
-
-    offset = (page - 1) * page_size
     query = (
         select(
             Inspection,
             *lon_lat_columns(Inspection.geometry),
         )
         .where(Inspection.tenant_id == tenant_id)
+        .options(selectinload(Inspection.assets))
     )
-    # Re-apply filters
+
     if asset_type:
         query = query.where(Inspection.asset_type == asset_type)
     if inspection_type:
@@ -318,14 +192,10 @@ async def list_inspections(
     if inspector_id:
         query = query.where(Inspection.inspector_id == inspector_id)
 
-    query = (
-        query.options(selectinload(Inspection.assets))
-        .offset(offset)
-        .limit(page_size)
-        .order_by(Inspection.created_at.desc())
+    rows, total = await paginate(
+        db, query, page=page, page_size=page_size,
+        order_by=Inspection.created_at.desc(),
     )
-    result = await db.execute(query)
-    rows = result.all()
 
     # Batch-resolve fallback coordinates for inspections without geometry
     insp_ids_needing_fallback = [
@@ -343,7 +213,7 @@ async def list_inspections(
             fb = fallback_coords.get(row.Inspection.inspection_id)
             if fb:
                 lon, lat = fb
-        inspections.append(await _inspection_to_out(row.Inspection, db, lon=lon, lat=lat))
+        inspections.append(await inspection_to_out(row.Inspection, db, lon=lon, lat=lat))
 
     return InspectionListOut(
         inspections=inspections, total=total, page=page, page_size=page_size
@@ -509,7 +379,7 @@ async def create_inspection(
         if fb:
             lon, lat = fb
 
-    return await _inspection_to_out(inspection, db, lon=lon, lat=lat)
+    return await inspection_to_out(inspection, db, lon=lon, lat=lat)
 
 
 @router.get("/{inspection_id}", response_model=InspectionOut)
@@ -545,7 +415,7 @@ async def get_inspection(
         if fb:
             lon, lat = fb
 
-    return await _inspection_to_out(inspection, db, lon=lon, lat=lat)
+    return await inspection_to_out(inspection, db, lon=lon, lat=lat)
 
 
 @router.put("/{inspection_id}", response_model=InspectionOut)
@@ -641,7 +511,7 @@ async def update_inspection(
         if fb:
             lon, lat = fb
 
-    return await _inspection_to_out(inspection, db, lon=lon, lat=lat)
+    return await inspection_to_out(inspection, db, lon=lon, lat=lat)
 
 
 @router.delete("/{inspection_id}", status_code=204)
@@ -825,5 +695,4 @@ async def create_work_order_from_inspection(
             lon, lat = fb
 
     # Build response with asset labels
-    from app.api.v1.work_orders import _wo_to_out
-    return await _wo_to_out(wo, db, lon=lon, lat=lat)
+    return await wo_to_out(wo, db, lon=lon, lat=lat)

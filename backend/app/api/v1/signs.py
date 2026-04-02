@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.core.audit import audit_log
 from app.core.tenant import get_current_tenant
+from app.db.pagination import paginate
 from app.db.spatial import lon_lat_columns, make_point
 from app.db.session import get_db
 from app.models.inspection import Inspection
@@ -24,60 +26,10 @@ from app.schemas.sign import (
     SignUpdate,
 )
 from app.schemas.work_order import WorkOrderListOut, WorkOrderOut
+from app.services.converters import sign_to_out, wo_to_out, inspection_to_out
 from app.services.import_service import import_signs_from_csv
 
 router = APIRouter()
-
-
-def _sign_to_out(
-    sign: Sign,
-    lon: float,
-    lat: float,
-    support_type: str | None = None,
-    support_status: str | None = None,
-) -> SignOut:
-    """Convert a Sign ORM object to the response schema."""
-    return SignOut(
-        sign_id=sign.sign_id,
-        tenant_id=sign.tenant_id,
-        support_id=sign.support_id,
-        mutcd_code=sign.mutcd_code,
-        description=sign.description,
-        legend_text=sign.legend_text,
-        sign_category=sign.sign_category,
-        size_width_inches=sign.size_width_inches,
-        size_height_inches=sign.size_height_inches,
-        shape=sign.shape,
-        background_color=sign.background_color,
-        condition_rating=sign.condition_rating,
-        road_name=sign.road_name,
-        address=sign.address,
-        side_of_road=sign.side_of_road,
-        intersection_with=sign.intersection_with,
-        location_notes=sign.location_notes,
-        sheeting_type=sign.sheeting_type,
-        sheeting_manufacturer=sign.sheeting_manufacturer,
-        expected_life_years=sign.expected_life_years,
-        install_date=sign.install_date,
-        expected_replacement_date=sign.expected_replacement_date,
-        last_measured_date=sign.last_measured_date,
-        measured_value=sign.measured_value,
-        passes_minimum=sign.passes_minimum,
-        last_inspected_date=sign.last_inspected_date,
-        last_replaced_date=sign.last_replaced_date,
-        replacement_cost_estimate=sign.replacement_cost_estimate,
-        status=sign.status,
-        facing_direction=sign.facing_direction,
-        mount_height_inches=sign.mount_height_inches,
-        offset_from_road_inches=sign.offset_from_road_inches,
-        custom_fields=sign.custom_fields,
-        longitude=lon,
-        latitude=lat,
-        support_type=support_type,
-        support_status=support_status,
-        created_at=sign.created_at,
-        updated_at=sign.updated_at,
-    )
 
 
 @router.get("", response_model=SignListOut)
@@ -112,18 +64,13 @@ async def list_signs(
     if sign_category:
         query = query.where(Sign.sign_category == sign_category)
 
-    # Count
-    count_query = select(func.count()).select_from(query.subquery())
-    total = (await db.execute(count_query)).scalar_one()
-
-    # Paginate
-    offset = (page - 1) * page_size
-    query = query.offset(offset).limit(page_size).order_by(Sign.created_at.desc())
-    result = await db.execute(query)
-    rows = result.all()
+    rows, total = await paginate(
+        db, query, page=page, page_size=page_size,
+        order_by=Sign.created_at.desc(),
+    )
 
     signs = [
-        _sign_to_out(row.Sign, row.lon, row.lat, row.support_type, row.support_status)
+        sign_to_out(row.Sign, row.lon, row.lat, row.support_type, row.support_status)
         for row in rows
     ]
 
@@ -157,6 +104,11 @@ async def import_signs_csv(
         raise HTTPException(status_code=400, detail=f"File too large. Maximum {max_mb} MB.")
 
     result = await import_signs_from_csv(content, tenant_id, db)
+
+    audit_log(
+        "import", "sign", tenant_id=tenant_id,
+        details=f"csv={file.filename} rows={result.total_rows} created={result.created} skipped={result.skipped}",
+    )
 
     return SignImportOut(
         created=result.created,
@@ -293,7 +245,7 @@ async def get_sign(
     if not row:
         raise HTTPException(status_code=404, detail="Sign not found")
 
-    return _sign_to_out(row.Sign, row.lon, row.lat, row.support_type, row.support_status)
+    return sign_to_out(row.Sign, row.lon, row.lat, row.support_type, row.support_status)
 
 
 @router.put("/{sign_id}", response_model=SignOut)
@@ -341,7 +293,7 @@ async def update_sign(
     result = await db.execute(query)
     row = result.first()
 
-    return _sign_to_out(row.Sign, row.lon, row.lat, row.support_type, row.support_status)
+    return sign_to_out(row.Sign, row.lon, row.lat, row.support_type, row.support_status)
 
 
 @router.delete("/{sign_id}", status_code=204)
@@ -359,6 +311,7 @@ async def delete_sign(
         raise HTTPException(status_code=404, detail="Sign not found")
 
     await db.delete(sign)
+    audit_log("delete", "sign", entity_id=sign_id, tenant_id=tenant_id)
 
 
 # --- Work Orders for a Sign ---
@@ -427,7 +380,7 @@ async def list_sign_work_orders(
     result = await db.execute(query)
     rows = result.all()
 
-    from app.api.v1.work_orders import _wo_to_out, _resolve_fallback_coords_for_work_orders
+    from app.api.v1.work_orders import _resolve_fallback_coords_for_work_orders
 
     # Batch-resolve fallback coordinates for WOs without geometry
     wo_ids_needing_fallback = [
@@ -445,7 +398,7 @@ async def list_sign_work_orders(
             fb = fallback_coords.get(row.WorkOrder.work_order_id)
             if fb:
                 lon, lat = fb
-        work_orders.append(await _wo_to_out(row.WorkOrder, db, lon=lon, lat=lat))
+        work_orders.append(await wo_to_out(row.WorkOrder, db, lon=lon, lat=lat))
 
     return WorkOrderListOut(
         work_orders=work_orders, total=total, page=page, page_size=page_size
@@ -518,7 +471,7 @@ async def list_sign_inspections(
     result = await db.execute(query)
     rows = result.all()
 
-    from app.api.v1.inspections import _inspection_to_out, _resolve_fallback_coords_for_inspections
+    from app.api.v1.inspections import _resolve_fallback_coords_for_inspections
 
     # Batch-resolve fallback coordinates for inspections without geometry
     insp_ids_needing_fallback = [
@@ -536,7 +489,7 @@ async def list_sign_inspections(
             fb = fallback_coords.get(row.Inspection.inspection_id)
             if fb:
                 lon, lat = fb
-        inspections.append(await _inspection_to_out(row.Inspection, db, lon=lon, lat=lat))
+        inspections.append(await inspection_to_out(row.Inspection, db, lon=lon, lat=lat))
 
     return InspectionListOut(
         inspections=inspections, total=total, page=page, page_size=page_size

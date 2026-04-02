@@ -5,7 +5,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.audit import audit_log
 from app.core.tenant import get_current_tenant
+from app.db.pagination import paginate
 from app.db.session import get_db
 from app.models.inspection import Inspection
 from app.models.inspection_asset import InspectionAsset
@@ -23,31 +25,10 @@ from app.schemas.support import (
     SignSupportUpdate,
 )
 from app.db.spatial import lon_lat_columns, make_point
+from app.services.converters import sign_to_out, support_to_out
 from app.services.import_service import import_supports_from_csv
 
 router = APIRouter()
-
-
-def _support_to_out(
-    support: SignSupport, lon: float, lat: float, sign_count: int = 0
-) -> SignSupportOut:
-    """Convert a SignSupport ORM object to the response schema."""
-    return SignSupportOut(
-        support_id=support.support_id,
-        tenant_id=support.tenant_id,
-        support_type=support.support_type,
-        support_material=support.support_material,
-        install_date=support.install_date,
-        condition_rating=support.condition_rating,
-        height_inches=float(support.height_inches) if support.height_inches is not None else None,
-        status=support.status,
-        notes=support.notes,
-        longitude=lon,
-        latitude=lat,
-        sign_count=sign_count,
-        created_at=support.created_at,
-        updated_at=support.updated_at,
-    )
 
 
 @router.get("", response_model=SignSupportListOut)
@@ -86,18 +67,13 @@ async def list_supports(
     if support_type:
         query = query.where(SignSupport.support_type == support_type)
 
-    # Count
-    count_query = select(func.count()).select_from(query.subquery())
-    total = (await db.execute(count_query)).scalar_one()
-
-    # Paginate
-    offset = (page - 1) * page_size
-    query = query.offset(offset).limit(page_size).order_by(SignSupport.created_at.desc())
-    result = await db.execute(query)
-    rows = result.all()
+    rows, total = await paginate(
+        db, query, page=page, page_size=page_size,
+        order_by=SignSupport.created_at.desc(),
+    )
 
     supports = [
-        _support_to_out(row.SignSupport, row.lon, row.lat, row.sign_count)
+        support_to_out(row.SignSupport, row.lon, row.lat, row.sign_count)
         for row in rows
     ]
 
@@ -175,7 +151,7 @@ async def get_support(
     signs_result = await db.execute(signs_query)
     sign_rows = signs_result.all()
 
-    signs_out = [_sign_to_out(sr.Sign, sr.lon, sr.lat) for sr in sign_rows]
+    signs_out = [sign_to_out(sr.Sign, sr.lon, sr.lat) for sr in sign_rows]
 
     return SignSupportDetailOut(
         support_id=support.support_id,
@@ -244,7 +220,7 @@ async def update_support(
     result = await db.execute(query)
     row = result.first()
 
-    return _support_to_out(row.SignSupport, row.lon, row.lat, row.sign_count)
+    return support_to_out(row.SignSupport, row.lon, row.lat, row.sign_count)
 
 
 @router.delete("/{support_id}", status_code=204)
@@ -280,6 +256,7 @@ async def delete_support(
         )
 
     await db.delete(support)
+    audit_log("delete", "sign_support", entity_id=support_id, tenant_id=tenant_id)
 
 
 @router.get("/{support_id}/signs", response_model=list[SignOut])
@@ -306,7 +283,7 @@ async def list_support_signs(
     result = await db.execute(query)
     rows = result.all()
 
-    return [_sign_to_out(row.Sign, row.lon, row.lat) for row in rows]
+    return [sign_to_out(row.Sign, row.lon, row.lat) for row in rows]
 
 
 @router.get("/{support_id}/work-orders", response_model=WorkOrderListOut)
@@ -427,6 +404,11 @@ async def import_supports_csv(
 
     result = await import_supports_from_csv(content, tenant_id, db)
 
+    audit_log(
+        "import", "sign_support", tenant_id=tenant_id,
+        details=f"csv={file.filename} rows={result.total_rows} created={result.created} skipped={result.skipped}",
+    )
+
     return SignImportOut(
         created=result.created,
         skipped=result.skipped,
@@ -449,47 +431,4 @@ async def import_supports_csv(
         support_groups=result.support_groups,
         signs_linked_to_supports=result.signs_linked_to_supports,
         support_column_mapping=result.support_column_mapping,
-    )
-
-
-def _sign_to_out(sign: Sign, lon: float, lat: float) -> SignOut:
-    """Convert a Sign ORM object to the response schema."""
-    return SignOut(
-        sign_id=sign.sign_id,
-        tenant_id=sign.tenant_id,
-        support_id=sign.support_id,
-        mutcd_code=sign.mutcd_code,
-        description=sign.description,
-        legend_text=sign.legend_text,
-        sign_category=sign.sign_category,
-        size_width_inches=sign.size_width_inches,
-        size_height_inches=sign.size_height_inches,
-        shape=sign.shape,
-        background_color=sign.background_color,
-        condition_rating=sign.condition_rating,
-        road_name=sign.road_name,
-        address=sign.address,
-        side_of_road=sign.side_of_road,
-        intersection_with=sign.intersection_with,
-        location_notes=sign.location_notes,
-        sheeting_type=sign.sheeting_type,
-        sheeting_manufacturer=sign.sheeting_manufacturer,
-        expected_life_years=sign.expected_life_years,
-        install_date=sign.install_date,
-        expected_replacement_date=sign.expected_replacement_date,
-        last_measured_date=sign.last_measured_date,
-        measured_value=sign.measured_value,
-        passes_minimum=sign.passes_minimum,
-        last_inspected_date=sign.last_inspected_date,
-        last_replaced_date=sign.last_replaced_date,
-        replacement_cost_estimate=sign.replacement_cost_estimate,
-        status=sign.status,
-        facing_direction=sign.facing_direction,
-        mount_height_inches=sign.mount_height_inches,
-        offset_from_road_inches=sign.offset_from_road_inches,
-        custom_fields=sign.custom_fields,
-        longitude=lon,
-        latitude=lat,
-        created_at=sign.created_at,
-        updated_at=sign.updated_at,
     )
