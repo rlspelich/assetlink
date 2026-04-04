@@ -1,0 +1,55 @@
+[project]
+name = "assetlink"
+version = "0.1.0"
+description = "Cloud-hosted SaaS platform for transportation and municipal infrastructure"
+requires-python = ">=3.12"
+dependencies = [
+    # Web framework
+    "fastapi>=0.115.6",
+    "uvicorn[standard]>=0.34.0",
+    "python-multipart>=0.0.18",
+    # Database
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "psycopg2-binary>=2.9.10",
+    "geoalchemy2>=0.15.2",
+    # Migrations
+    "alembic>=1.14.1",
+    # Validation / Settings
+    "pydantic>=2.10.4",
+    "pydantic-settings>=2.7.1",
+    "email-validator>=2.1.0",
+    # Auth (Clerk)
+    "fastapi-clerk-auth>=0.0.9",
+    "clerk-backend-api>=5.0.6",
+    "PyJWT>=2.12.1",
+    # Cloud Storage
+    "google-cloud-storage>=2.18.2",
+    # Redis
+    "redis>=5.2.1",
+    # GIS
+    "geopandas>=1.0.1",
+    "shapely>=2.0.6",
+    "pyproj>=3.7.0",
+    "fiona>=1.10.1",
+    # Reports
+    "jinja2>=3.1.4",
+    "weasyprint>=63.1",
+    # HTTP client
+    "httpx>=0.28.1",
+    # Scraping / file conversion
+    "beautifulsoup4>=4.12.3",
+    "openpyxl>=3.1.5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.6",
+    "black>=24.10.0",
+]
+
+[tool.uv]
+package = false

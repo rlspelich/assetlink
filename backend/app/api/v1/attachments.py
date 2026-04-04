@@ -152,7 +152,7 @@ async def list_attachments(
     )
 
 
-@router.get("/{attachment_id}")
+@router.get("/{attachment_id}", response_model=None)
 async def get_attachment(
     attachment_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant),

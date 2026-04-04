@@ -359,7 +359,7 @@ cloudsql://assetlink_user:pass@bucket6-2025-01:us-central1:optionsv2-db/assetlin
 - [x] Pricing engine (recency-weighted averages, inflation adjustment, regional factors)
 - [x] Confidence scoring (percentile rank vs historical distribution)
 - [x] Regional cost factors (all 50 states + DC, RSMeans-style multipliers)
-- [ ] Integration tests for estimator module
+- [x] Integration tests for estimator module (26 tests: pay item search, price history, price stats, confidence scoring, estimate CRUD, tenant isolation, regional factors, seeding)
 
 **Data models:**
 | Table | Type | Description |
