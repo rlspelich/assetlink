@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # --- Contract ---
@@ -237,6 +237,12 @@ class PayItemOut(BaseModel):
     is_special: bool
 
     model_config = {"from_attributes": True}
+
+    @field_validator("abbreviation", "unit", "division", "category", "subcategory", mode="before")
+    @classmethod
+    def _none_to_empty_string(cls, v: str | None) -> str:
+        # PayItem columns allow NULL in the DB (no nullable=False), but the API contract is str.
+        return v if v is not None else ""
 
 
 class PayItemListOut(BaseModel):

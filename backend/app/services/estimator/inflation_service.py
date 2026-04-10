@@ -16,7 +16,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.cost_index import CostIndex, CostIndexMapping
@@ -76,6 +76,26 @@ async def seed_cost_indices(db: AsyncSession) -> dict:
 
 async def seed_index_mappings(db: AsyncSession) -> dict:
     """Seed the cost_index_mapping table with division-to-index-source mappings."""
+    # Normalize any legacy NULL categories to '' so the unique constraint on
+    # (division, category) actually prevents duplicates. Postgres treats NULL as
+    # distinct, which previously allowed both a NULL and '' row per division.
+    await db.execute(
+        update(CostIndexMapping)
+        .where(CostIndexMapping.pay_item_category.is_(None))
+        .values(pay_item_category="")
+    )
+    # Drop any duplicate rows that now collide on (division, '') — keep the first.
+    await db.execute(
+        delete(CostIndexMapping).where(
+            CostIndexMapping.cost_index_mapping_id.notin_(
+                select(CostIndexMapping.cost_index_mapping_id)
+                .distinct(CostIndexMapping.pay_item_division, CostIndexMapping.pay_item_category)
+                .order_by(CostIndexMapping.pay_item_division, CostIndexMapping.pay_item_category, CostIndexMapping.cost_index_mapping_id)
+            )
+        )
+    )
+    await db.flush()
+
     mappings = [
         ("BITUMINOUS SURFACES AND HOT-MIX ASPHALT PAVEMENTS", "", "nhcci"),
         ("PORTLAND CEMENT CONCRETE PAVEMENTS AND SIDEWALKS", "", "nhcci"),
@@ -132,11 +152,11 @@ async def get_index_source_for_pay_item(
         return DEFAULT_INDEX_SOURCE
 
     result = await db.execute(
-        select(CostIndexMapping.index_source).where(
-            CostIndexMapping.pay_item_division == division,
-        )
+        select(CostIndexMapping.index_source)
+        .where(CostIndexMapping.pay_item_division == division)
+        .limit(1)
     )
-    source = result.scalar_one_or_none()
+    source = result.scalars().first()
     return source or DEFAULT_INDEX_SOURCE
 
 
