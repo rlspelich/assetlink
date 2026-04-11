@@ -6,7 +6,10 @@ services:
       POSTGRES_USER: assetlink
       POSTGRES_PASSWORD: assetlink_dev
     ports:
-      - "5432:5432"
+      # Host 55432 -> container 5432. 5432/5433 are used by native Postgres
+      # instances on this machine. Inside the docker network, other services
+      # still reach this DB as db:5432.
+      - "55432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

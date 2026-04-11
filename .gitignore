@@ -56,3 +56,6 @@ uploads/
 
 # Uploaded files (dev)
 uploads/
+
+# Local DB dumps pulled from remote Cloud SQL (large, never commit)
+data/dumps/
